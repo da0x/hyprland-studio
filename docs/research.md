@@ -11,7 +11,9 @@ and Clang 22.
 
 1. **Keybindings cannot be read from IPC under a Lua config.** Every Lua binding shows up
    in `hyprctl binds` as `dispatcher: "__lua"` with a meaningless number as its argument.
-   A keybinding browser for Lua users has to read the config itself.
+   A keybinding browser for Lua users has to read the config itself. Hyprland `main` has
+   since improved this partly (the dispatcher's name is shown, not its arguments); see
+   `docs/upstream.md`.
 2. **Reading the config means running it, safely.** The shipped example builds its
    bindings from variables and a `for` loop, so a parser alone cannot list them. We will
    run the config in our own sandboxed Lua 5.5 with a recording stand-in for `hl`. See

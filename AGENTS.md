@@ -36,6 +36,11 @@ interpreter, which runs nothing. See `docs/research.md`.
 any `hyprland.conf`, so creating one next to a working `.conf` changes which config
 Hyprland loads at the next reload. Only a migration the user asked for may do that.
 
+**The running compositor is reached only through IPC.** If the studio needs something
+IPC does not give, first ask whether IPC should give it to every client. If so, the fix
+belongs in Hyprland: record it in `docs/upstream.md`, and keep any workaround here
+small and pointing at that entry.
+
 **Live screens update from events.** Compositor state comes from Hyprland's event
 socket. Do not poll. If the socket drops, the screen says so and reconnects by itself,
 because a dead connection otherwise looks exactly like a quiet compositor.
@@ -69,3 +74,4 @@ because a dead connection otherwise looks exactly like a quiet compositor.
 
 - `docs/research.md`: what we know about Hyprland's config formats and IPC, and what is
   still open. Read it before touching the configuration or IPC code.
+- `docs/upstream.md`: gaps in Hyprland's IPC that should be fixed in Hyprland itself.
