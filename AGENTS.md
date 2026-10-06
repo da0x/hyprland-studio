@@ -27,6 +27,15 @@ cannot break someone's desktop, so it comes first. Writing to disk always goes t
 diff the user reviews, a timestamped backup, an atomic write, a reload and a check, with
 automatic rollback on failure.
 
+**Never start the user's programs by accident.** `Hyprland --verify-config` runs the
+whole config, including commands and file writes at its top level. Do not run it as a
+background check. Reading a config for display goes through the studio's own sandboxed
+interpreter, which runs nothing. See `docs/research.md`.
+
+**Never switch the user's config format.** A `hyprland.lua` on the config path wins over
+any `hyprland.conf`, so creating one next to a working `.conf` changes which config
+Hyprland loads at the next reload. Only a migration the user asked for may do that.
+
 **Live screens update from events.** Compositor state comes from Hyprland's event
 socket. Do not poll. If the socket drops, the screen says so and reconnects by itself,
 because a dead connection otherwise looks exactly like a quiet compositor.
