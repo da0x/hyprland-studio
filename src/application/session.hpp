@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "application/keybindings.hpp"
 #include "application/worker.hpp"
-#include "ipc/bindings.hpp"
 #include "ipc/events.hpp"
 #include "ipc/instance.hpp"
 
@@ -32,7 +32,7 @@ namespace application {
 
     struct Listeners {
         std::function<void(Connection, const std::string& reason)>                          connection;
-        std::function<void(const std::expected<std::vector<ipc::Binding>, std::string>&)> bindings;
+        std::function<void(const std::expected<Keybindings, std::string>&)>               keybindings;
     };
 
     // Keeps the studio's picture of the running Hyprland current. It listens on the event
@@ -50,7 +50,7 @@ namespace application {
         void                               connect();
         void                               lose(const std::string& reason);
         void                               readEvents();
-        void                               refreshBindings();
+        void                               refreshKeybindings();
 
         EventLoop                          loop;
         Listeners                          listeners;

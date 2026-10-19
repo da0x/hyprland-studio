@@ -47,7 +47,7 @@ namespace application {
 
         // Subscribed first, then the snapshot, so no change can fall between the two.
         listeners.connection(Connection::live, {});
-        refreshBindings();
+        refreshKeybindings();
     }
 
     void Session::lose(const std::string& reason) {
@@ -67,15 +67,23 @@ namespace application {
         }
 
         // A reload replaces every binding, and no event reports a single binding changing.
+        // Hyprland also reloads when a config file changes, so this re-reads the config too.
         if (std::ranges::any_of(*drained, [](const ipc::Event& event) { return event.name == "configreloaded"; }))
-            refreshBindings();
+            refreshKeybindings();
     }
 
-    void Session::refreshBindings() {
+    void Session::refreshKeybindings() {
         worker.post([this, instance = *instance]() -> Worker::Continuation {
             const auto reply = ipc::request(instance, ipc::Query::bindings);
-            auto       parsed = reply ? ipc::parseBindings(*reply) : std::expected<std::vector<ipc::Binding>, std::string>{std::unexpect, reply.error()};
-            return [this, parsed = std::move(parsed)] { listeners.bindings(parsed); };
+            auto       live  = reply ? ipc::parseBindings(*reply) : std::expected<std::vector<ipc::Binding>, std::string>{std::unexpect, reply.error()};
+
+            std::expected<Keybindings, std::string> keybindings{std::unexpect, live ? std::string{} : live.error()};
+            if (live) {
+                const auto file      = configuration::activeConfig();
+                const auto recording = file ? configuration::record(*file) : std::expected<configuration::Recording, std::string>{std::unexpect, file.error()};
+                keybindings          = joinKeybindings(std::move(*live), recording);
+            }
+            return [this, keybindings = std::move(keybindings)] { listeners.keybindings(keybindings); };
         });
     }
 

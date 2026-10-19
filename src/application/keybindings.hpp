@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+#pragma once
+
+#include "configuration/bindings.hpp"
+#include "configuration/recording.hpp"
+#include "ipc/bindings.hpp"
+
+#include <expected>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace application {
+
+    // One active binding, and the line of the config that made it when the studio found one.
+    struct KeybindingRow {
+        ipc::Binding                          live;
+        std::optional<configuration::Binding> recorded;
+    };
+
+    // What the Keybindings page shows: Hyprland says which bindings are active; the config
+    // says what each one does and where it was set.
+    struct Keybindings {
+        std::vector<KeybindingRow>          rows;
+
+        // Made by the config but not active in Hyprland. Usually the config changed and
+        // Hyprland has not reloaded it, or a later call replaced or removed the binding.
+        std::vector<configuration::Binding> inactive;
+
+        // Why the config could not be read, or where reading it stopped. Empty when it was
+        // read to the end.
+        std::string                         configurationProblem;
+    };
+
+    // Pairs each active binding with the first binding the config made for the same keys
+    // and submap that is not already taken, so duplicates pair up in order.
+    [[nodiscard]] Keybindings joinKeybindings(std::vector<ipc::Binding> live, const std::expected<configuration::Recording, std::string>& recording);
+
+}

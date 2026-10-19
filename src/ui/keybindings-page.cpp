@@ -1,0 +1,153 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+#include "ui/keybindings-page.hpp"
+
+#include <algorithm>
+#include <array>
+#include <format>
+#include <string_view>
+#include <utility>
+
+namespace ui {
+
+    namespace {
+
+        using Hyprtoolkit::CDynamicSize;
+        using Hyprtoolkit::CFontSize;
+        using Hyprutils::Memory::CSharedPointer;
+
+        // Hyprland names mouse buttons by their Linux input codes.
+        std::string keyName(const std::string& key) {
+            constexpr std::array names{
+                std::pair{std::string_view{"mouse:272"}, std::string_view{"left button"}},
+                std::pair{std::string_view{"mouse:273"}, std::string_view{"right button"}},
+                std::pair{std::string_view{"mouse:274"}, std::string_view{"middle button"}},
+                std::pair{std::string_view{"mouse_down"}, std::string_view{"wheel down"}},
+                std::pair{std::string_view{"mouse_up"}, std::string_view{"wheel up"}},
+            };
+            const auto found = std::ranges::find(names, std::string_view{key}, &std::pair<std::string_view, std::string_view>::first);
+            return found != names.end() ? std::string{found->second} : key;
+        }
+
+        std::string action(const application::KeybindingRow& row) {
+            if (!row.live.description.empty())
+                return row.live.description;
+            if (row.recorded)
+                return row.recorded->description.empty() ? row.recorded->action.lua() : row.recorded->description;
+            // Under Lua, Hyprland reports no action at all, only an internal number.
+            if (row.live.fromLua())
+                return {};
+            return row.live.argument.empty() ? row.live.dispatcher : std::format("{} {}", row.live.dispatcher, row.live.argument);
+        }
+
+        struct Flags {
+            std::string_view submap;
+            bool             release      = false;
+            bool             repeat       = false;
+            bool             longPress    = false;
+            bool             locked       = false;
+            bool             nonConsuming = false;
+        };
+
+        // Where the binding was set, then anything unusual about it.
+        std::string notes(const std::optional<configuration::Location>& location, const Flags& flags) {
+            std::string text = location ? location->brief() : std::string{};
+            const auto  add  = [&text](bool set, std::string_view note) {
+                if (!set)
+                    return;
+                if (!text.empty())
+                    text += ", ";
+                text += note;
+            };
+            add(!flags.submap.empty(), std::format("submap {}", flags.submap));
+            add(flags.release, "on release");
+            add(flags.repeat, "repeats");
+            add(flags.longPress, "long press");
+            add(flags.locked, "also when locked");
+            add(flags.nonConsuming, "passes the key on");
+            return text;
+        }
+
+    }
+
+    KeybindingsPage::KeybindingsPage(CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer) :
+        palette{std::move(palette)}, list{this->palette, std::move(defer)} {
+        const auto text = [p = this->palette] { return p->m_colors.text; };
+
+        root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
+        root->setMargin(20);
+
+        root->addChild(Hyprtoolkit::CTextBuilder::begin()->text("Keybindings")->fontSize(CFontSize{CFontSize::HT_FONT_H1})->color(text)->commence());
+
+        status = Hyprtoolkit::CTextBuilder::begin()->text("Connecting to Hyprland.")->noEllipsize(true)->color(text)->a(0.7F)->commence();
+        root->addChild(status);
+
+        // An empty text is laid out as nothing, so "nothing to say" is a space.
+        luaNote = Hyprtoolkit::CTextBuilder::begin()->text(" ")->noEllipsize(true)->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
+        root->addChild(luaNote);
+
+        root->addChild(list.element());
+        list.setRows({RowList::Row{.keys = {}, .action = "Reading your keybindings.", .notes = {}}});
+    }
+
+    void KeybindingsPage::showConnection(application::Connection connection, const std::string& reason) {
+        this->connection = connection;
+        connectionReason = reason;
+        updateStatus();
+    }
+
+    void KeybindingsPage::showKeybindings(const std::expected<application::Keybindings, std::string>& keybindings) {
+        if (!keybindings) {
+            bindingsError = keybindings.error();
+            updateStatus();
+            return;
+        }
+        bindingsError.clear();
+        configurationProblem = keybindings->configurationProblem;
+        count                = keybindings->rows.size();
+        inactive             = keybindings->inactive.size();
+
+        const auto unexplained = std::ranges::count_if(keybindings->rows, [](const auto& row) { return row.live.fromLua() && !row.recorded && row.live.description.empty(); });
+        luaNote->setText(unexplained == 0 ? std::string{" "}
+                                          : std::format("Hyprland does not report what a Lua binding does, and {} of these could not be found in your config.", unexplained));
+
+        std::vector<RowList::Row> rows;
+        for (const auto& row : keybindings->rows) {
+            const auto& live = row.live;
+            rows.push_back(RowList::Row{
+                .keys   = live.modifiers.with(keyName(live.key)),
+                .action = action(row),
+                .notes  = notes(row.recorded ? std::optional{row.recorded->location} : std::nullopt,
+                                Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming}),
+            });
+        }
+        for (const auto& binding : keybindings->inactive) {
+            auto text = notes(binding.location, Flags{.submap = binding.submap, .release = binding.release, .repeat = binding.repeat, .longPress = binding.longPress, .locked = binding.locked, .nonConsuming = binding.nonConsuming});
+            rows.push_back(RowList::Row{
+                .keys   = binding.modifiers.with(keyName(binding.key)),
+                .action = binding.description.empty() ? binding.action.lua() : binding.description,
+                .notes  = std::format("not active, {}", text),
+            });
+        }
+        list.setRows(std::move(rows));
+        updateStatus();
+    }
+
+    void KeybindingsPage::updateStatus() {
+        std::string text;
+        switch (connection) {
+            case application::Connection::connecting: text = "Connecting to Hyprland."; break;
+            case application::Connection::live: text = std::format("{} bindings, live from Hyprland.", count); break;
+            case application::Connection::lost:
+                text = std::format("Not connected to Hyprland: {}. Trying again; the list below may be out of date.", connectionReason);
+                break;
+        }
+        if (inactive != 0)
+            text += std::format(" {} more in your config are not active.", inactive);
+        if (!configurationProblem.empty())
+            text += std::format(" Your config: {}.", configurationProblem);
+        if (!bindingsError.empty())
+            text += std::format(" Could not read the bindings: {}.", bindingsError);
+        status->setText(std::move(text));
+    }
+
+}
