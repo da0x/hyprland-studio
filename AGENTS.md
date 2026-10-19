@@ -20,10 +20,21 @@ system?":
   autostart entries, shell startup lines or theme settings on its own.
 - Every change it makes goes into a readable log, with a way to undo it.
 - It does not ship its own replacements for programs the Linux desktop already has.
+- It never makes the final decision. It reports, explains the options and what each
+  would change, and may recommend one; the user chooses. Nothing is fixed automatically,
+  not even a keybinding conflict.
+- It leaves nothing behind. What it writes into the user's config is plain Hyprland
+  configuration: no markers, no sidecar files, no `require` lines of its own, so the config
+  works the same once the studio is gone. Everything it keeps for itself lives in
+  `~/.config/hyprland-studio/`, which the app can remove on request. Uninstalling the
+  package and deleting that folder must leave the system exactly as the user's own
+  choices made it.
 
-**The user's config file is the source of truth.** The studio never stores settings of
-its own, never keeps a private copy of the config, and never asks the user to migrate to
-anything. Someone who uninstalls it must be left with a config that works and reads the
+**The user's config file is the source of truth.** The studio never stores Hyprland
+settings anywhere else, never keeps a private copy of the config, and never asks the user
+to migrate to anything. The only file it keeps is its own UI settings (window size, last
+page) in `~/.config/hyprland-studio/`, through `QSettings`. Anything else it would write
+needs an entry in the README's *What it reads and writes* first. Someone who uninstalls it must be left with a config that works and reads the
 way they wrote it.
 
 **Edits are lossless.** A change replaces exactly the bytes of the value that changed.
@@ -61,6 +72,19 @@ because a dead connection otherwise looks exactly like a quiet compositor.
 
 ## Code
 
+- **GPL-3.0-or-later.** Every source, header, CMake and script file starts with
+  `SPDX-License-Identifier: GPL-3.0-or-later` in a comment, and CI checks it. Code from
+  elsewhere comes in only under a GPL-compatible license, with its own notice kept
+  (Hyprland's example config and stubs, for instance, are BSD-3-Clause).
+- **Packageable as is.** A distribution, Arch Linux first, must be able to package any
+  release with no patches. So the build respects the packager's flags: it works with
+  `CMAKE_BUILD_TYPE=None`, adds no `-O` or `-march` of its own, and turns warnings into
+  errors only when CI asks (`HYPRLAND_STUDIO_WARNINGS_AS_ERRORS`, off by default). It
+  installs with `GNUInstallDirs` under any prefix and `DESTDIR`, downloads nothing during
+  configure or build (no `FetchContent`), bundles no copy of a system library, runs its
+  tests offline with `ctest`, and embeds no timestamps (`SOURCE_DATE_EPOCH` if one is ever
+  needed). Releases are signed git tags that are never moved. The app ships a desktop
+  file, AppStream metainfo and hicolor icons.
 - **Mainstream libraries only.** Qt 6, KDE's LayerShellQt if a layer surface is needed,
   tree-sitter, Lua, and the C++ standard library: things every major distribution
   packages. No personal or niche libraries, so the studio builds from distribution

@@ -344,6 +344,37 @@ What this means for our plan:
 HyprMod is the nearest project. What sets us apart: native, live-first, an option
 catalogue read from the installed Hyprland, and edits made in the user's own file.
 
+## What can we learn from Noctalia?
+
+[Noctalia](https://github.com/noctalia-dev/noctalia) (MIT, about 11k stars, in Arch's
+`[extra]`) is a Wayland shell: bar, dock, launcher, notifications, lock screen, wallpaper
+and a settings UI. Version 5 is native C++ on Wayland and OpenGL ES with no Qt or GTK; the
+older version 4 was built on Quickshell. Checked on 2026-10-19 from its repository and
+documentation at https://docs.noctalia.dev; no code was copied.
+
+What it does well, and we follow:
+- It talks to Hyprland's sockets directly, never through `hyprctl`: one long-lived event
+  connection, and a short connection per request with a timeout
+  (`src/compositors/hyprland/`).
+- It asks `j/status` whether the config is Lua or legacy, and writes dispatches in the
+  matching syntax.
+- It refreshes its state fully on `configreloaded`.
+- It sends no `keyword` and no `eval`, and never writes Hyprland's config. The user adds
+  its autostart line and suggested bindings by hand, from its documentation.
+- Its settings UI writes a separate override file, never the user's own settings file, and
+  drops overrides equal to what is underneath.
+
+Where it goes further than we will:
+- Optional theme templates add includes to other programs' configs (`gtk.css`, terminal
+  configs) and create configs where none exist. Turning a template off removes its include.
+- It can set the desktop's light or dark preference (`color-scheme`) to match its theme.
+- Uninstalling leaves `~/.local/state/noctalia`, `~/.cache/noctalia` and generated theme
+  files to delete by hand, and its uninstall page does not list the generated files.
+- Plugins are trusted code with no sandbox.
+
+So the difference to highlight is cleanup: Hyprland Studio keeps everything it owns in
+one folder and can remove it, and writes nothing into other programs' configs.
+
 ## Can the project be called "Hyprland Studio"?
 
 **Unresolved, and needs a decision.** The hypr.land footer says: "The name "Hyprland" and
