@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <format>
 #include <string_view>
 #include <utility>
@@ -67,10 +68,31 @@ namespace ui {
             return text;
         }
 
+        // The path the way a person would write it: under their home folder, starting with ~.
+        std::string shortPath(const std::filesystem::path& path) {
+            const char* home = std::getenv("HOME");
+            if (home == nullptr || *home == '\0')
+                return path.string();
+            const auto relative = path.lexically_relative(home);
+            if (relative.empty() || relative.native().starts_with(".."))
+                return path.string();
+            return (std::filesystem::path{"~"} / relative).string();
+        }
+
+        constexpr double rowHeight   = 28;
+        constexpr double keysWidth   = 300;
+        constexpr double notesWidth  = 260;
+
     }
 
     KeybindingsPage::KeybindingsPage(CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer) :
-        palette{std::move(palette)}, list{this->palette, std::move(defer)} {
+        palette{std::move(palette)},
+        defer{defer},
+        list{this->palette, defer,
+             {RowList::Column{.width = keysWidth, .monospace = true, .secondary = false, .markup = false}, RowList::Column{.width = 0, .monospace = false, .secondary = false, .markup = false},
+              RowList::Column{.width = notesWidth, .monospace = false, .secondary = true, .markup = false}},
+             rowHeight},
+        sourceView{this->palette, defer} {
         const auto text = [p = this->palette] { return p->m_colors.text; };
 
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
@@ -85,8 +107,90 @@ namespace ui {
         luaNote = Hyprtoolkit::CTextBuilder::begin()->text(" ")->noEllipsize(true)->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
         root->addChild(luaNote);
 
-        root->addChild(list.element());
-        list.setRows({RowList::Row{.keys = {}, .action = "Reading your keybindings.", .notes = {}}});
+        // The switch, then one button per config file while the source is showing.
+        const auto toolbar = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})->commence();
+        switchButton       = Hyprtoolkit::CButtonBuilder::begin()
+                           ->label("Show source")
+                           ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {130.0, 30.0}})
+                           ->onMainClick([this](CSharedPointer<Hyprtoolkit::CButtonElement>) {
+                               if (openFile)
+                                   showList();
+                               else if (!sources.empty())
+                                   showSource(sources.front().path, 0, true);
+                           })
+                           ->commence();
+        fileButtons = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})->commence();
+        fileButtons->setGrow(true, false);
+        toolbar->addChild(switchButton);
+        toolbar->addChild(fileButtons);
+        root->addChild(toolbar);
+
+        caption = Hyprtoolkit::CTextBuilder::begin()->text(" ")->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
+
+        // Holds the list or the source; its height is what is left.
+        body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
+        body->setGrow(false, true);
+        root->addChild(body);
+
+        list.setClicked([this](std::size_t row) {
+            if (row < rowLocations.size() && rowLocations[row])
+                showSource(rowLocations[row]->file, rowLocations[row]->line, true);
+        });
+        list.setRows({RowList::Row{.cells = {{}, "Reading your keybindings.", {}}}});
+        showList();
+    }
+
+    void KeybindingsPage::showList() {
+        openFile.reset();
+        markedLine = 0;
+        switchButton->setLabel("Show source");
+        body->clearChildren();
+        body->addChild(list.element());
+        updateFileButtons();
+    }
+
+    const application::SourceFile* KeybindingsPage::source(const std::filesystem::path& file) const {
+        const auto found = std::ranges::find(sources, file, &application::SourceFile::path);
+        return found != sources.end() ? &*found : nullptr;
+    }
+
+    void KeybindingsPage::showSource(const std::filesystem::path& file, int line, bool jump) {
+        const auto* shown = source(file);
+        if (shown == nullptr)
+            return;
+        const bool wasList = !openFile;
+        openFile           = file;
+        markedLine         = line;
+        sourceView.show(*shown, line, jump);
+        caption->setText(escapeMarkup(line > 0 ? std::format("{}, line {}. What is on disk now; Hyprland may have loaded an older version.", shortPath(file), line)
+                                               : std::format("{}. What is on disk now; Hyprland may have loaded an older version.", shortPath(file))));
+        if (wasList) {
+            switchButton->setLabel("Show list");
+            body->clearChildren();
+            body->addChild(caption);
+            body->addChild(sourceView.element());
+        }
+        updateFileButtons();
+    }
+
+    void KeybindingsPage::updateFileButtons() {
+        fileButtons->clearChildren();
+        if (!openFile || sources.empty())
+            return;
+        const auto folder = sources.front().path.parent_path();
+        for (const auto& file : sources) {
+            auto label = file.path.lexically_relative(folder).string();
+            if (file.path == *openFile)
+                label = std::format("[ {} ]", label);
+            fileButtons->addChild(Hyprtoolkit::CButtonBuilder::begin()
+                                      ->label(std::move(label))
+                                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})
+                                      ->onMainClick([this, path = file.path](CSharedPointer<Hyprtoolkit::CButtonElement>) {
+                                          // Showing a file replaces this button, so not from inside its handler.
+                                          defer([this, path] { showSource(path, 0, true); });
+                                      })
+                                      ->commence());
+        }
     }
 
     void KeybindingsPage::showConnection(application::Connection connection, const std::string& reason) {
@@ -111,24 +215,36 @@ namespace ui {
                                           : std::format("Hyprland does not report what a Lua binding does, and {} of these could not be found in your config.", unexplained));
 
         std::vector<RowList::Row> rows;
+        rowLocations.clear();
         for (const auto& row : keybindings->rows) {
-            const auto& live = row.live;
-            rows.push_back(RowList::Row{
-                .keys   = live.modifiers.with(keyName(live.key)),
-                .action = action(row),
-                .notes  = notes(row.recorded ? std::optional{row.recorded->location} : std::nullopt,
-                                Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming}),
-            });
+            const auto& live     = row.live;
+            const auto  location = row.recorded ? std::optional{row.recorded->location} : std::nullopt;
+            rows.push_back(RowList::Row{.cells = {
+                                            live.modifiers.with(keyName(live.key)),
+                                            action(row),
+                                            notes(location, Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming}),
+                                        }});
+            rowLocations.push_back(location);
         }
         for (const auto& binding : keybindings->inactive) {
             auto text = notes(binding.location, Flags{.submap = binding.submap, .release = binding.release, .repeat = binding.repeat, .longPress = binding.longPress, .locked = binding.locked, .nonConsuming = binding.nonConsuming});
-            rows.push_back(RowList::Row{
-                .keys   = binding.modifiers.with(keyName(binding.key)),
-                .action = binding.description.empty() ? binding.action.lua() : binding.description,
-                .notes  = std::format("not active, {}", text),
-            });
+            rows.push_back(RowList::Row{.cells = {
+                                            binding.modifiers.with(keyName(binding.key)),
+                                            binding.description.empty() ? binding.action.lua() : binding.description,
+                                            std::format("not active, {}", text),
+                                        }});
+            rowLocations.emplace_back(binding.location);
         }
         list.setRows(std::move(rows));
+
+        // The source view follows the files on disk, staying where it was.
+        sources = keybindings->sources;
+        if (openFile) {
+            if (source(*openFile) != nullptr)
+                showSource(*openFile, markedLine, false);
+            else
+                showList();
+        }
         updateStatus();
     }
 
@@ -147,7 +263,7 @@ namespace ui {
             text += std::format(" Your config: {}.", configurationProblem);
         if (!bindingsError.empty())
             text += std::format(" Could not read the bindings: {}.", bindingsError);
-        status->setText(std::move(text));
+        status->setText(escapeMarkup(text));
     }
 
 }
