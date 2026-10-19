@@ -6,6 +6,21 @@ same change.
 
 ## The rules that shape everything else
 
+**The mission is to enhance Hyprland in the least intrusive way possible.** This rule
+outranks every feature. The studio must never leave a user asking "what did it do to my
+system?":
+
+- It never installs a package, never runs `sudo`, and never asks for a password.
+- When an outside program would help (a status bar, a dock, a notification daemon), it
+  prefers an existing, widely packaged open-source one, such as Waybar. It names the
+  program, links its upstream, explains why, and shows the exact install command for the
+  user to run themselves.
+- It writes only files the user approved in a reviewed diff. It never replaces a symbolic
+  link with a real file, never moves or deletes the user's files, and never adds
+  autostart entries, shell startup lines or theme settings on its own.
+- Every change it makes goes into a readable log, with a way to undo it.
+- It does not ship its own replacements for programs the Linux desktop already has.
+
 **The user's config file is the source of truth.** The studio never stores settings of
 its own, never keeps a private copy of the config, and never asks the user to migrate to
 anything. Someone who uninstalls it must be left with a config that works and reads the
@@ -46,6 +61,10 @@ because a dead connection otherwise looks exactly like a quiet compositor.
 
 ## Code
 
+- **Mainstream libraries only.** Qt 6, KDE's LayerShellQt if a layer surface is needed,
+  tree-sitter, Lua, and the C++ standard library: things every major distribution
+  packages. No personal or niche libraries, so the studio builds from distribution
+  packages alone and stays easy to package.
 - **The latest C++ standard the shipping compilers support**, currently C++26. Modern
   code only: no raw `new` or `delete`, no C-style casts or arrays, no macros where a
   `constexpr` or a template will do. Use `std::expected` for errors, ranges, `std::format`,
