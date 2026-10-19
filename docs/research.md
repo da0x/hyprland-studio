@@ -39,6 +39,22 @@ The config path is chosen in this order (`src/config/supplementary/jeremy/Jeremy
 5. `hyprland.conf` found on the XDG config path;
 6. otherwise a new `hyprland.lua` with the default config.
 
+The search path is `$XDG_CONFIG_HOME` (only if absolute), `~/.config` (only if `HOME` is
+absolute), each folder of `$XDG_CONFIG_DIRS`, then `/etc/xdg`, each with `hypr/` added
+(hyprutils' `Path::findConfig`). A `--config` path is resolved against Hyprland's working
+folder with links followed (`src/main.cpp:120-145`); the other paths are used as found.
+
+**Hyprland chooses once, at startup.** The path is cached, and only safe mode ending or
+`hyprctl reload full-reset` chooses again (`Jeremy.cpp:15`, `src/debug/HyprCtl.cpp:1267`).
+So the studio follows the same rule with what the running Hyprland was started with: its
+process ID is the first line of `hyprland.lock` in the instance folder, followed by the
+Wayland socket name (`src/Compositor.cpp:765-772`), and its command line, starting
+environment and working folder are in `/proc/<pid>/`. Files created or removed since
+startup can make the answer differ, which `configProvider` in `hyprctl -j status` (`lua`
+or `hyprlang`) partly catches. After a crash, `--safe-mode` runs `recoverycfg.lua` from the
+instance folder until the user loads their config from Hyprland's dialog, and nothing
+reports which of the two is running.
+
 So **a `hyprland.lua` anywhere on the search path beats any `hyprland.conf`.** The studio
 must never create a `hyprland.lua` next to a working `hyprland.conf` by accident. Doing
 that switches the user's desktop to a different config at the next reload.

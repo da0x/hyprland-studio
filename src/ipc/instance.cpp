@@ -16,7 +16,7 @@ namespace ipc {
             return std::unexpected{"XDG_RUNTIME_DIR is not set"};
 
         const auto folder = std::filesystem::path{runtime} / "hypr" / signature;
-        return Instance{.requestSocket = folder / ".socket.sock", .eventSocket = folder / ".socket2.sock"};
+        return Instance{.folder = folder, .requestSocket = folder / ".socket.sock", .eventSocket = folder / ".socket2.sock"};
     }
 
 }

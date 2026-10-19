@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "application/session.hpp"
 
+#include "application/loaded-config.hpp"
 #include "ipc/request.hpp"
 
 #include <algorithm>
@@ -79,15 +80,16 @@ namespace application {
 
             std::expected<Keybindings, std::string> keybindings{std::unexpect, live ? std::string{} : live.error()};
             if (live) {
-                const auto file      = configuration::activeConfig();
-                const auto recording = file ? configuration::record(*file) : std::expected<configuration::Recording, std::string>{std::unexpect, file.error()};
+                const auto loaded    = findLoadedConfig(instance);
+                const auto recording = loaded.config ? configuration::record(loaded.config->file) : std::expected<configuration::Recording, std::string>{std::unexpect, loaded.config.error()};
                 keybindings          = joinKeybindings(std::move(*live), recording);
+                keybindings->configurationDoubts = loaded.doubts;
 
                 // The main file even when reading the config failed, since that is when
                 // seeing it helps most.
                 std::vector<std::filesystem::path> paths;
-                if (file)
-                    paths.push_back(std::filesystem::absolute(*file).lexically_normal());
+                if (loaded.config)
+                    paths.push_back(std::filesystem::absolute(loaded.config->file).lexically_normal());
                 if (recording)
                     for (const auto& path : recording->files)
                         if (!std::ranges::contains(paths, path))

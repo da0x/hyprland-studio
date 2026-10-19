@@ -32,6 +32,9 @@ namespace application {
         // read to the end.
         std::string                         configurationProblem;
 
+        // What the studio could not be sure of about which config Hyprland loaded.
+        std::vector<std::string>            configurationDoubts;
+
         // Every file the config loaded, main file first, as it was when the bindings were read.
         std::vector<SourceFile>             sources;
     };

@@ -13,6 +13,7 @@ namespace ipc {
     // the activation layer and does not go through this function.
     enum class Query {
         bindings,
+        status,
     };
 
     // Sends one query and waits for the whole JSON reply. Blocks, so never call it on the

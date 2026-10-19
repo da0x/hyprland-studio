@@ -18,6 +18,7 @@ namespace ipc {
         std::string_view command(Query query) {
             switch (query) {
                 case Query::bindings: return "j/binds";
+                case Query::status: return "j/status";
             }
             return {};
         }

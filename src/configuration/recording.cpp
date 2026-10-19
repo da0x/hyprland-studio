@@ -108,17 +108,6 @@ namespace configuration {
 
     }
 
-    std::expected<std::filesystem::path, std::string> activeConfig() {
-        const char*           configHome = std::getenv("XDG_CONFIG_HOME");
-        std::filesystem::path folder     = configHome != nullptr && *configHome != '\0' ? std::filesystem::path{configHome} : homeFolder() / ".config";
-        auto                  file       = folder / "hypr" / "hyprland.lua";
-
-        std::error_code       error;
-        if (!std::filesystem::exists(file, error))
-            return std::unexpected{std::format("there is no {}, so this Hyprland reads a hyprland.conf, which the studio does not read yet", file.string())};
-        return file;
-    }
-
     std::expected<Recording, std::string> record(const std::filesystem::path& mainFile) {
         auto state = lua::State::create(lua::Limits{});
         if (!state)

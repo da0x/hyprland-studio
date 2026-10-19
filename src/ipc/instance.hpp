@@ -7,8 +7,9 @@
 
 namespace ipc {
 
-    // The two sockets of one running Hyprland.
+    // The two sockets of one running Hyprland, in its own runtime folder.
     struct Instance {
+        std::filesystem::path folder;
         std::filesystem::path requestSocket;
         std::filesystem::path eventSocket;
     };

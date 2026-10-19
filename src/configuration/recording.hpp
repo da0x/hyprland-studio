@@ -47,9 +47,6 @@ namespace configuration {
         std::optional<Failure>             failure;
     };
 
-    // The Lua config Hyprland would load for this user, if there is one.
-    [[nodiscard]] std::expected<std::filesystem::path, std::string> activeConfig();
-
     // Runs the config in the sandboxed recording interpreter. Nothing it does takes
     // effect. An error here means the interpreter itself could not run; a config that
     // fails is a Recording with a failure.

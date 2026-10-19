@@ -207,6 +207,7 @@ namespace ui {
         }
         bindingsError.clear();
         configurationProblem = keybindings->configurationProblem;
+        configurationDoubts  = keybindings->configurationDoubts;
         count                = keybindings->rows.size();
         inactive             = keybindings->inactive.size();
 
@@ -261,6 +262,8 @@ namespace ui {
             text += std::format(" {} more in your config are not active.", inactive);
         if (!configurationProblem.empty())
             text += std::format(" Your config: {}.", configurationProblem);
+        for (const auto& doubt : configurationDoubts)
+            text += std::format(" {}", doubt);
         if (!bindingsError.empty())
             text += std::format(" Could not read the bindings: {}.", bindingsError);
         status->setText(escapeMarkup(text));

@@ -66,6 +66,7 @@ namespace ui {
         std::string                                                          connectionReason;
         std::string                                                          bindingsError;
         std::string                                                          configurationProblem;
+        std::vector<std::string>                                             configurationDoubts;
         std::size_t                                                          count    = 0;
         std::size_t                                                          inactive = 0;
     };
