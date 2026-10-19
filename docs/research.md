@@ -142,6 +142,37 @@ registers, by comparing the recorded bindings with `hyprctl binds` on a test ins
 literals in the source can be edited by replacing those bytes. A value that came from a
 variable or a loop is shown read-only, pointing at the line that produced it.
 
+## What does a real, distributed config look like?
+
+Checked on 2026-10-18 against the ML4W dotfiles (the `com.ml4w.dotfiles.stable` package
+for Hyprland 0.56), installed on the development machine. A good stress test, because a
+popular dotfiles distribution is what many users actually run.
+
+- **76 Lua files.** `hyprland.lua` only `require`s others, about 20 of them in `conf/`,
+  each with a folder of alternatives (`conf/animations/`, `conf/decorations/` and so on).
+- **The files loaded depend on a variable.** `conf/keybinding.lua` sets
+  `local name = "default.lua"` and calls `load_variant(name, "keybindings")`, a global
+  function from `functions.lua` that builds the module name and calls `require`. A
+  reader that only follows literal `require("...")` calls misses most of the config.
+  The recording interpreter follows it, because it runs the code.
+- **The config reads files at load time.** `hyprland.lua` uses `io.open` to check whether
+  `custom.lua` exists, and the keybinding file parses `input.lua` with `io.open` and
+  `f:read` to pick workspace keys for AZERTY layouts. Four files use `io` or `os`. So the
+  interpreter's sandbox cannot simply remove `io`: it needs read-only file access inside
+  the config folder, and `os.getenv`, with writes and process starts stubbed out.
+- **Some files are generated.** `colors.lua` is rewritten by a theme tool (matugen) when
+  the wallpaper changes. The studio should show such values read-only, or its edits will
+  be overwritten. How to detect a generated file is open: a header comment, a known tool,
+  or the file changing without the studio.
+- **It loads HyprMod's file too.** The last line is `require("hyprland-gui")`, HyprMod's
+  sidecar file, shipped empty. A distribution has already adopted the sidecar approach.
+- **Every binding has a `description`.** That is the only part of a Lua binding the
+  running Hyprland reports back, so well-described configs show up readably even without
+  the interpreter.
+- **The whole config folder is a link.** `~/.config/hypr` points into
+  `~/.mydotfiles/com.ml4w.dotfiles.stable/.config/hypr`. The studio has to follow it when
+  reading and write through it, never replace the link with a real folder.
+
 ## How do we edit a Lua file without losing anything?
 
 **Use tree-sitter with the tree-sitter-lua grammar.** The canonical grammar is

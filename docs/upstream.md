@@ -1,4 +1,4 @@
-# Upstream
+# Gaps in Hyprland's IPC
 
 Hyprland Studio talks to the running compositor only through Hyprland's IPC:
 
@@ -6,20 +6,16 @@ Hyprland Studio talks to the running compositor only through Hyprland's IPC:
 Hyprland  →  IPC (request socket, event socket)  →  Hyprland Studio
 ```
 
-When the studio needs something IPC does not give, the first question is whether IPC
-should give it, for every client and not only for us. If yes, the fix belongs in
-Hyprland. A workaround in the studio is temporary and points to the entry here.
+Hyprland Studio is independent of the Hyprland project. When the studio needs something
+IPC does not give, it works around the gap itself, in one place: the studio's IPC layer.
 
-This file lists those gaps. Each entry says what is wrong, where in Hyprland's source,
-and what a fix could look like. References are to Hyprland `main` at `19fb395d`
-(2026-10-04), where IPC lives in `src/ipc/s1/` (requests) and `src/ipc/s2/` (events).
+This file lists those gaps, so the workarounds stay small and visible, and so anyone who
+wants to fix them in Hyprland has the details. Each entry says what is wrong, where in
+Hyprland's source, and what a fix could look like. References are to Hyprland `main` at
+`19fb395d` (2026-10-04), where IPC lives in `src/ipc/s1/` (requests) and `src/ipc/s2/`
+(events).
 
-Contributing to Hyprland has its own rules. Contributors must be vouched before opening
-a pull request, and any use of AI must be disclosed in detail. See
-https://github.com/hyprwm/.github/blob/main/policies/AI_USAGE.md and the contributing
-pages on the Hyprland wiki.
-
-## Candidates, most ready first
+## Gaps, smallest fix first
 
 ### `getoption` returns invalid JSON for some string values
 

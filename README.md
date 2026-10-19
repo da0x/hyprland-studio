@@ -36,8 +36,9 @@ There is nothing to build yet.
 4. **0.4, save.** Write what you tried back to your config: diff, backup, atomic write,
    reload, automatic rollback on failure.
 
-After that: an editable monitor layout, keybinding and window-rule editors, an animation
-and bezier editor, and support for the older `hyprland.conf` format.
+After that: a status bar and a dock built on the same live model as the runtime tree,
+an editable monitor layout, keybinding and window-rule editors, an animation and bezier
+editor, and support for the older `hyprland.conf` format.
 
 ## Building
 
