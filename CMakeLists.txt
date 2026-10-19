@@ -19,3 +19,8 @@ if(HYPRLAND_STUDIO_WARNINGS_AS_ERRORS)
 endif()
 
 add_subdirectory(src)
+
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
