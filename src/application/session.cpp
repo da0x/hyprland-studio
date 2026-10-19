@@ -82,6 +82,18 @@ namespace application {
                 const auto file      = configuration::activeConfig();
                 const auto recording = file ? configuration::record(*file) : std::expected<configuration::Recording, std::string>{std::unexpect, file.error()};
                 keybindings          = joinKeybindings(std::move(*live), recording);
+
+                // The main file even when reading the config failed, since that is when
+                // seeing it helps most.
+                std::vector<std::filesystem::path> paths;
+                if (file)
+                    paths.push_back(std::filesystem::absolute(*file).lexically_normal());
+                if (recording)
+                    for (const auto& path : recording->files)
+                        if (!std::ranges::contains(paths, path))
+                            paths.push_back(path);
+                for (const auto& path : paths)
+                    keybindings->sources.push_back(readSourceFile(path));
             }
             return [this, keybindings = std::move(keybindings)] { listeners.keybindings(keybindings); };
         });

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "application/source-file.hpp"
 #include "configuration/bindings.hpp"
 #include "configuration/recording.hpp"
 #include "ipc/bindings.hpp"
@@ -30,6 +31,9 @@ namespace application {
         // Why the config could not be read, or where reading it stopped. Empty when it was
         // read to the end.
         std::string                         configurationProblem;
+
+        // Every file the config loaded, main file first, as it was when the bindings were read.
+        std::vector<SourceFile>             sources;
     };
 
     // Pairs each active binding with the first binding the config made for the same keys
