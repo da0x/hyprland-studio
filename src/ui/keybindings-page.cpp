@@ -37,17 +37,21 @@ namespace ui {
             return found != names.end() ? std::string{found->second} : key;
         }
 
-        // What the binding does: its description in words when it has one, or else its
-        // action as the Lua that would make it.
-        std::string action(const application::KeybindingRow& row, const Hyprtoolkit::CPalette& palette) {
+        // What the binding does in words, when it says. Otherwise entry() shows its action.
+        std::string described(const application::KeybindingRow& row) {
             if (!row.live.description.empty())
-                return escapeMarkup(row.live.description);
+                return row.live.description;
             if (row.recorded)
-                return row.recorded->description.empty() ? luaMarkup(row.recorded->action.lua(), palette) : escapeMarkup(row.recorded->description);
+                return row.recorded->description;
             // Under Lua, Hyprland reports no action at all, only an internal number.
             if (row.live.fromLua())
                 return {};
-            return escapeMarkup(row.live.argument.empty() ? row.live.dispatcher : std::format("{} {}", row.live.dispatcher, row.live.argument));
+            return row.live.argument.empty() ? row.live.dispatcher : std::format("{} {}", row.live.dispatcher, row.live.argument);
+        }
+
+        // Code in the monospace font, as one cell.
+        std::string monospace(const std::string& markup, const Hyprtoolkit::CPalette& palette) {
+            return std::format("<span font_family=\"{}\">{}</span>", escapeMarkup(palette.m_vars.fontFamilyMonospace), markup);
         }
 
         struct Flags {
@@ -147,8 +151,17 @@ namespace ui {
         root->addChild(body);
 
         list.setClicked([this](std::size_t row) {
-            if (row < rowLocations.size() && rowLocations[row])
-                showSource(rowLocations[row]->file, rowLocations[row]->line, true);
+            if (row >= targets.size())
+                return;
+            const auto target = targets[row];
+            if (target.toggles) {
+                const auto& identity = entries[*target.toggles].identity;
+                if (!expanded.erase(identity))
+                    expanded.insert(identity);
+                showEntries();
+            } else if (target.opens) {
+                showSource(target.opens->file, target.opens->line, true);
+            }
         });
         list.setRows({RowList::Row{.cells = {{}, escapeMarkup("Reading your keybindings."), {}}, .marked = false}});
         showList();
@@ -231,41 +244,33 @@ namespace ui {
         luaNote->setText(unexplained == 0 ? std::string{" "}
                                           : std::format("Hyprland does not report what a Lua binding does, and {} of these could not be found in your config.", unexplained));
 
-        std::vector<RowList::Row> rows;
-        rowLocations.clear();
+        // The sources first: a function's lines come from them.
+        sources = keybindings->sources;
+
+        entries.clear();
         for (const auto& row : keybindings->rows) {
             const auto& live     = row.live;
             const auto  location = row.recorded ? std::optional{row.recorded->location} : std::nullopt;
-            rows.push_back(RowList::Row{
-                .cells  = {keyCaps(live.modifiers.with(keyName(live.key)), *palette), action(row, *palette),
-                           notes(location,
-                                 Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming},
-                                 *palette)},
-                .marked = false,
-            });
-            rowLocations.push_back(location);
+            entries.push_back(entry(keyCaps(live.modifiers.with(keyName(live.key)), *palette), row.recorded ? row.recorded->action : configuration::Value{}, described(row), location,
+                                    notes(location,
+                                          Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming},
+                                          *palette)));
         }
         for (const auto& binding : keybindings->inactive) {
-            rows.push_back(RowList::Row{
-                .cells  = {keyCaps(binding.modifiers.with(keyName(binding.key)), *palette),
-                           binding.description.empty() ? luaMarkup(binding.action.lua(), *palette) : escapeMarkup(binding.description),
-                           notes(binding.location,
-                                 Flags{.submap       = binding.submap,
-                                       .release      = binding.release,
-                                       .repeat       = binding.repeat,
-                                       .longPress    = binding.longPress,
-                                       .locked       = binding.locked,
-                                       .nonConsuming = binding.nonConsuming,
-                                       .inactive     = true},
-                                 *palette)},
-                .marked = false,
-            });
-            rowLocations.emplace_back(binding.location);
+            entries.push_back(entry(keyCaps(binding.modifiers.with(keyName(binding.key)), *palette), binding.action, binding.description, binding.location,
+                                    notes(binding.location,
+                                          Flags{.submap       = binding.submap,
+                                                .release      = binding.release,
+                                                .repeat       = binding.repeat,
+                                                .longPress    = binding.longPress,
+                                                .locked       = binding.locked,
+                                                .nonConsuming = binding.nonConsuming,
+                                                .inactive     = true},
+                                          *palette)));
         }
-        list.setRows(std::move(rows));
+        showEntries();
 
         // The source view follows the files on disk, staying where it was.
-        sources = keybindings->sources;
         if (openFile) {
             if (source(*openFile) != nullptr)
                 showSource(*openFile, markedLine, false);
@@ -273,6 +278,61 @@ namespace ui {
                 showList();
         }
         updateStatus();
+    }
+
+    KeybindingsPage::Entry KeybindingsPage::entry(std::string keys, const configuration::Value& action, std::string described,
+                                                  const std::optional<configuration::Location>& location, std::string notes) const {
+        Entry made{.identity = keys + (location ? location->brief() : std::string{}), .keys = std::move(keys), .action = {}, .notes = std::move(notes), .location = location, .body = {}, .expandedAction = {}};
+        if (!described.empty()) {
+            made.action = escapeMarkup(described);
+            return made;
+        }
+
+        // A function: its own text from the file, when the studio can find it.
+        const auto*                     function = action.function();
+        const application::SourceFile* file     = function != nullptr ? source(function->definition.file) : nullptr;
+        const auto                      range    = file != nullptr ? syntax::luaFunctionAt(file->text, function->definition.line) : std::nullopt;
+        if (!range) {
+            made.action = action.data.index() == 0 ? std::string{} : luaMarkup(action.lua(), *palette);
+            return made;
+        }
+
+        const std::string_view text = file->text;
+        auto                   span = file->spans.cbegin();
+        std::size_t            begin = range->begin;
+        int                    line  = function->definition.line;
+        std::vector<std::string> lines;
+        while (begin < range->end) {
+            const auto end = std::min(text.find('\n', begin) == std::string_view::npos ? text.size() : text.find('\n', begin), range->end);
+            lines.push_back(codeMarkup(text, begin, end, file->spans, span, *palette));
+            if (lines.size() > 1)
+                made.body.emplace_back(monospace("  " + lines.back(), *palette), configuration::Location{.file = function->definition.file, .line = line});
+            begin = end + 1;
+            ++line;
+        }
+        const auto arrow  = coloured(lines.size() > 1 ? "▶ " : "", hex(palette->m_colors.accent));
+        const auto folded = lines.size() > 1 ? coloured(std::format("  … {} lines", lines.size()), hex(palette->m_colors.text.mix(palette->m_colors.base, 0.5F))) : std::string{};
+        made.action         = monospace(arrow + lines.front(), *palette) + folded;
+        made.expandedAction = monospace(coloured("▼ ", hex(palette->m_colors.accent)) + lines.front(), *palette);
+        return made;
+    }
+
+    void KeybindingsPage::showEntries() {
+        std::vector<RowList::Row> rows;
+        targets.clear();
+        for (std::size_t index = 0; index < entries.size(); ++index) {
+            const auto& shown = entries[index];
+            const bool  open  = !shown.body.empty() && expanded.contains(shown.identity);
+            rows.push_back(RowList::Row{.cells = {shown.keys, open ? shown.expandedAction : shown.action, shown.notes}, .marked = false});
+            targets.push_back(shown.body.empty() ? Target{.toggles = std::nullopt, .opens = shown.location} : Target{.toggles = index, .opens = std::nullopt});
+            if (!open)
+                continue;
+            for (const auto& [markup, location] : shown.body) {
+                rows.push_back(RowList::Row{.cells = {{}, markup, escapeMarkup(location.brief())}, .marked = false});
+                targets.push_back(Target{.toggles = std::nullopt, .opens = location});
+            }
+        }
+        list.setRows(std::move(rows));
     }
 
     void KeybindingsPage::updateStatus() {

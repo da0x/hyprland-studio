@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -33,5 +34,16 @@ namespace syntax {
     // every span are plain. A source with syntax errors is still coloured as far as the
     // parser can make sense of it.
     [[nodiscard]] std::vector<Span> highlightLua(std::string_view source);
+
+    // The bytes [begin, end) of the first function in a Lua source that starts on `line`,
+    // counting from 1: `function () ... end`, or a whole `function name() ... end`. Lua
+    // reports only the line a function starts on, and this finds the function itself.
+    struct Range {
+        std::size_t begin = 0;
+        std::size_t end   = 0;
+
+        friend bool operator==(const Range&, const Range&) = default;
+    };
+    [[nodiscard]] std::optional<Range> luaFunctionAt(std::string_view source, int line);
 
 }

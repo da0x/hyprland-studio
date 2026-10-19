@@ -16,6 +16,7 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -56,8 +57,34 @@ namespace ui {
         RowList                                                              list;
         SourceView                                                           sourceView;
 
-        // Where each row of the list was set, by row.
-        std::vector<std::optional<configuration::Location>>                  rowLocations;
+        // One binding in the list. A binding whose action is a function can be expanded to
+        // the function's lines, each a row of its own.
+        struct Entry {
+            // Stays the same across reloads, so an expanded function stays expanded.
+            std::string                                         identity;
+            std::string                                         keys;
+            std::string                                         action;
+            std::string                                         notes;
+            std::optional<configuration::Location>              location;
+            // The function's lines after the first, with where each is.
+            std::vector<std::pair<std::string, configuration::Location>> body;
+            // The first line again, for when the function is expanded.
+            std::string                                         expandedAction;
+        };
+
+        // What clicking a row does: expand or fold an entry, or open a line of the config.
+        struct Target {
+            std::optional<std::size_t>             toggles;
+            std::optional<configuration::Location> opens;
+        };
+
+        void                                                                 showEntries();
+        [[nodiscard]] Entry                                                  entry(std::string keys, const configuration::Value& action, std::string described,
+                                                                                   const std::optional<configuration::Location>& location, std::string notes) const;
+
+        std::vector<Entry>                                                   entries;
+        std::vector<Target>                                                  targets;
+        std::set<std::string>                                                expanded;
         std::vector<application::SourceFile>                                 sources;
 
         // The file the source view shows, when it is the one showing.

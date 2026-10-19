@@ -64,6 +64,45 @@ namespace syntax {
 
     }
 
+    std::optional<Range> luaFunctionAt(std::string_view source, int line) {
+        if (line < 1 || source.size() > UINT32_MAX)
+            return std::nullopt;
+
+        const std::unique_ptr<TSParser, DeleteParser> parser{ts_parser_new()};
+        ts_parser_set_language(parser.get(), tree_sitter_lua());
+        const std::unique_ptr<TSTree, DeleteTree> tree{ts_parser_parse_string(parser.get(), nullptr, source.data(), static_cast<std::uint32_t>(source.size()))};
+        if (!tree)
+            return std::nullopt;
+
+        // Depth first, in source order, skipping whatever ends before the line.
+        const auto  row = static_cast<std::uint32_t>(line - 1);
+        TSTreeCursor cursor = ts_tree_cursor_new(ts_tree_root_node(tree.get()));
+        std::optional<Range> found;
+        while (!found) {
+            const TSNode     node = ts_tree_cursor_current_node(&cursor);
+            const std::string_view type{ts_node_type(node)};
+            const bool       onLine = ts_node_start_point(node).row == row;
+            if (onLine && (type == "function_definition" || type == "function_declaration")) {
+                found = Range{.begin = ts_node_start_byte(node), .end = ts_node_end_byte(node)};
+                break;
+            }
+            if (ts_node_end_point(node).row >= row && ts_node_start_point(node).row <= row && ts_tree_cursor_goto_first_child(&cursor))
+                continue;
+            bool moved = false;
+            while (!moved) {
+                if (ts_tree_cursor_goto_next_sibling(&cursor)) {
+                    moved = true;
+                } else if (!ts_tree_cursor_goto_parent(&cursor)) {
+                    break;
+                }
+            }
+            if (!moved)
+                break;
+        }
+        ts_tree_cursor_delete(&cursor);
+        return found;
+    }
+
     std::vector<Span> highlightLua(std::string_view source) {
         const auto* compiled = query();
         if (compiled == nullptr || source.size() > UINT32_MAX)

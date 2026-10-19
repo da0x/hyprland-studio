@@ -69,3 +69,24 @@ TEST(Syntax, ColoursWhatItCanOfABrokenSource) {
     EXPECT_EQ(kindOf(source, spans, "-- next"), syntax::Kind::comment);
     EXPECT_EQ(kindOf(source, spans, "local"), syntax::Kind::keyword);
 }
+
+TEST(Syntax, FindsTheFunctionOnALine) {
+    const auto source = readFixture();
+    // hl.bind("SUPER + F", function () ... end) starts on line 23.
+    const auto found = syntax::luaFunctionAt(source, 23);
+    ASSERT_TRUE(found);
+    const auto text = std::string_view{source}.substr(found->begin, found->end - found->begin);
+    EXPECT_TRUE(text.starts_with("function ()"));
+    EXPECT_TRUE(text.ends_with("end"));
+    EXPECT_NE(text.find("hl.dispatch"), std::string_view::npos);
+
+    EXPECT_FALSE(syntax::luaFunctionAt(source, 16));
+    EXPECT_FALSE(syntax::luaFunctionAt(source, 0));
+}
+
+TEST(Syntax, FindsANamedFunctionWhole) {
+    const std::string source = "local x = 1\nlocal function toggle(name)\n    return name\nend\n";
+    const auto        found  = syntax::luaFunctionAt(source, 2);
+    ASSERT_TRUE(found);
+    EXPECT_EQ(std::string_view{source}.substr(found->begin, found->end - found->begin), "local function toggle(name)\n    return name\nend");
+}
