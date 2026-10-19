@@ -32,10 +32,26 @@ system?":
 
 **The user's config file is the source of truth.** The studio never stores Hyprland
 settings anywhere else, never keeps a private copy of the config, and never asks the user
-to migrate to anything. The only file it keeps is its own UI settings (window size, last
-page) in `~/.config/hyprland-studio/`, through `QSettings`. Anything else it would write
-needs an entry in the README's *What it reads and writes* first. Someone who uninstalls it must be left with a config that works and reads the
-way they wrote it.
+to migrate to anything. It keeps two things in `~/.config/hyprland-studio/`: its own UI
+settings (window size, last page, which areas the user allowed), and, only while the
+desktop-theme area is active, a restore record of the theme values it changed. Anything
+else it would write needs an entry in the README's *What it reads and writes* first.
+Someone who uninstalls it must be left with a config that works and reads the way they
+wrote it.
+
+**Activation is a live layer, and every area needs the user's permission.** Activating
+applies the studio's effects to the running Hyprland and desktop; deactivating puts
+everything back exactly. Each area (Hyprland options and rules, keybindings, outside
+programs, desktop theme) has its own "allow" switch on its page, off until the user turns
+it on. Nothing is activated automatically, at startup or otherwise.
+- Options, rules and keybindings are applied through IPC only, never written to the
+  config. Deactivating reloads Hyprland, which drops every runtime change, so the desktop
+  is again exactly what the user's files say.
+- Outside programs are only ones the user installed; activating starts them, deactivating
+  stops exactly the processes the studio started.
+- The desktop theme lives in dconf, which is on disk, so before changing a value the
+  studio writes its previous value to the restore record. Deactivating, or the next start
+  after a crash, puts every value back and deletes the record.
 
 **Edits are lossless.** A change replaces exactly the bytes of the value that changed.
 Everything else in the file, including comments, blank lines, ordering, `require` calls,
@@ -48,8 +64,11 @@ literals are editable. A value that is computed (from a local, a function, a loo
 shown read-only, with the file and line it comes from. Do not try to evaluate or rewrite
 user code.
 
-**Read-only features ship before ones that write.** Anything that only queries Hyprland
-cannot break someone's desktop, so it comes first. Writing to disk always goes through a
+**Live, reversible changes ship before ones that write files.** A change made through IPC
+is undone by one reload, so it cannot break someone's desktop for longer than a click;
+writing the config comes later. Requests that change the desktop are sent only by the
+activation layer, for an area the user allowed; every other part of the studio, the IPC
+console included, sends read-only requests. Writing to disk always goes through a
 diff the user reviews, a timestamped backup, an atomic write, a reload and a check, with
 automatic rollback on failure.
 
@@ -85,18 +104,19 @@ because a dead connection otherwise looks exactly like a quiet compositor.
   tests offline with `ctest`, and embeds no timestamps (`SOURCE_DATE_EPOCH` if one is ever
   needed). Releases are signed git tags that are never moved. The app ships a desktop
   file, AppStream metainfo and hicolor icons.
-- **Mainstream libraries only.** Qt 6, KDE's LayerShellQt if a layer surface is needed,
-  tree-sitter, Lua, and the C++ standard library: things every major distribution
-  packages. No personal or niche libraries, so the studio builds from distribution
+- **Mainstream libraries only.** hyprtoolkit (Hyprland's own Wayland-native toolkit,
+  already present wherever Hyprland's own apps are), tree-sitter, Lua 5.5, nlohmann-json,
+  and the C++ standard library: things distributions package. No personal or niche libraries, so the studio builds from distribution
   packages alone and stays easy to package.
 - **The latest C++ standard the shipping compilers support**, currently C++26. Modern
   code only: no raw `new` or `delete`, no C-style casts or arrays, no macros where a
   `constexpr` or a template will do. Use `std::expected` for errors, ranges, `std::format`,
   strong types instead of bare `int` and `std::string`, and value semantics. clang-tidy's
   `modernize-*` and `cppcoreguidelines-*` checks enforce this in CI.
-- **Layers.** `configuration` (read, edit and diff config files) has no Qt dependency.
-  Qt, the IPC sockets and the Lua syntax tree library are each wrapped once, so the rest
-  of the code uses the project's own types.
+- **Layers.** `configuration` (read, edit and diff config files) depends on no UI
+  library. hyprtoolkit, the IPC sockets, Lua and the Lua syntax tree library are each
+  wrapped once, so the rest of the code uses the project's own types and names
+  (hyprtoolkit's `CMyClass` style stays inside its wrapper).
 - **Names are full words**: `configuration`, not `config`; `application`, not `app`;
   `function`, not `fn`. A folder, its namespace and its concept share one name:
   `src/configuration/` is `namespace configuration`. Folders and files are lowercase,

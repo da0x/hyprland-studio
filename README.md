@@ -44,9 +44,10 @@ If you ever wonder "what did this do to my system?", that is a bug.
 - **Edits are lossless.** When it changes a value, it changes only that value. Your
   comments, formatting, `require` calls and anything it does not understand are left
   exactly as they were.
-- **Safe before clever.** The first releases only read from Hyprland. Writing to your
-  config comes later, and when it does, every change is shown as a diff, backed up, and
-  rolled back automatically if Hyprland rejects it.
+- **Safe before clever.** The first release never writes to your config: what it changes
+  lives in the running session, only in areas you allowed, and one reload or one click on
+  Deactivate undoes it. Writing to your config comes later, and when it does, every change
+  is shown as a diff, backed up, and rolled back automatically if Hyprland rejects it.
 
 ## What it reads and writes
 
@@ -55,9 +56,15 @@ If you ever wonder "what did this do to my system?", that is a bug.
 find which config it loaded), and, if present, Hyprland's API stubs in
 `/usr/share/hypr/stubs/`.
 
-**Writes:** only its own settings, in `~/.config/hyprland-studio/`, holding the window
-size and the last page you had open. No logs, no caches, no exports: copying goes to the
-clipboard. A menu item removes that folder for you.
+**Writes:** only into `~/.config/hyprland-studio/`: its settings (window size, last page,
+which areas you allowed), and, only while the desktop-theme area is active, a record of
+the theme values it changed so they can always be put back, even after a crash. No logs,
+no caches, no exports: copying goes to the clipboard. A menu item removes that folder for
+you.
+
+**Changes while active, only in areas you allowed:** the running Hyprland's options, rules
+and keybindings (through IPC; a reload undoes them), the programs it started for you, and
+your desktop theme settings.
 
 Reading your config never runs it. The studio reads Lua configs in a sandbox of its own,
 where commands, file writes and startup programs are recorded but never carried out.
@@ -71,25 +78,29 @@ build yet.
 
 ## Roadmap
 
-1. **0.1, read-only and live.** A keybinding browser with search and conflict detection,
-   an option browser with documentation and "changed from default" highlighting, a live
-   tree of monitors, workspaces and windows, and an event log with an IPC console.
-2. **0.2, try before you write.** Change options and monitor settings at runtime, with
-   one-click revert. Nothing is written to disk.
-3. **0.3, the configuration engine.** Lossless reading and editing of `hyprland.lua`.
-4. **0.4, save.** Write what you tried back to your config: diff, backup, atomic write,
+1. **0.1, see everything, and activate or deactivate in one click.**
+   - A keybinding browser with search and conflict detection, an option browser with
+     documentation and "changed from default" highlighting, a live tree of monitors,
+     workspaces and windows, and an event log.
+   - **Activate** applies the studio's effects to your running desktop: Hyprland options
+     and rules, keybindings, outside programs you installed (a bar, a dock), and the
+     desktop theme. **Deactivate** puts everything back exactly as it was. Each of these
+     areas has its own "allow" switch, off until you turn it on.
+   - Nothing is written to your config. Activation lives in the running session.
+2. **0.2, the configuration engine.** Lossless reading and editing of `hyprland.lua`.
+3. **0.3, save.** Write what you chose back to your config: diff, backup, atomic write,
    reload, automatic rollback on failure.
 
-After that: help choosing and configuring a status bar and a dock from existing
-open-source programs (such as Waybar), which you install yourself, an editable monitor
+After that: keeping an activation across restarts (opt-in), an editable monitor
 layout, keybinding and window-rule editors, an animation and bezier
 editor, and support for the older `hyprland.conf` format.
 
 ## Building
 
-Not yet available. Hyprland Studio will be written in modern C++ (C++26) with Qt 6,
-built with CMake and Ninja, and target Linux on Wayland only. It depends only on
-mainstream libraries that major distributions already package.
+Not yet available. Hyprland Studio will be written in modern C++ (C++26) on
+[hyprtoolkit](https://github.com/hyprwm/hyprtoolkit), Hyprland's own Wayland-native
+toolkit, built with CMake and Ninja, and target Linux on Wayland only. It depends only on
+libraries that distributions already package.
 
 ## Acknowledgements
 
