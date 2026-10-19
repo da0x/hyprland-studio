@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 add_subdirectory(foundation)
 add_subdirectory(lua)
+add_subdirectory(syntax)
 add_subdirectory(configuration)
 add_subdirectory(ipc)
 add_subdirectory(application)
