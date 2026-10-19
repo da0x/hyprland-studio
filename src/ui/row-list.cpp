@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/row-list.hpp"
 
+#include "ui/markup.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <format>
@@ -14,21 +16,16 @@ namespace ui {
 
         constexpr double rowGap           = 2;
         constexpr int    rowsPerWheelStep = 3;
+        constexpr int    columnGap        = 12;
+        // Space before the first column, inside the row's background.
+        constexpr double padding          = 20;
 
-    }
-
-    std::string escapeMarkup(std::string_view text) {
-        std::string escaped;
-        escaped.reserve(text.size());
-        for (const char character : text) {
-            switch (character) {
-                case '&': escaped += "&amp;"; break;
-                case '<': escaped += "&lt;"; break;
-                case '>': escaped += "&gt;"; break;
-                default: escaped += character;
-            }
+        // Asks the colour function again. hyprtoolkit offers no other way than rebuilding,
+        // which schedules a layout pass, so never call this from inside one.
+        void recolour(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>& rectangle) {
+            rectangle->rebuild()->commence();
         }
-        return escaped;
+
     }
 
     RowList::RowList(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, std::vector<Column> columns,
@@ -62,6 +59,29 @@ namespace ui {
         column = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(static_cast<std::size_t>(rowGap))->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         viewport->addChild(column);
 
+        // Headings over the columns, padded like a row so they line up.
+        if (std::ranges::any_of(this->columns, [](const Column& spec) { return !spec.heading.empty(); })) {
+            const auto headings = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(columnGap)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 22.0}})->commence();
+            headings->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {padding - columnGap, 1.0}})->commence());
+            for (const auto& spec : this->columns) {
+                auto heading = Hyprtoolkit::CTextBuilder::begin()
+                                   ->text(escapeMarkup(spec.heading.empty() ? std::string{" "} : spec.heading))
+                                   ->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})
+                                   ->color(text)
+                                   ->a(0.5F)
+                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {spec.width > 0 ? spec.width : 1.0, 1.0}})
+                                   ->commence();
+                if (spec.width <= 0)
+                    heading->setGrow(true, false);
+                headings->addChild(heading);
+            }
+            root->addChild(headings);
+            root->addChild(Hyprtoolkit::CRectangleBuilder::begin()
+                               ->color([p = this->palette] { return p->m_colors.text.mix(p->m_colors.base, 0.85F); })
+                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})
+                               ->commence());
+        }
+
         position = Hyprtoolkit::CTextBuilder::begin()->text(" ")->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
 
         root->addChild(viewport);
@@ -91,18 +111,43 @@ namespace ui {
         return rows.size() > fitting ? rows.size() - fitting : 0;
     }
 
+    Hyprtoolkit::CHyprColor RowList::rowColour(std::size_t index) const {
+        const auto& colors = palette->m_colors;
+        const auto  at     = first + index;
+        if (index < fitting && at < rows.size() && rows[at].marked)
+            return Hyprtoolkit::CHyprColor{colors.accent.asRGB(), 0.22F};
+        if (clicked && hovered == index && at < rows.size())
+            return Hyprtoolkit::CHyprColor{colors.text.asRGB(), 0.07F};
+        return Hyprtoolkit::CHyprColor{colors.base.asRGB(), 0.F};
+    }
+
     RowList::Shown RowList::makeRow(std::size_t index) {
         const auto text = [p = palette] { return p->m_colors.text; };
         Shown      made;
-        made.row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(12)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, rowHeight}})->commence();
+        made.background = Hyprtoolkit::CRectangleBuilder::begin()
+                              ->color([this, index] { return rowColour(index); })
+                              ->rounding(palette->m_vars.smallRounding)
+                              ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, rowHeight}})
+                              ->commence();
+        const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(columnGap)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
+        made.background->addChild(row);
 
         // The row takes the pointer, so the wheel has to scroll from here too.
-        made.row->setReceivesMouse(true);
-        made.row->setMouseAxis([this](Hyprtoolkit::Input::eAxisAxis axis, float delta) {
+        made.background->setReceivesMouse(true);
+        made.background->setMouseAxis([this](Hyprtoolkit::Input::eAxisAxis axis, float delta) {
             if (axis == Hyprtoolkit::Input::AXIS_AXIS_VERTICAL && delta != 0.F)
                 scrollBy(delta > 0.F ? rowsPerWheelStep : -rowsPerWheelStep);
         });
-        made.row->setMouseButton([this, index](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
+        made.background->setMouseEnter([this, index](const Hyprutils::Math::Vector2D&) {
+            hovered = index;
+            recolour(shown[index].background);
+        });
+        made.background->setMouseLeave([this, index] {
+            if (hovered == index)
+                hovered.reset();
+            recolour(shown[index].background);
+        });
+        made.background->setMouseButton([this, index](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
             const auto at = first + index;
             if (button != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !pressed || !clicked || at >= rows.size())
                 return;
@@ -113,9 +158,11 @@ namespace ui {
             });
         });
 
+        row->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {padding - columnGap, 1.0}})->commence());
         for (const auto& spec : columns) {
+            // Sized to its text in height, so the row centres it.
             auto builder = Hyprtoolkit::CTextBuilder::begin()->text(" ")->color(text)->size(
-                CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {spec.width > 0 ? spec.width : 1.0, 1.0}});
+                CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {spec.width > 0 ? spec.width : 1.0, 1.0}});
             if (spec.monospace)
                 builder->fontFamily(std::string{palette->m_vars.fontFamilyMonospace});
             if (spec.secondary)
@@ -123,7 +170,7 @@ namespace ui {
             auto cell = builder->commence();
             if (spec.width <= 0)
                 cell->setGrow(true, false);
-            made.row->addChild(cell);
+            row->addChild(cell);
             made.cells.push_back(std::move(cell));
         }
         return made;
@@ -136,9 +183,9 @@ namespace ui {
         while (shown.size() < fitting)
             shown.push_back(makeRow(shown.size()));
         for (std::size_t index = 0; index < shown.size(); ++index) {
-            column->removeChild(shown[index].row);
+            column->removeChild(shown[index].background);
             if (index < fitting)
-                column->addChild(shown[index].row);
+                column->addChild(shown[index].background);
         }
 
         if (wanted && fitting != 0) {
@@ -168,6 +215,7 @@ namespace ui {
                 // An empty text is laid out as nothing, so blank cells hold a space.
                 shown[index].cells[cell]->setText(value.empty() ? std::string{" "} : columns[cell].markup ? std::string{value} : escapeMarkup(value));
             }
+            recolour(shown[index].background);
         }
 
         if (rows.size() <= fitting || fitting == 0)

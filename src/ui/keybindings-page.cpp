@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/keybindings-page.hpp"
 
+#include "ui/markup.hpp"
+#include "ui/texts.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -16,6 +19,11 @@ namespace ui {
         using Hyprtoolkit::CFontSize;
         using Hyprutils::Memory::CSharedPointer;
 
+        constexpr double rowHeight    = 30;
+        constexpr double keysWidth    = 300;
+        constexpr double notesWidth   = 240;
+        constexpr double buttonHeight = 30;
+
         // Hyprland names mouse buttons by their Linux input codes.
         std::string keyName(const std::string& key) {
             constexpr std::array names{
@@ -29,15 +37,17 @@ namespace ui {
             return found != names.end() ? std::string{found->second} : key;
         }
 
-        std::string action(const application::KeybindingRow& row) {
+        // What the binding does: its description in words when it has one, or else its
+        // action as the Lua that would make it.
+        std::string action(const application::KeybindingRow& row, const Hyprtoolkit::CPalette& palette) {
             if (!row.live.description.empty())
-                return row.live.description;
+                return escapeMarkup(row.live.description);
             if (row.recorded)
-                return row.recorded->description.empty() ? row.recorded->action.lua() : row.recorded->description;
+                return row.recorded->description.empty() ? luaMarkup(row.recorded->action.lua(), palette) : escapeMarkup(row.recorded->description);
             // Under Lua, Hyprland reports no action at all, only an internal number.
             if (row.live.fromLua())
                 return {};
-            return row.live.argument.empty() ? row.live.dispatcher : std::format("{} {}", row.live.dispatcher, row.live.argument);
+            return escapeMarkup(row.live.argument.empty() ? row.live.dispatcher : std::format("{} {}", row.live.dispatcher, row.live.argument));
         }
 
         struct Flags {
@@ -47,24 +57,28 @@ namespace ui {
             bool             longPress    = false;
             bool             locked       = false;
             bool             nonConsuming = false;
+            bool             inactive     = false;
         };
 
-        // Where the binding was set, then anything unusual about it.
-        std::string notes(const std::optional<configuration::Location>& location, const Flags& flags) {
-            std::string text = location ? location->brief() : std::string{};
-            const auto  add  = [&text](bool set, std::string_view note) {
-                if (!set)
-                    return;
-                if (!text.empty())
-                    text += ", ";
-                text += note;
+        // Where the binding was set, in the link colour since clicking opens it, then
+        // anything unusual about it.
+        std::string notes(const std::optional<configuration::Location>& location, const Flags& flags, const Hyprtoolkit::CPalette& palette) {
+            std::vector<std::string> extras;
+            const auto               add = [&extras](bool set, std::string text) {
+                if (set)
+                    extras.push_back(std::move(text));
             };
+            add(flags.inactive, "not active");
             add(!flags.submap.empty(), std::format("submap {}", flags.submap));
             add(flags.release, "on release");
             add(flags.repeat, "repeats");
             add(flags.longPress, "long press");
             add(flags.locked, "also when locked");
             add(flags.nonConsuming, "passes the key on");
+
+            std::string text = location ? coloured(location->brief(), hex(palette.m_colors.linkText)) : std::string{};
+            for (const auto& extra : extras)
+                text += (text.empty() ? "" : "  ·  ") + escapeMarkup(extra);
             return text;
         }
 
@@ -79,9 +93,14 @@ namespace ui {
             return (std::filesystem::path{"~"} / relative).string();
         }
 
-        constexpr double rowHeight   = 28;
-        constexpr double keysWidth   = 300;
-        constexpr double notesWidth  = 260;
+        CSharedPointer<Hyprtoolkit::CButtonElement> button(std::string label, double width, std::function<void()> clicked) {
+            return Hyprtoolkit::CButtonBuilder::begin()
+                ->label(std::move(label))
+                ->noBorder(true)
+                ->size(CDynamicSize{width > 0 ? CDynamicSize::HT_SIZE_ABSOLUTE : CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {width > 0 ? width : 1.0, buttonHeight}})
+                ->onMainClick([clicked = std::move(clicked)](CSharedPointer<Hyprtoolkit::CButtonElement>) { clicked(); })
+                ->commence();
+        }
 
     }
 
@@ -89,63 +108,64 @@ namespace ui {
         palette{std::move(palette)},
         defer{defer},
         list{this->palette, defer,
-             {RowList::Column{.width = keysWidth, .monospace = true, .secondary = false, .markup = false}, RowList::Column{.width = 0, .monospace = false, .secondary = false, .markup = false},
-              RowList::Column{.width = notesWidth, .monospace = false, .secondary = true, .markup = false}},
+             {RowList::Column{.width = keysWidth, .monospace = false, .secondary = false, .markup = true, .heading = "Keys"},
+              RowList::Column{.width = 0, .monospace = false, .secondary = false, .markup = true, .heading = "Does"},
+              RowList::Column{.width = notesWidth, .monospace = false, .secondary = true, .markup = true, .heading = "Set at"}},
              rowHeight},
         sourceView{this->palette, defer} {
-        const auto text = [p = this->palette] { return p->m_colors.text; };
+        root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
+        root->setMargin(28);
 
-        root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
-        root->setMargin(20);
-
-        root->addChild(Hyprtoolkit::CTextBuilder::begin()->text("Keybindings")->fontSize(CFontSize{CFontSize::HT_FONT_H1})->color(text)->commence());
-
-        status = Hyprtoolkit::CTextBuilder::begin()->text("Connecting to Hyprland.")->noEllipsize(true)->color(text)->a(0.7F)->commence();
+        root->addChild(pageTitle("Keybindings", this->palette));
+        status = paragraph("Connecting to Hyprland.", this->palette);
         root->addChild(status);
-
-        // An empty text is laid out as nothing, so "nothing to say" is a space.
-        luaNote = Hyprtoolkit::CTextBuilder::begin()->text(" ")->noEllipsize(true)->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
+        luaNote = paragraph({}, this->palette, true);
         root->addChild(luaNote);
 
-        // The switch, then one button per config file while the source is showing.
-        const auto toolbar = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})->commence();
-        switchButton       = Hyprtoolkit::CButtonBuilder::begin()
-                           ->label("Show source")
-                           ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {130.0, 30.0}})
-                           ->onMainClick([this](CSharedPointer<Hyprtoolkit::CButtonElement>) {
-                               if (openFile)
-                                   showList();
-                               else if (!sources.empty())
-                                   showSource(sources.front().path, 0, true);
-                           })
-                           ->commence();
-        fileButtons = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})->commence();
+        // A two-way switch, then one tab per config file while the source is showing.
+        const auto toolbar = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, buttonHeight}})->commence();
+        listButton         = button("Bindings", 100, [this] { showList(); });
+        sourceButton       = button("Source", 100, [this] {
+            if (!openFile && !sources.empty())
+                showSource(sources.front().path, 0, true);
+        });
+        fileButtons = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, buttonHeight}})->commence();
         fileButtons->setGrow(true, false);
-        toolbar->addChild(switchButton);
+        toolbar->addChild(listButton);
+        toolbar->addChild(sourceButton);
+        toolbar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {20.0, 1.0}})->commence());
         toolbar->addChild(fileButtons);
+        root->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 8.0}})->commence());
         root->addChild(toolbar);
 
-        caption = Hyprtoolkit::CTextBuilder::begin()->text(" ")->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
+        caption = paragraph({}, this->palette, true);
 
         // Holds the list or the source; its height is what is left.
-        body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
+        body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         body->setGrow(false, true);
+        root->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 6.0}})->commence());
         root->addChild(body);
 
         list.setClicked([this](std::size_t row) {
             if (row < rowLocations.size() && rowLocations[row])
                 showSource(rowLocations[row]->file, rowLocations[row]->line, true);
         });
-        list.setRows({RowList::Row{.cells = {{}, "Reading your keybindings.", {}}}});
+        list.setRows({RowList::Row{.cells = {{}, escapeMarkup("Reading your keybindings."), {}}, .marked = false}});
         showList();
+    }
+
+    void KeybindingsPage::updateSwitch() {
+        // Rebuilt rather than changed, the only way hyprtoolkit restyles a button.
+        listButton->rebuild()->accent(!openFile)->commence();
+        sourceButton->rebuild()->accent(openFile.has_value())->commence();
     }
 
     void KeybindingsPage::showList() {
         openFile.reset();
         markedLine = 0;
-        switchButton->setLabel("Show source");
         body->clearChildren();
         body->addChild(list.element());
+        updateSwitch();
         updateFileButtons();
     }
 
@@ -162,34 +182,30 @@ namespace ui {
         openFile           = file;
         markedLine         = line;
         sourceView.show(*shown, line, jump);
-        caption->setText(escapeMarkup(line > 0 ? std::format("{}, line {}. What is on disk now; Hyprland may have loaded an older version.", shortPath(file), line)
-                                               : std::format("{}. What is on disk now; Hyprland may have loaded an older version.", shortPath(file))));
+        caption->setText(escapeMarkup(line > 0 ? std::format("{}, line {}. As it is on disk now, which Hyprland may not have reloaded yet.", shortPath(file), line)
+                                               : std::format("{}. As it is on disk now, which Hyprland may not have reloaded yet.", shortPath(file))));
         if (wasList) {
-            switchButton->setLabel("Show list");
             body->clearChildren();
             body->addChild(caption);
             body->addChild(sourceView.element());
+            updateSwitch();
         }
         updateFileButtons();
     }
 
     void KeybindingsPage::updateFileButtons() {
         fileButtons->clearChildren();
-        if (!openFile || sources.empty())
+        if (!openFile || sources.size() < 2)
             return;
         const auto folder = sources.front().path.parent_path();
         for (const auto& file : sources) {
-            auto label = file.path.lexically_relative(folder).string();
+            auto tab = button(file.path.lexically_relative(folder).string(), 0, [this, path = file.path] {
+                // Showing a file replaces this button, so not from inside its handler.
+                defer([this, path] { showSource(path, 0, true); });
+            });
             if (file.path == *openFile)
-                label = std::format("[ {} ]", label);
-            fileButtons->addChild(Hyprtoolkit::CButtonBuilder::begin()
-                                      ->label(std::move(label))
-                                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})
-                                      ->onMainClick([this, path = file.path](CSharedPointer<Hyprtoolkit::CButtonElement>) {
-                                          // Showing a file replaces this button, so not from inside its handler.
-                                          defer([this, path] { showSource(path, 0, true); });
-                                      })
-                                      ->commence());
+                tab->rebuild()->accent(true)->commence();
+            fileButtons->addChild(tab);
         }
     }
 
@@ -220,20 +236,30 @@ namespace ui {
         for (const auto& row : keybindings->rows) {
             const auto& live     = row.live;
             const auto  location = row.recorded ? std::optional{row.recorded->location} : std::nullopt;
-            rows.push_back(RowList::Row{.cells = {
-                                            live.modifiers.with(keyName(live.key)),
-                                            action(row),
-                                            notes(location, Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming}),
-                                        }});
+            rows.push_back(RowList::Row{
+                .cells  = {keyCaps(live.modifiers.with(keyName(live.key)), *palette), action(row, *palette),
+                           notes(location,
+                                 Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming},
+                                 *palette)},
+                .marked = false,
+            });
             rowLocations.push_back(location);
         }
         for (const auto& binding : keybindings->inactive) {
-            auto text = notes(binding.location, Flags{.submap = binding.submap, .release = binding.release, .repeat = binding.repeat, .longPress = binding.longPress, .locked = binding.locked, .nonConsuming = binding.nonConsuming});
-            rows.push_back(RowList::Row{.cells = {
-                                            binding.modifiers.with(keyName(binding.key)),
-                                            binding.description.empty() ? binding.action.lua() : binding.description,
-                                            std::format("not active, {}", text),
-                                        }});
+            rows.push_back(RowList::Row{
+                .cells  = {keyCaps(binding.modifiers.with(keyName(binding.key)), *palette),
+                           binding.description.empty() ? luaMarkup(binding.action.lua(), *palette) : escapeMarkup(binding.description),
+                           notes(binding.location,
+                                 Flags{.submap       = binding.submap,
+                                       .release      = binding.release,
+                                       .repeat       = binding.repeat,
+                                       .longPress    = binding.longPress,
+                                       .locked       = binding.locked,
+                                       .nonConsuming = binding.nonConsuming,
+                                       .inactive     = true},
+                                 *palette)},
+                .marked = false,
+            });
             rowLocations.emplace_back(binding.location);
         }
         list.setRows(std::move(rows));

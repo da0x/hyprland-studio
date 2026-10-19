@@ -40,6 +40,7 @@ namespace ui {
         // Opens one of the config's files, with `line` marked; 0 marks nothing.
         void                                                                 showSource(const std::filesystem::path& file, int line, bool jump);
         void                                                                 updateFileButtons();
+        void                                                                 updateSwitch();
         [[nodiscard]] const application::SourceFile*                         source(const std::filesystem::path& file) const;
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
@@ -47,7 +48,8 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         status;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         luaNote;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>       switchButton;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>       listButton;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>       sourceButton;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    fileButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         caption;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;

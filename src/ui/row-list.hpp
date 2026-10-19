@@ -3,6 +3,7 @@
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
 #include <hyprtoolkit/element/Null.hpp>
+#include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
@@ -32,10 +33,14 @@ namespace ui {
             bool   secondary = false;
             // The column's text is Pango markup, already escaped. Other columns are shown as written.
             bool   markup    = false;
+            // Shown above the column; when no column has one, there is no heading row.
+            std::string heading;
         };
 
         struct Row {
             std::vector<std::string> cells;
+            // Drawn with the accent behind it.
+            bool                     marked = false;
         };
 
         RowList(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, std::vector<Column> columns,
@@ -53,7 +58,7 @@ namespace ui {
 
       private:
         struct Shown {
-            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>         row;
+            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>         background;
             std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>> cells;
         };
 
@@ -62,6 +67,7 @@ namespace ui {
         void                                                                 fill();
         [[nodiscard]] std::size_t                                            lastFirst() const;
         Shown                                                                makeRow(std::size_t index);
+        [[nodiscard]] Hyprtoolkit::CHyprColor                                rowColour(std::size_t index) const;
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
         std::function<void(std::function<void()>)>                           defer;
@@ -80,10 +86,9 @@ namespace ui {
         std::size_t                                                          fitting = 0;
         // A scrollTo that came before the list knew how many rows fit.
         std::optional<std::size_t>                                           wanted;
+        // The shown row under the pointer.
+        std::optional<std::size_t>                                           hovered;
         bool                                                                 fitPending = false;
     };
-
-    // Text made safe to show where hyprtoolkit reads Pango markup, which is every text.
-    [[nodiscard]] std::string escapeMarkup(std::string_view text);
 
 }
