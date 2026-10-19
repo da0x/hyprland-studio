@@ -57,7 +57,8 @@ find which config it loaded), and, if present, Hyprland's API stubs in
 `/usr/share/hypr/stubs/`.
 
 **Writes:** only into `~/.config/hyprland-studio/`: its settings (window size, last page,
-which areas you allowed), and, only while the desktop-theme area is active, a record of
+which areas you allowed), the effects you set up (plain Hyprland Lua you can read and copy
+into your own config), and, only while the desktop-theme area is active, a record of
 the theme values it changed so they can always be put back, even after a crash. No logs,
 no caches, no exports: copying goes to the clipboard. A menu item removes that folder for
 you.
