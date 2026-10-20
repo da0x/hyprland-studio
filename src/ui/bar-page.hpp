@@ -10,11 +10,14 @@
 
 #include <hyprtoolkit/element/Button.hpp>
 #include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
 #include <filesystem>
 #include <functional>
+#include <map>
+#include <tuple>
 #include <optional>
 #include <string>
 #include <vector>
@@ -44,8 +47,21 @@ namespace ui {
         void undo();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> styleSection();
         // A choice drawn as a preview with its name; the chosen one has the accent around it.
-        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> card(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>& preview, const std::string& name,
-                                                                                    bool chosen, std::function<void()> chosenNow);
+        struct Card {
+            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>    frame;
+            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> holder;
+            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         name;
+            std::string                                                          title;
+        };
+        [[nodiscard]] Card card(const std::string& name, std::function<void()> chosenNow);
+        // After a click on a card: changes the previews, borders and status in place, so
+        // nothing else is made anew. hyprtoolkit draws a new text a frame or two after it is
+        // made, so rebuilding the page on every click made it flicker.
+        void                                                                   updateStyle();
+        void                                                                   fillStyleStatus();
+        // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
+        // card's, 2 a palette card's. An element has one parent, so each place has its own.
+        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
         std::function<void(std::function<void()>)>                           defer;
@@ -59,6 +75,13 @@ namespace ui {
         application::Settings                                                settings;
         // The style shown in the big preview: Waybar's own at first, if it is one of the studio's.
         desktop::WaybarStyle                                                 selected;
+        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> styleStatus;
+        // What the status shows now, so that it is made anew only when that changes.
+        std::string                                                          styleStatusShown;
+        std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
+        std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
         // The style under review and the files it would write.
         std::optional<desktop::WaybarStyle>                                  reviewing;
         std::vector<configuration::FileChange>                               changes;

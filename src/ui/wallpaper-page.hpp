@@ -9,7 +9,10 @@
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Button.hpp>
 #include <hyprtoolkit/element/Image.hpp>
+#include <hyprtoolkit/element/Rectangle.hpp>
+#include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
 #include <cstddef>
@@ -61,6 +64,11 @@ namespace ui {
         void                                                                   tryOnDesktop();
         void                                                                   undo();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> chooser();
+        // After a click on an image or a fit: changes only what shows the selection, so
+        // nothing else is made anew. hyprtoolkit draws a new text or image a frame or two
+        // after it is made, so rebuilding the page on every click made it flicker.
+        void                                                                   updateSelection();
+        void                                                                   fillStatus();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> grid();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> thumbnail(const std::filesystem::path& image);
 
@@ -93,6 +101,14 @@ namespace ui {
         std::map<std::filesystem::path, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CImageElement>> thumbnails;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CImageElement>        preview;
         std::filesystem::path                                                previewImage;
+        // What shows the selection, kept so that a click changes it in place.
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         nameText;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         folderText;
+        std::vector<std::pair<desktop::FitMode, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>> fitButtons;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> status;
+        // What the status shows now, so that it is made anew only when that changes.
+        std::string                                                          statusShown;
+        std::map<std::filesystem::path, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>> cards;
         std::vector<configuration::FileChange>                               changes;
         std::string                                                          outcome;
     };

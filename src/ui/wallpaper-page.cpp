@@ -185,7 +185,7 @@ namespace ui {
             outcome = std::format("The studio could not save its settings: {}.", saved.error());
         else
             outcome = "Kept. awww shows it, and shows it again whenever it starts.";
-        showOverview();
+        updateSelection();
     }
 
     void WallpaperPage::leave(bool closing) {
@@ -278,7 +278,7 @@ namespace ui {
                                ->rounding(palette->m_vars.smallRounding)
                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {previewWidth, previewHeight}})
                                ->commence();
-        if (!preview || previewImage != selected->image) {
+        if (!preview) {
             previewImage = selected->image;
             preview      = Hyprtoolkit::CImageBuilder::begin()
                           ->path(selected->image.string())
@@ -286,8 +286,6 @@ namespace ui {
                           ->rounding(palette->m_vars.smallRounding)
                           ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
                           ->commence();
-        } else {
-            preview->rebuild()->fitMode(imageFit(selected->fit))->commence();
         }
         frame->addChild(preview);
         whole->addChild(frame);
@@ -297,27 +295,69 @@ namespace ui {
         // line and comes out far too tall.
         const auto side =
             Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(5)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {0.5, chooserHeight}})->commence();
-        side->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", escapeMarkup(selected->image.filename().string())), palette));
-        side->addChild(paragraph(shortPath(selected->image.parent_path()), palette, true));
+        nameText   = markupLine(" ", palette);
+        folderText = paragraph(" ", palette, true);
+        side->addChild(nameText);
+        side->addChild(folderText);
         side->addChild(markupLine("<span weight=\"600\">Fit</span>", palette));
         const auto fits = leftRow();
         fits->rebuild()->gap(4)->commence();
+        fitButtons.clear();
         for (const auto& info : desktop::fitModes()) {
             if (info.mode == desktop::FitMode::tile && program == desktop::WallpaperProgram::awww)
                 continue;
-            fits->addChild(button(std::string{info.name}, 84, info.mode == selected->fit, [this, mode = info.mode] {
+            const auto made = button(std::string{info.name}, 84, false, [this, mode = info.mode] {
                 defer([this, mode] {
                     selected->fit = mode;
                     tryOnDesktop();
-                    showOverview();
+                    updateSelection();
                 });
-            }));
+            });
+            fitButtons.emplace_back(info.mode, made);
+            fits->addChild(made);
         }
         side->addChild(fits);
+        status = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(5)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        statusShown.clear();
+        side->addChild(status);
+        whole->addChild(side);
+        return whole;
+    }
 
+    void WallpaperPage::updateSelection() {
+        if (!selected || !preview)
+            return;
+        if (previewImage != selected->image) {
+            previewImage = selected->image;
+            preview->rebuild()->path(selected->image.string())->fitMode(imageFit(selected->fit))->commence();
+        } else {
+            preview->rebuild()->fitMode(imageFit(selected->fit))->commence();
+        }
+        nameText->rebuild()->text(std::format("<span weight=\"600\">{}</span>", escapeMarkup(selected->image.filename().string())))->commence();
+        folderText->rebuild()->text(escapeMarkup(shortPath(selected->image.parent_path())))->commence();
+        for (const auto& [mode, made] : fitButtons)
+            made->rebuild()->accent(mode == selected->fit)->commence();
+        for (const auto& [image, card] : cards) {
+            const bool chosen = image == selected->image;
+            card->rebuild()->borderColor([palette = palette, chosen] { return chosen ? palette->m_colors.accent : Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })->commence();
+        }
+        fillStatus();
+    }
+
+    void WallpaperPage::fillStatus() {
+        const auto environment = foundation::currentEnvironment();
+        const bool awwwChosen  = program == desktop::WallpaperProgram::awww;
+        const auto planned     = awwwChosen ? std::expected<configuration::FileChange, std::string>{std::unexpect, ""} : desktop::planWallpaper(*selected, environment);
+        const bool undoable    = !awwwChosen && configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
+        const bool off         = desktop::wallpaperRequirement(program, environment).met() && !current().running();
+        const auto shown       = std::format("{}|{}|{}|{}|{}|{}|{}|{}|{}", awwwChosen, tried, awww.running() && selected == awwwShows, awww.running(),
+                                             planned ? std::string{planned->changes() ? "changes" : "same"} : planned.error(), planned && planned->current ? *planned->current : "",
+                                             undoable, off, outcome);
+        if (shown == statusShown)
+            return;
+        statusShown = shown;
+        status->clearChildren();
         const auto actions = leftRow();
-        const bool awwwChosen = program == desktop::WallpaperProgram::awww;
-        const auto planned    = awwwChosen ? std::expected<configuration::FileChange, std::string>{std::unexpect, ""} : desktop::planWallpaper(*selected, environment);
         if (awwwChosen) {
             // awww remembers what it shows, so keeping writes nothing.
             if (tried)
@@ -325,41 +365,38 @@ namespace ui {
             else if (awww.running() && selected == awwwShows)
                 actions->addChild(markupLine(std::format("{}  awww shows this wallpaper.", coloured("✓", hex(palette->m_colors.accent))), palette));
             else if (awww.running())
-                actions->addChild(button("Show it", 120, true, [this] { defer([this] { tryOnDesktop(); showOverview(); }); }));
+                actions->addChild(button("Show it", 120, true, [this] { defer([this] { tryOnDesktop(); updateSelection(); }); }));
         } else if (!planned) {
-            side->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
+            status->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
         } else if (!planned->changes()) {
             actions->addChild(markupLine(std::format("{}  hyprpaper.conf sets this wallpaper.", coloured("✓", hex(palette->m_colors.accent))), palette));
         } else {
             actions->addChild(button("Keep this wallpaper", 190, true, [this] { defer([this] { showReview(); }); }));
         }
-        if (!awwwChosen && configuration::latestChange(application::backupsFolder(environment), changeName))
+        if (undoable)
             actions->addChild(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
-        side->addChild(actions);
+        status->addChild(actions);
         if (tried)
-            side->addChild(paragraph("On your desktop now, to try. It goes back when you leave this page, unless you keep it.", palette, true));
+            status->addChild(paragraph("On your desktop now, to try. It goes back when you leave this page, unless you keep it.", palette, true));
 
-        const auto  name      = awwwChosen ? std::string{"awww"} : std::string{"hyprpaper"};
-        const auto& running   = current();
-        if (desktop::wallpaperRequirement(program, environment).met() && !running.running()) {
-            side->addChild(paragraph(std::format("{} is off. Turn it on to try wallpapers on the desktop as you pick them.", name), palette, true));
+        const auto name = awwwChosen ? std::string{"awww"} : std::string{"hyprpaper"};
+        if (off) {
+            status->addChild(paragraph(std::format("{} is off. Turn it on to try wallpapers on the desktop as you pick them.", name), palette, true));
             const auto on = leftRow();
             on->addChild(button(std::format("Turn {} on", name), 190, false, [this] { defer([this] { current().turnOn(); }); }));
-            side->addChild(on);
+            status->addChild(on);
         }
         if (!outcome.empty())
-            side->addChild(paragraph(outcome, palette));
+            status->addChild(paragraph(outcome, palette));
 
         if (planned && planned->current) {
             if (const auto own = desktop::monitorsWithOwnWallpaper(*planned->current); !own.empty()) {
                 std::string names;
                 for (const auto& monitor : own)
                     names += (names.empty() ? "" : ", ") + monitor;
-                side->addChild(paragraph(std::format("hyprpaper.conf gives {} a wallpaper of its own, which this does not change.", names), palette, true));
+                status->addChild(paragraph(std::format("hyprpaper.conf gives {} a wallpaper of its own, which this does not change.", names), palette, true));
             }
         }
-        whole->addChild(side);
-        return whole;
     }
 
     CSharedPointer<Hyprtoolkit::IElement> WallpaperPage::thumbnail(const std::filesystem::path& image) {
@@ -384,6 +421,7 @@ namespace ui {
         inside->addChild(picture);
         inside->addChild(markupLine(escapeMarkup(image.filename().string()), palette, CFontSize{CFontSize::HT_FONT_SMALL}, chosen ? 1.F : 0.7F));
         card->addChild(inside);
+        cards[image] = card;
         card->setReceivesMouse(true);
         card->setMouseButton([this, image](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
             if (button != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !pressed)
@@ -392,13 +430,14 @@ namespace ui {
                 selected = desktop::Wallpaper{image, selected ? selected->fit : desktop::FitMode::cover};
                 outcome.clear();
                 tryOnDesktop();
-                showOverview();
+                updateSelection();
             });
         });
         return card;
     }
 
     CSharedPointer<Hyprtoolkit::IElement> WallpaperPage::grid() {
+        cards.clear();
         const auto section = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         const auto top     = leftRow();
         const auto title   = markupLine(std::format("<span weight=\"600\">Wallpapers</span>   {}–{} of {}", pageStart + 1, std::min(wallpapers.size(), pageStart + pageSize), wallpapers.size()),
@@ -515,6 +554,7 @@ namespace ui {
         body->addChild(chooser());
         body->addChild(space(6));
         body->addChild(grid());
+        updateSelection();
     }
 
     void WallpaperPage::showReview() {
