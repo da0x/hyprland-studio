@@ -45,6 +45,9 @@ namespace desktop {
         std::string_view                 selection;
         // The nearest of GNOME's accent colours, for GTK apps.
         std::string_view                 gnomeAccent;
+        // For a light palette, the dark one from the same family that terminals use:
+        // most terminal programs assume a dark background and print in white.
+        std::string_view                 terminalFrom;
     };
 
     // How the bar sits on the screen.

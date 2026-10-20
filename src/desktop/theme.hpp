@@ -47,7 +47,9 @@ namespace desktop {
     // and accent-color. Empty when gsettings is not installed.
     [[nodiscard]] std::vector<GtkSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment);
 
-    // kitty's colours for the palette, as current-theme.conf, which kitty.conf includes.
+    // kitty's colours for the palette, as current-theme.conf, which kitty.conf includes. A
+    // light palette gives its dark sibling's: terminal programs mostly print for a dark
+    // background, and their white text vanishes on a light one.
     [[nodiscard]] std::string kittyTheme(const Palette& palette);
     // wofi's stylesheet for the palette.
     [[nodiscard]] std::string wofiStyle(const Palette& palette);

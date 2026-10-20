@@ -7,6 +7,7 @@
 #include <atomic>
 #include <filesystem>
 #include <fstream>
+#include <format>
 #include <string>
 
 #include <unistd.h>
@@ -77,6 +78,17 @@ namespace {
         EXPECT_TRUE(find("dunstrc")->proposed.starts_with("[global]\n    frame_color = \"#88c0d0\"\n"));
         EXPECT_TRUE(find("dunstrc")->proposed.contains("[urgency_critical]\n    background = \"#2e3440\"\n"));
         std::filesystem::remove_all(root);
+    }
+
+    TEST(Theme, KeepsTheTerminalDarkWithALightPalette) {
+        const auto& latte = desktop::waybarPalettes()[1];
+        ASSERT_FALSE(latte.dark);
+        const auto kitty = desktop::kittyTheme(latte);
+        EXPECT_TRUE(kitty.starts_with("# Catppuccin Mocha\n"));
+        EXPECT_TRUE(kitty.contains("background              #1e1e2e\n"));
+        for (const auto& palette : desktop::waybarPalettes())
+            if (palette.dark)
+                EXPECT_TRUE(desktop::kittyTheme(palette).starts_with(std::format("# {}\n", palette.name)));
     }
 
 }

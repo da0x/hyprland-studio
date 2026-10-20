@@ -84,8 +84,14 @@ namespace desktop {
         };
     }
 
-    std::string kittyTheme(const Palette& palette) {
-        auto text = std::format("# {}\n\n"
+    std::string kittyTheme(const Palette& chosen) {
+        // A light palette lends its terminal to its dark sibling.
+        const Palette* found = &chosen;
+        for (const auto& candidate : waybarPalettes())
+            if (!chosen.terminalFrom.empty() && candidate.name == chosen.terminalFrom)
+                found = &candidate;
+        const auto& palette = *found;
+        auto        text    = std::format("# {}\n\n"
                                 "foreground              {}\n"
                                 "background              {}\n"
                                 "selection_foreground    {}\n"
