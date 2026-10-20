@@ -46,10 +46,10 @@ namespace ui {
         // The pages planned for 0.1 that are not built yet. Each says what it will do until it does it.
         constexpr std::array plannedPages{
             Page{"Options", "Every option with its description, default and current value."},
+            Page{"Activate", "Try the studio's effects on the running session, and put everything back."},
             Page{"Live tree", "Monitors, workspaces and windows as they change, from Hyprland's event socket."},
             Page{"Event log", "What Hyprland reports as it happens."},
             Page{"Console", "Read-only requests to Hyprland, and their replies."},
-            Page{"Activate", "Try the studio's effects on the running session, and put everything back."},
         };
 
         CSharedPointer<Hyprtoolkit::IElement> plannedPage(const Page& page, const CSharedPointer<Hyprtoolkit::CPalette>& palette) {
@@ -176,16 +176,18 @@ namespace ui {
         restyled(studioName);
         sidebar->addChild(studioName);
         sidebar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 12}})->commence());
-        addPageButton("Keybindings", keybindings.element());
-        addPageButton("Bar", bar.element());
-        addPageButton("Wallpaper", wallpaper.element());
+        // Most used first: the look of the desktop, then the terminal, then what is read
+        // more than changed.
         addPageButton("Theme", theme.element());
+        addPageButton("Wallpaper", wallpaper.element());
+        addPageButton("Bar", bar.element());
         addPageButton("Terminal", terminal.element());
         addPageButton("Accessibility", accessibility.element());
+        addPageButton("Keyboard shortcuts", keybindings.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
         const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
-        show(first != titles.end() ? first->second : keybindings.element());
+        show(first != titles.end() ? first->second : theme.element());
 
         body->addChild(sidebar);
         body->addChild(content);

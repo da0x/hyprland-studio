@@ -123,7 +123,7 @@ namespace ui {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
 
-        root->addChild(pageTitle("Keybindings", this->palette));
+        root->addChild(pageTitle("Keyboard shortcuts", this->palette));
         status = paragraph("Connecting to Hyprland.", this->palette);
         root->addChild(status);
         luaNote = paragraph({}, this->palette, true);
@@ -131,7 +131,7 @@ namespace ui {
 
         // A two-way switch, then one tab per config file while the source is showing.
         const auto toolbar = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, buttonHeight}})->commence();
-        listButton         = button("Bindings", 100, [this] { showList(); });
+        listButton         = button("List", 100, [this] { showList(); });
         sourceButton       = button("Source", 100, [this] {
             if (!openFile && !sources.empty())
                 showSource(sources.front().path, 0, true);
