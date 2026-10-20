@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "configuration/main-config.hpp"
 
+#include "foundation/environment.hpp"
+
 #include <algorithm>
 #include <array>
 #include <format>
@@ -8,17 +10,12 @@
 #include <string_view>
 #include <system_error>
 
-#include <unistd.h>
-
-extern char** environ; // NOLINT(readability-redundant-declaration): POSIX declares it nowhere else
-
 namespace configuration {
 
     namespace {
 
         std::optional<std::string> variable(const Launch& launch, const std::string& name) {
-            const auto found = launch.environment.find(name);
-            return found != launch.environment.end() ? std::optional{found->second} : std::nullopt;
+            return foundation::variable(launch.environment, name);
         }
 
         // Hyprland's options that take a value, so a value that looks like -c is not read as one.
@@ -98,12 +95,7 @@ namespace configuration {
         Launch          launch;
         std::error_code error;
         launch.workingFolder = std::filesystem::current_path(error);
-        for (char** entry = environ; entry != nullptr && *entry != nullptr; ++entry) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic): environ is a C array
-            const std::string_view text{*entry};
-            const auto             equals = text.find('=');
-            if (equals != std::string_view::npos)
-                launch.environment.emplace(text.substr(0, equals), text.substr(equals + 1));
-        }
+        launch.environment   = foundation::currentEnvironment();
         return launch;
     }
 

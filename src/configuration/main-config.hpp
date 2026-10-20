@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "foundation/environment.hpp"
+
 #include <expected>
 #include <filesystem>
-#include <map>
 #include <string>
 #include <vector>
 
@@ -13,7 +14,7 @@ namespace configuration {
     struct Launch {
         // The command line without the program's name.
         std::vector<std::string>           arguments;
-        std::map<std::string, std::string> environment;
+        foundation::Environment            environment;
         std::filesystem::path              workingFolder;
     };
 
