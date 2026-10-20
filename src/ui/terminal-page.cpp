@@ -239,6 +239,11 @@ namespace ui {
 
         // Two rows of cards at a time; the mouse wheel moves them a row up or down.
         grid = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(12)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        // A scroll area takes all the height the page leaves; the paged rows keep their own.
+        if constexpr (scrollAreaWorks) {
+            grid->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
+            grid->setGrow(false, true);
+        }
         body->addChild(grid);
         position = markupLine(" ", palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F);
         body->addChild(position);
@@ -316,7 +321,7 @@ namespace ui {
             const auto area = Hyprtoolkit::CScrollAreaBuilder::begin()
                                   ->scrollY(true)
                                   ->scrollX(false)
-                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 2 * cardHeight + 12}})
+                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
                                   ->commence();
             area->addChild(rows);
             // Opens with the chosen theme's row in view.

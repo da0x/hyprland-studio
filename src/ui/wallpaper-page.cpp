@@ -436,6 +436,11 @@ namespace ui {
 
     CSharedPointer<Hyprtoolkit::IElement> WallpaperPage::grid() {
         const auto section = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        // A scroll area takes all the height the page leaves; the paged row keeps its own.
+        if constexpr (scrollAreaWorks) {
+            section->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
+            section->setGrow(false, true);
+        }
         const auto top     = leftRow();
         gridTitle          = markupLine(" ", palette);
         // Sized to its words: a text that starts narrow and grows would wrap at every letter
@@ -449,6 +454,10 @@ namespace ui {
         section->addChild(top);
         // A row of images at a time; the mouse wheel moves to the next or the previous.
         gridRows = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(12)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        if constexpr (scrollAreaWorks) {
+            gridRows->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
+            gridRows->setGrow(false, true);
+        }
         section->addChild(gridRows);
         fillGrid();
         return section;
@@ -473,7 +482,7 @@ namespace ui {
             const auto area = Hyprtoolkit::CScrollAreaBuilder::begin()
                                   ->scrollY(true)
                                   ->scrollX(false)
-                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight}})
+                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
                                   ->commence();
             area->addChild(rows);
             if (const auto at = std::ranges::find(wallpapers, selected ? selected->image : std::filesystem::path{}); at != wallpapers.end())
