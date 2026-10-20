@@ -7,6 +7,7 @@
 #include "ui/restyle.hpp"
 #include "ui/terminal-page.hpp"
 #include "ui/accessibility-page.hpp"
+#include "ui/windows-page.hpp"
 #include "ui/widgets.hpp"
 #include "ui/theme-page.hpp"
 #include "ui/wallpaper-page.hpp"
@@ -158,6 +159,7 @@ namespace ui {
         ThemePage       theme{palette, defer, loop};
         TerminalPage    terminal{palette, defer};
         AccessibilityPage accessibility{palette, defer, loop};
+        WindowsPage     windows{palette, defer, loop};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
         opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
@@ -199,6 +201,7 @@ namespace ui {
         // more than changed.
         addPageButton("Theme", theme.element());
         addPageButton("Wallpaper", wallpaper.element());
+        addPageButton("Windows", windows.element());
         addPageButton("Bar", bar.element());
         addPageButton("Terminal", terminal.element());
         addPageButton("Accessibility", accessibility.element());
@@ -234,7 +237,7 @@ namespace ui {
         window->m_events.closeRequest.listenStatic(quit);
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &bar, &wallpaper, &theme, &terminal, &accessibility](bool resized) {
+        const auto redraw = [&keybindings, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -246,6 +249,7 @@ namespace ui {
             bar.restyle();
             wallpaper.restyle();
             accessibility.restyle();
+            windows.restyle();
             restyleAll(resized, before);
         };
         theme.onRecoloured([redraw] { redraw(false); });
