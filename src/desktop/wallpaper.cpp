@@ -2,6 +2,7 @@
 #include "desktop/wallpaper.hpp"
 
 #include "configuration/autostart.hpp"
+#include "configuration/lua-edit.hpp"
 #include "desktop/system.hpp"
 
 #include <nlohmann/json.hpp>
@@ -333,6 +334,14 @@ namespace desktop {
         const auto other = loginCommand(program == WallpaperProgram::awww ? WallpaperProgram::hyprpaper : WallpaperProgram::awww);
         const std::array<std::string_view, 1> instead{other};
         current->proposed = configuration::withAutostart(current->current.value_or(""), config.lua(), loginCommand(program), instead);
+        // With a wallpaper program, Hyprland's own wallpaper and logo only show through when
+        // the program changes images. Set where the config writes them; left alone otherwise.
+        if (config.lua()) {
+            for (const auto& [path, value] : {std::pair{std::vector<std::string_view>{"misc", "force_default_wallpaper"}, std::string_view{"0"}},
+                                              std::pair{std::vector<std::string_view>{"misc", "disable_hyprland_logo"}, std::string_view{"true"}}})
+                if (auto edited = configuration::withLuaConfigValue(current->proposed, path, value))
+                    current->proposed = std::move(*edited);
+        }
         if (current->changes())
             changes.push_back(std::move(*current));
         return changes;

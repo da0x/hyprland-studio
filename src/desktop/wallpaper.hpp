@@ -87,7 +87,8 @@ namespace desktop {
 
     // Every file change that makes `program` the one wallpaper program, started at login,
     // with `wallpaper`: the Hyprland config starts it and no longer starts the other one,
-    // and with hyprpaper, hyprpaper.conf sets the wallpaper. A config that is a link is
+    // turns off Hyprland's own wallpaper and logo where it sets them, and with hyprpaper,
+    // hyprpaper.conf sets the wallpaper. A config that is a link is
     // followed, and the file it points at is the one changed; the link stays. Empty when
     // nothing needs to change.
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planWallpaperSetup(WallpaperProgram program, const Wallpaper& wallpaper,
