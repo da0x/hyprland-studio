@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-#include "application/outside-program.hpp"
 #include "application/session.hpp"
 #include "application/settings.hpp"
 #include "configuration/file-change.hpp"
 #include "desktop/waybar-style.hpp"
+#include "ui/program-switch.hpp"
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/Button.hpp>
@@ -42,8 +42,6 @@ namespace ui {
         void showReview(const desktop::WaybarStyle& style);
         void apply();
         void undo();
-        void updateSwitch();
-        void programChanged();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> styleSection();
         // A choice drawn as a preview with its name; the chosen one has the accent around it.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> card(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>& preview, const std::string& name,
@@ -53,15 +51,10 @@ namespace ui {
         std::function<void(std::function<void()>)>                           defer;
         application::EventLoop                                               loop;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> switchArea;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         switchState;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>       onButton;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>       offButton;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         RowList                                                              diff;
 
-        std::optional<std::filesystem::path>                                 waybarProgram;
-        std::optional<application::OutsideProgram>                           waybar;
+        ProgramSwitch                                                        waybar;
 
         application::Settings                                                settings;
         // The style shown in the big preview: Waybar's own at first, if it is one of the studio's.
@@ -71,9 +64,6 @@ namespace ui {
         std::vector<configuration::FileChange>                               changes;
         // What happened last, shown under the style.
         std::string                                                          outcome;
-        // A change just written, kept until Waybar is seen running with it, and put back
-        // if Waybar does not start.
-        std::optional<std::filesystem::path>                                 checking;
     };
 
 }

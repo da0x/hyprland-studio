@@ -40,7 +40,8 @@ namespace configuration {
     // created one is removed. Refuses, changing nothing, if any of them was edited since.
     [[nodiscard]] std::expected<void, std::string> undoChange(const std::filesystem::path& record);
 
-    // The newest change under `backups` that has not been undone.
-    [[nodiscard]] std::optional<std::filesystem::path> latestChange(const std::filesystem::path& backups);
+    // The newest change under `backups` that has not been undone, among those whose
+    // description starts with `about`.
+    [[nodiscard]] std::optional<std::filesystem::path> latestChange(const std::filesystem::path& backups, std::string_view about = {});
 
 }

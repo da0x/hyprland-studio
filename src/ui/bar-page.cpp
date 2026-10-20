@@ -57,7 +57,8 @@ namespace ui {
         diff{this->palette, this->defer,
              {RowList::Column{.width = 24, .monospace = true, .secondary = false, .markup = true, .heading = ""},
               RowList::Column{.width = 0, .monospace = true, .secondary = false, .markup = true, .heading = ""}},
-             20} {
+             20},
+        waybar{this->palette, this->defer, this->loop, "waybar", "Waybar", nullptr} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
         root->addChild(pageTitle("Bar", this->palette));
@@ -65,21 +66,9 @@ namespace ui {
                                  "It never installs anything: when something is missing, it shows the command for you to run.",
                                  this->palette));
 
-        // On and Off, for Waybar as it runs now. Turning it off does not change what starts at login.
-        switchArea  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-        switchState = Hyprtoolkit::CTextBuilder::begin()
-                          ->text(" ")
-                          ->color([palette = this->palette] { return palette->m_colors.text; })
-                          ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
-                          ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
-                          ->commence();
-        switchState->setGrow(true, false);
-        onButton  = button("On", 70, false, [this] { this->defer([this] { if (waybar) waybar->turnOn(); }); });
-        offButton = button("Off", 70, false, [this] { this->defer([this] { if (waybar) waybar->turnOff(); }); });
-
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         body->setGrow(false, true);
-        root->addChild(switchArea);
+        root->addChild(waybar.element());
         root->addChild(body);
 
         const auto environment = foundation::currentEnvironment();
@@ -89,64 +78,13 @@ namespace ui {
     }
 
     void BarPage::close() {
-        waybar.reset();
+        waybar.close();
     }
 
     void BarPage::check() {
-        const auto environment = foundation::currentEnvironment();
-        const auto program     = desktop::findProgram("waybar", foundation::variable(environment, "PATH").value_or(""));
-        if (program != waybarProgram) {
-            waybarProgram = program;
-            waybar.reset();
-            if (program)
-                waybar.emplace(*program, loop, [this] { programChanged(); });
-        } else if (waybar) {
-            waybar->refresh();
-        }
-        updateSwitch();
+        waybar.refresh();
         if (!reviewing)
             showOverview();
-    }
-
-    void BarPage::programChanged() {
-        // A change was just written and Waybar restarted with it: keep it if Waybar runs,
-        // put the files back if it does not.
-        if (checking && waybar && !waybar->busy()) {
-            const auto record = *checking;
-            checking.reset();
-            if (waybar->running()) {
-                outcome = "Written, and Waybar restarted with it.";
-            } else if (const auto undone = configuration::undoChange(record); undone) {
-                outcome = "Waybar did not start with the new files, so they were put back as they were.";
-                waybar->turnOn();
-            } else {
-                outcome = std::format("Waybar did not start with the new files, and they could not be put back: {}", undone.error());
-            }
-            defer([this] { if (!reviewing) showOverview(); });
-        }
-        defer([this] { updateSwitch(); });
-    }
-
-    void BarPage::updateSwitch() {
-        switchArea->clearChildren();
-        if (!waybar)
-            return;
-        std::string state;
-        if (waybar->busy())
-            state = waybar->running() ? "stopping…" : "starting…";
-        else
-            state = waybar->running() ? "running" : "not running";
-        switchState->rebuild()->text(std::format("<span weight=\"600\">Waybar</span>   {}", state))->commence();
-        onButton->rebuild()->accent(waybar->running())->commence();
-        offButton->rebuild()->accent(!waybar->running())->commence();
-
-        const auto row = leftRow();
-        row->addChild(switchState);
-        row->addChild(onButton);
-        row->addChild(offButton);
-        switchArea->addChild(row);
-        if (waybar->error())
-            switchArea->addChild(paragraph(*waybar->error(), palette, true));
     }
 
     CSharedPointer<Hyprtoolkit::IElement> BarPage::card(const CSharedPointer<Hyprtoolkit::IElement>& preview, const std::string& name, bool chosen,
@@ -189,7 +127,7 @@ namespace ui {
         } else {
             actions->addChild(button("Review changes", 160, true, [this] { defer([this] { showReview(selected); }); }));
         }
-        if (const auto latest = configuration::latestChange(application::backupsFolder(environment)))
+        if (const auto latest = configuration::latestChange(application::backupsFolder(environment), "Waybar"))
             actions->addChild(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         section->addChild(actions);
         if (!outcome.empty())
@@ -287,7 +225,7 @@ namespace ui {
 
         body->addChild(space(4));
         body->addChild(heading(std::format("Review: {}, {}", style.palette->name, shapeInfo(style.shape).name), palette));
-        const bool off = waybar && !waybar->running();
+        const bool off = !waybar.running();
         body->addChild(paragraph(std::format("Applying writes these files. A copy of each file it replaces is kept first, so it can be undone. {}",
                                              off ? "Waybar is off, so it will not be restarted." : "Waybar then restarts to read them."),
                                  palette, true));
@@ -305,25 +243,26 @@ namespace ui {
         const auto record = configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()), std::format("Waybar style: {}, {}", reviewing->palette->name, shapeInfo(reviewing->shape).name));
         if (!record) {
             outcome = std::format("Nothing was written: {}.", record.error());
-        } else if (waybar && waybar->running()) {
-            outcome  = "Written. Waybar is restarting…";
-            checking = *record;
-            waybar->restart();
         } else {
-            outcome = "Written. Waybar is off, so it was not restarted; it reads the new files when it starts.";
+            outcome = "Written. Waybar is restarting…";
+            waybar.restartToRead(*record, [this](std::string what) {
+                outcome = std::move(what);
+                if (!reviewing)
+                    showOverview();
+            });
         }
         showOverview();
     }
 
     void BarPage::undo() {
-        const auto latest = configuration::latestChange(application::backupsFolder(foundation::currentEnvironment()));
+        const auto latest = configuration::latestChange(application::backupsFolder(foundation::currentEnvironment()), "Waybar");
         if (!latest)
             return showOverview();
         if (const auto undone = configuration::undoChange(*latest); !undone) {
             outcome = std::format("Nothing was undone: {}.", undone.error());
-        } else if (waybar && waybar->running()) {
+        } else if (waybar.running()) {
             outcome = "Undone, and Waybar is restarting to read the files as they were.";
-            waybar->restart();
+            waybar.restart();
         } else {
             outcome = "Undone.";
         }

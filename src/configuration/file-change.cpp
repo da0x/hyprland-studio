@@ -196,12 +196,17 @@ namespace configuration {
         return {};
     }
 
-    std::optional<std::filesystem::path> latestChange(const std::filesystem::path& backups) {
+    std::optional<std::filesystem::path> latestChange(const std::filesystem::path& backups, std::string_view about) {
         std::vector<std::filesystem::path> records;
         std::error_code                    error;
         for (const auto& entry : std::filesystem::directory_iterator{backups, error})
-            if (entry.is_directory() && std::filesystem::exists(entry.path() / manifestName) && !std::filesystem::exists(entry.path() / undoneName))
-                records.push_back(entry.path());
+            if (entry.is_directory() && std::filesystem::exists(entry.path() / manifestName) && !std::filesystem::exists(entry.path() / undoneName)) {
+                std::ifstream stream{entry.path() / manifestName};
+                std::string   description;
+                std::getline(stream, description);
+                if (description.starts_with(about))
+                    records.push_back(entry.path());
+            }
         if (records.empty())
             return std::nullopt;
         // The names start with the time, so the last in order is the newest.
