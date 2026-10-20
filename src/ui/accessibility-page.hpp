@@ -3,6 +3,7 @@
 
 #include "application/session.hpp"
 #include "desktop/accessibility.hpp"
+#include "ui/choice-cards.hpp"
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/Button.hpp>
@@ -46,27 +47,7 @@ namespace ui {
         void showReview();
         void apply();
         void undo();
-        // After a choice: marks the cards, redraws the pictures that depend on it, and fills
-        // the footer, in place.
-        void updateChoices();
         void fillStatus();
-        // A card's picture, made once for each key and kept, so that showing it again does
-        // not flicker while its text is drawn. A key belongs to one card, since an element
-        // has one parent.
-        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> picture(const std::string& key,
-                                                                                       const std::function<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>()>& make);
-
-        // A choice drawn as a card: a picture of what it does, and its name.
-        struct Option {
-            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>    frame  = nullptr;
-            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> holder = nullptr;
-            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         name   = nullptr;
-            std::string                                                          label;
-            std::function<bool(const desktop::Accessibility&)>                   chosen;
-            std::function<void(desktop::Accessibility&)>                         select;
-            // The picture for what is wanted now.
-            std::function<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>()> draw;
-        };
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
         std::function<void(std::function<void()>)>                           defer;
@@ -74,10 +55,9 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
+        ChoiceCards                                                          cards;
         RowList                                                              diff;
 
-        std::vector<Option>                                                  options;
-        std::map<std::string, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> pictures;
 
         desktop::Accessibility                                               wanted;
         desktop::Accessibility                                               current;

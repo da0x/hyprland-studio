@@ -25,8 +25,10 @@ namespace ui {
             std::function<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>()> draw;
         };
 
-        // `changed` runs after a card is clicked and the cards are marked again.
-        ChoiceCards(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, std::function<void()> changed);
+        // `changed` runs after a card is clicked and the cards are marked again. Pictures are
+        // `pictureHeight` tall.
+        ChoiceCards(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, std::function<void()> changed,
+                    double pictureHeight = defaultPictureHeight);
 
         // A setting in `column`: its name, a few words on what it does, and its choices.
         void addSetting(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column, const std::string& name, const std::string& about,
@@ -44,8 +46,7 @@ namespace ui {
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> picture(const std::string& key,
                                                                                        const std::function<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>()>& make);
 
-        // The height a picture has.
-        static constexpr double pictureHeight = 52;
+        static constexpr double defaultPictureHeight = 52;
 
       private:
         struct Card {
@@ -58,6 +59,7 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>                       palette;
         std::function<void(std::function<void()>)>                                     defer;
         std::function<void()>                                                          changed;
+        double                                                                         pictureHeight;
         std::vector<Card>                                                              cards;
         std::map<std::string, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> pictures;
     };

@@ -32,11 +32,8 @@ namespace ui {
         constexpr auto   changeName  = "Accessibility";
         // The record of a change keeps the studio's own settings as they were, for Undo.
         constexpr auto   studioKept  = "studio-settings";
-        // A card: its picture, its name, and the margins and gap around them.
+        // Taller than other pages' pictures, so the largest cursor fits.
         constexpr double pictureHeight = 72;
-        double cardHeight() {
-            return pictureHeight + 2 * 6 + 4 + scaled(18);
-        }
 
         CSharedPointer<Hyprtoolkit::CRectangleElement> surface(std::string_view colour, double height) {
             return Hyprtoolkit::CRectangleBuilder::begin()
@@ -122,6 +119,7 @@ namespace ui {
         palette{std::move(palette)},
         defer{std::move(defer)},
         loop{std::move(loop)},
+        cards{this->palette, this->defer, [this] { fillStatus(); }, pictureHeight},
         diff{this->palette, this->defer,
              {RowList::Column{.width = 24, .monospace = true, .secondary = false, .markup = true, .heading = ""},
               RowList::Column{.width = 0, .monospace = true, .secondary = false, .markup = true, .heading = ""}},
@@ -157,67 +155,21 @@ namespace ui {
     }
 
     void AccessibilityPage::restyle() {
-        pictures.clear();
+        cards.forget();
         if (!reviewing)
             showOverview();
-    }
-
-    CSharedPointer<Hyprtoolkit::IElement> AccessibilityPage::picture(const std::string& key, const std::function<CSharedPointer<Hyprtoolkit::IElement>()>& make) {
-        auto& made = pictures[key];
-        if (!made)
-            made = make();
-        return made;
     }
 
     void AccessibilityPage::showOverview() {
         reviewing = false;
         body->clearChildren();
-        options.clear();
+        cards.clear();
         statusShown.clear();
         using desktop::Accessibility;
 
         const auto base  = terminalInUse();
         const auto index = static_cast<std::size_t>(base - desktop::terminalThemes().data());
         const auto themeFor = [index](desktop::Contrast contrast, desktop::Vision vision) { return &desktop::terminalThemes(contrast, vision)[index]; };
-        // A setting: its name and what it does, then its choices side by side as cards.
-        const auto setting = [this](const CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column, const char* name, const std::string& about, std::vector<Option> choices) {
-            column->addChild(markupLine(std::format("<span weight=\"600\">{}</span>  <span alpha=\"60%\" size=\"small\">{}</span>", name, escapeMarkup(about)), palette,
-                                        CFontSize{CFontSize::HT_FONT_TEXT}, 1.0F));
-            const auto row   = leftRow(0);
-            row->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight()}})->gap(8)->commence();
-            const auto count = static_cast<double>(choices.size());
-            for (auto& option : choices) {
-                option.frame = Hyprtoolkit::CRectangleBuilder::begin()
-                                   ->color([palette = palette] { return palette->m_colors.alternateBase; })
-                                   ->rounding(palette->m_vars.bigRounding)
-                                   ->borderColor([] { return Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })
-                                   ->borderThickness(2)
-                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {(1.0 - 0.015 * (count - 1)) / count, cardHeight()}})
-                                   ->commence();
-                const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
-                inside->setMargin(6);
-                option.holder = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, pictureHeight}})->commence();
-                option.name   = markupLine(escapeMarkup(option.label), palette, CFontSize{CFontSize::HT_FONT_SMALL});
-                option.name->rebuild()->align(Hyprtoolkit::HT_FONT_ALIGN_CENTER)->commence();
-                inside->addChild(option.holder);
-                inside->addChild(option.name);
-                option.frame->addChild(inside);
-                option.frame->setReceivesMouse(true);
-                option.frame->setMouseButton([this, position = options.size()](Hyprtoolkit::Input::eMouseButton pressed, bool down) {
-                    if (pressed != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !down)
-                        return;
-                    defer([this, position] {
-                        options[position].select(wanted);
-                        updateChoices();
-                    });
-                });
-                row->addChild(option.frame);
-                options.push_back(std::move(option));
-            }
-            column->addChild(row);
-            column->addChild(space(10));
-        };
-
         const auto columns = leftRow(0);
         columns->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(24)->commence();
         const auto left  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {0.49, 1.0}})->commence();
@@ -227,16 +179,16 @@ namespace ui {
         body->addChild(columns);
 
         // Contrast: the terminal theme in use, at each.
-        std::vector<Option> contrast;
+        std::vector<ChoiceCards::Choice> contrast;
         for (const auto& [label, level] : {std::pair{"Standard", desktop::Contrast::standard}, std::pair{"High", desktop::Contrast::high}})
-            contrast.push_back(Option{
+            contrast.push_back(ChoiceCards::Choice{
                 .label  = label,
-                .chosen = [level](const Accessibility& wanted) { return wanted.contrast == level; },
-                .select = [level](Accessibility& wanted) { wanted.contrast = level; },
+                .chosen = [this, level] { return wanted.contrast == level; },
+                .select = [this, level] { wanted.contrast = level; },
                 .draw =
                     [this, level, themeFor] {
                         const auto* theme = themeFor(level, wanted.vision);
-                        return picture(std::format("contrast {} {}", desktop::nameOf(level), desktop::nameOf(wanted.vision)), [&] {
+                        return cards.picture(std::format("contrast {} {}", desktop::nameOf(level), desktop::nameOf(wanted.vision)), [&] {
                             const auto& colour = theme->colours;
                             const auto  frame  = surface(theme->background, pictureHeight);
                             const auto  in     = [](const std::string& hex, std::string_view words) { return coloured(words, hex); };
@@ -248,37 +200,37 @@ namespace ui {
                         });
                     },
             });
-        setting(left, "Contrast", "GTK's high-contrast style, and every terminal theme", std::move(contrast));
+        cards.addSetting(left, "Contrast", "GTK's high-contrast style, and every terminal theme", std::move(contrast));
 
         // Colour vision: the theme's six colours, as each makes them.
-        std::vector<Option> vision;
+        std::vector<ChoiceCards::Choice> vision;
         for (const auto& [label, kind] : {std::pair{"Typical", desktop::Vision::typical}, std::pair{"Red-green", desktop::Vision::redGreen}, std::pair{"Blue-yellow", desktop::Vision::blueYellow}})
-            vision.push_back(Option{
+            vision.push_back(ChoiceCards::Choice{
                 .label  = label,
-                .chosen = [kind](const Accessibility& wanted) { return wanted.vision == kind; },
-                .select = [kind](Accessibility& wanted) { wanted.vision = kind; },
+                .chosen = [this, kind] { return wanted.vision == kind; },
+                .select = [this, kind] { wanted.vision = kind; },
                 .draw =
                     [this, kind, themeFor] {
                         const auto* theme = themeFor(wanted.contrast, kind);
-                        return picture(std::format("vision {} {}", desktop::nameOf(kind), desktop::nameOf(wanted.contrast)), [&] {
+                        return cards.picture(std::format("vision {} {}", desktop::nameOf(kind), desktop::nameOf(wanted.contrast)), [&] {
                             return chips(theme->background, {theme->colours[1], theme->colours[2], theme->colours[3], theme->colours[4], theme->colours[5], theme->colours[6]});
                         });
                     },
             });
-        setting(left, "Colour vision", "colours told apart in every terminal theme", std::move(vision));
+        cards.addSetting(left, "Colour vision", "colours told apart in every terminal theme", std::move(vision));
 
         // The whole screen: colours everyone knows, before and after the shader.
         const std::vector<std::string> reference{"#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#8e24aa"};
-        std::vector<Option>            whole;
+        std::vector<ChoiceCards::Choice>            whole;
         for (const auto& [label, on] : {std::pair{"Off", false}, std::pair{"On", true}})
-            whole.push_back(Option{
+            whole.push_back(ChoiceCards::Choice{
                 .label  = label,
-                .chosen = [on](const Accessibility& wanted) { return wanted.wholeDesktop == on; },
-                .select = [on](Accessibility& wanted) { wanted.wholeDesktop = on; },
+                .chosen = [this, on] { return wanted.wholeDesktop == on; },
+                .select = [this, on] { wanted.wholeDesktop = on; },
                 .draw =
                     [this, on, reference] {
                         const auto kind = on ? wanted.vision : desktop::Vision::typical;
-                        return picture(std::format("whole {} {}", on, desktop::nameOf(kind)), [&] {
+                        return cards.picture(std::format("whole {} {}", on, desktop::nameOf(kind)), [&] {
                             std::vector<std::string> shown;
                             for (const auto& colour : reference)
                                 shown.push_back(desktop::hexOf(desktop::corrected(desktop::parseColour(colour), kind)));
@@ -286,18 +238,18 @@ namespace ui {
                         });
                     },
             });
-        setting(left, "Whole screen", "a Hyprland shader corrects every colour, photos too", std::move(whole));
+        cards.addSetting(left, "Whole screen", "a Hyprland shader corrects every colour, photos too", std::move(whole));
 
         // Text size: the same words at each size.
-        std::vector<Option> textSize;
+        std::vector<ChoiceCards::Choice> textSize;
         for (const double scale : {1.0, 1.25, 1.5, 1.75})
-            textSize.push_back(Option{
+            textSize.push_back(ChoiceCards::Choice{
                 .label  = std::format("{}%", std::lround(scale * 100)),
-                .chosen = [scale](const Accessibility& wanted) { return sameScale(wanted.textScale, scale); },
-                .select = [scale](Accessibility& wanted) { wanted.textScale = scale; },
+                .chosen = [this, scale] { return sameScale(wanted.textScale, scale); },
+                .select = [this, scale] { wanted.textScale = scale; },
                 .draw =
                     [this, scale] {
-                        return picture(std::format("text {}", scale), [&] {
+                        return cards.picture(std::format("text {}", scale), [&] {
                             const auto frame  = surface(hex(palette->m_colors.base), pictureHeight);
                             const auto points = static_cast<float>(11.0 * scale);
                             frame->addChild(centred(centredText("Aa", points, hex(palette->m_colors.text)), points * 4.0 / 3.0 * 1.2));
@@ -305,18 +257,18 @@ namespace ui {
                         });
                     },
             });
-        setting(right, "Text size", "GTK apps, and hyprtoolkit's, this studio among them", std::move(textSize));
+        cards.addSetting(right, "Text size", "GTK apps, and hyprtoolkit's, this studio among them", std::move(textSize));
 
         // Cursor size: an arrow at each size.
-        std::vector<Option> cursor;
+        std::vector<ChoiceCards::Choice> cursor;
         for (const int size : {24, 32, 48, 64})
-            cursor.push_back(Option{
+            cursor.push_back(ChoiceCards::Choice{
                 .label  = std::format("{} px", size),
-                .chosen = [size](const Accessibility& wanted) { return wanted.cursorSize == size; },
-                .select = [size](Accessibility& wanted) { wanted.cursorSize = size; },
+                .chosen = [this, size] { return wanted.cursorSize == size; },
+                .select = [this, size] { wanted.cursorSize = size; },
                 .draw =
                     [this, size] {
-                        return picture(std::format("cursor {}", size), [&] {
+                        return cards.picture(std::format("cursor {}", size), [&] {
                             const auto frame  = surface(hex(palette->m_colors.base), pictureHeight);
                             // The arrow's line is about a point and a half to the pixel, so the
                             // sizes keep their proportions and the largest fits its card.
@@ -326,18 +278,18 @@ namespace ui {
                         });
                     },
             });
-        setting(right, "Cursor size", "the pointer, in Hyprland and in apps", std::move(cursor));
+        cards.addSetting(right, "Cursor size", "the pointer, in Hyprland and in apps", std::move(cursor));
 
         // Reduce motion: a window sliding in, with its trail, or standing still.
-        std::vector<Option> motion;
+        std::vector<ChoiceCards::Choice> motion;
         for (const auto& [label, reduce] : {std::pair{"Animated", false}, std::pair{"Still", true}})
-            motion.push_back(Option{
+            motion.push_back(ChoiceCards::Choice{
                 .label  = label,
-                .chosen = [reduce](const Accessibility& wanted) { return wanted.reduceMotion == reduce; },
-                .select = [reduce](Accessibility& wanted) { wanted.reduceMotion = reduce; },
+                .chosen = [this, reduce] { return wanted.reduceMotion == reduce; },
+                .select = [this, reduce] { wanted.reduceMotion = reduce; },
                 .draw =
                     [this, reduce] {
-                        return picture(std::format("motion {}", reduce), [&] {
+                        return cards.picture(std::format("motion {}", reduce), [&] {
                             const auto frame = surface(hex(palette->m_colors.base), pictureHeight);
                             const auto row   = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(3)->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})->commence();
                             const auto window = [this](float alpha) {
@@ -357,19 +309,9 @@ namespace ui {
                         });
                     },
             });
-        setting(right, "Motion", "Hyprland's animations, and apps asked to keep still", std::move(motion));
+        cards.addSetting(right, "Motion", "Hyprland's animations, and apps asked to keep still", std::move(motion));
 
-        updateChoices();
-    }
-
-    void AccessibilityPage::updateChoices() {
-        for (auto& option : options) {
-            const bool chosen = option.chosen(wanted);
-            option.frame->rebuild()->borderColor([palette = palette, chosen] { return chosen ? palette->m_colors.accent : Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })->commence();
-            option.name->rebuild()->text(chosen ? std::format("<span weight=\"600\">{}</span>", escapeMarkup(option.label)) : escapeMarkup(option.label))->commence();
-            option.holder->clearChildren();
-            option.holder->addChild(option.draw());
-        }
+        cards.update();
         fillStatus();
     }
 

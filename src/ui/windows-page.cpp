@@ -70,9 +70,9 @@ namespace ui {
 
         // A card's picture: what is drawn, centred up and down; a column centres it across.
         CSharedPointer<Hyprtoolkit::IElement> cardPicture(const std::string& background, const CSharedPointer<Hyprtoolkit::IElement>& inside, double used) {
-            const auto frame  = block(background, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, ChoiceCards::pictureHeight}}, 6);
+            const auto frame  = block(background, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, ChoiceCards::defaultPictureHeight}}, 6);
             const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
-            column->addChild(space(std::max(0.0, (ChoiceCards::pictureHeight - used) / 2)));
+            column->addChild(space(std::max(0.0, (ChoiceCards::defaultPictureHeight - used) / 2)));
             column->addChild(inside);
             frame->addChild(column);
             return frame;
