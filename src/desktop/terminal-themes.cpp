@@ -121,46 +121,44 @@ namespace desktop {
         struct Bundled {
             std::string_view               name;
             std::span<const unsigned char> file;
-            // Made for colour blindness or low vision: high contrast, or colours told apart without red and green.
-            bool                           accessible = false;
         };
 
         constexpr std::array<Bundled, 35> bundled{{
-            {"Alabaster", file_Alabaster, false},
-            {"Black Metal", file_BlackMetal, false},
-            {"Catppuccin Frappé", file_Catppuccin_Frappe, false},
-            {"Catppuccin Latte", file_Catppuccin_Latte, false},
-            {"Catppuccin Macchiato", file_Catppuccin_Macchiato, false},
-            {"Catppuccin Mocha", file_Catppuccin_Mocha, false},
-            {"Dracula", file_Dracula, false},
-            {"Everforest Dark", file_everforest_dark_medium, false},
-            {"Everforest Light", file_everforest_light_medium, false},
-            {"GitHub Dark", file_GitHub_Dark, false},
-            {"GitHub Dark Colorblind", file_GitHub_Dark_Colorblind, true},
-            {"GitHub Dark High Contrast", file_GitHub_Dark_High_Contrast, true},
-            {"GitHub Light", file_GitHub_Light, false},
-            {"GitHub Light Colorblind", file_GitHub_Light_Colorblind, true},
-            {"Gruvbox Dark", file_gruvbox_dark, false},
-            {"Gruvbox Light", file_gruvbox_light, false},
-            {"Kanagawa", file_kanagawa, false},
-            {"Kanagawa Dragon", file_kanagawa_dragon, false},
-            {"Kanagawa Light", file_kanagawa_light, false},
-            {"Modus Operandi", file_Modus_Operandi, true},
-            {"Modus Vivendi", file_Modus_Vivendi, true},
-            {"Nightfox", file_Nightfox, false},
-            {"Nord", file_Nord, false},
-            {"One Half Light", file_OneHalfLight, false},
-            {"PaperColor Dark", file_PaperColor_dark, false},
-            {"PaperColor Light", file_PaperColor_light, false},
-            {"Rosé Pine", file_rose_pine, false},
-            {"Rosé Pine Dawn", file_rose_pine_dawn, false},
-            {"Rosé Pine Moon", file_rose_pine_moon, false},
-            {"Sequoia Monochrome", file_Sequoia_Monochrome_Dark, false},
-            {"Solarized Dark", file_Solarized_Dark, false},
-            {"Solarized Light", file_Solarized_Light, false},
-            {"Tokyo Night", file_tokyo_night_night, false},
-            {"Tokyo Night Day", file_tokyo_night_day, false},
-            {"Tokyo Night Storm", file_tokyo_night_storm, false},
+            {"Alabaster", file_Alabaster},
+            {"Black Metal", file_BlackMetal},
+            {"Catppuccin Frappé", file_Catppuccin_Frappe},
+            {"Catppuccin Latte", file_Catppuccin_Latte},
+            {"Catppuccin Macchiato", file_Catppuccin_Macchiato},
+            {"Catppuccin Mocha", file_Catppuccin_Mocha},
+            {"Dracula", file_Dracula},
+            {"Everforest Dark", file_everforest_dark_medium},
+            {"Everforest Light", file_everforest_light_medium},
+            {"GitHub Dark", file_GitHub_Dark},
+            {"GitHub Dark Colorblind", file_GitHub_Dark_Colorblind},
+            {"GitHub Dark High Contrast", file_GitHub_Dark_High_Contrast},
+            {"GitHub Light", file_GitHub_Light},
+            {"GitHub Light Colorblind", file_GitHub_Light_Colorblind},
+            {"Gruvbox Dark", file_gruvbox_dark},
+            {"Gruvbox Light", file_gruvbox_light},
+            {"Kanagawa", file_kanagawa},
+            {"Kanagawa Dragon", file_kanagawa_dragon},
+            {"Kanagawa Light", file_kanagawa_light},
+            {"Modus Operandi", file_Modus_Operandi},
+            {"Modus Vivendi", file_Modus_Vivendi},
+            {"Nightfox", file_Nightfox},
+            {"Nord", file_Nord},
+            {"One Half Light", file_OneHalfLight},
+            {"PaperColor Dark", file_PaperColor_dark},
+            {"PaperColor Light", file_PaperColor_light},
+            {"Rosé Pine", file_rose_pine},
+            {"Rosé Pine Dawn", file_rose_pine_dawn},
+            {"Rosé Pine Moon", file_rose_pine_moon},
+            {"Sequoia Monochrome", file_Sequoia_Monochrome_Dark},
+            {"Solarized Dark", file_Solarized_Dark},
+            {"Solarized Light", file_Solarized_Light},
+            {"Tokyo Night", file_tokyo_night_night},
+            {"Tokyo Night Day", file_tokyo_night_day},
+            {"Tokyo Night Storm", file_tokyo_night_storm},
         }};
 
     }
@@ -168,11 +166,8 @@ namespace desktop {
     std::span<const TerminalTheme> terminalThemes() {
         static const auto themes = [] {
             std::vector<TerminalTheme> made;
-            for (const auto& [name, file, accessible] : bundled) {
-                auto theme       = terminalTheme(name, std::string_view{reinterpret_cast<const char*>(file.data()), file.size()}); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): bytes read as text
-                theme.accessible = accessible;
-                made.push_back(std::move(theme));
-            }
+            for (const auto& [name, file] : bundled)
+                made.push_back(terminalTheme(name, std::string_view{reinterpret_cast<const char*>(file.data()), file.size()})); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): bytes read as text
             return made;
         }();
         return themes;

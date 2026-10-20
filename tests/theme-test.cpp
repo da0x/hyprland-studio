@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "configuration/file-change.hpp"
+#include "desktop/colour.hpp"
 #include "desktop/terminal-theme.hpp"
 #include "desktop/theme.hpp"
 
@@ -84,11 +85,9 @@ namespace {
     TEST(Terminal, BundlesDarkAndLightThemesReadFromTheirFiles) {
         const auto themes = desktop::terminalThemes();
         ASSERT_EQ(themes.size(), 35U);
-        EXPECT_EQ(std::ranges::count_if(themes, &desktop::TerminalTheme::accessible), 5);
         const auto vivendi = std::ranges::find(themes, std::string{"Modus Vivendi"}, &desktop::TerminalTheme::name);
         ASSERT_NE(vivendi, themes.end());
         EXPECT_EQ(vivendi->background, "#000000");
-        EXPECT_TRUE(vivendi->accessible);
         const auto dracula = std::ranges::find(themes, std::string{"Dracula"}, &desktop::TerminalTheme::name);
         ASSERT_NE(dracula, themes.end());
         EXPECT_EQ(dracula->background, "#282a36");
@@ -140,6 +139,14 @@ namespace {
         EXPECT_EQ((*family)[0].proposed, "include current-theme.conf\nfont_size 13\nfont_family JetBrains Mono\n");
         ASSERT_TRUE(configuration::applyChanges(*family, root / "backups", "Terminal").has_value());
         EXPECT_EQ(desktop::kittyFontFamily(environment), std::optional<std::string>{"JetBrains Mono"});
+
+        // An adjusted theme is recognised as itself, from the same set each time.
+        const auto  index = static_cast<std::size_t>(&nord - desktop::terminalThemes().data());
+        const auto& high  = desktop::terminalThemes(desktop::Contrast::high, desktop::Vision::blueYellow)[index];
+        const auto  adjusted = desktop::planTerminal(high, 13.0, std::string{"JetBrains Mono"}, environment);
+        ASSERT_TRUE(adjusted.has_value());
+        ASSERT_TRUE(configuration::applyChanges(*adjusted, root / "backups", "Terminal").has_value());
+        EXPECT_EQ(desktop::currentTerminal(environment), &high);
         std::filesystem::remove_all(root);
     }
 
@@ -168,6 +175,37 @@ namespace {
         EXPECT_EQ(fonts.front().package, "ttf-jetbrains-mono");
         for (std::size_t index = 12; index < fonts.size(); ++index)
             EXPECT_TRUE(fonts[index].installed) << fonts[index].family;
+    }
+
+    TEST(Terminal, MakesEveryThemeHighContrast) {
+        for (const auto& theme : desktop::terminalThemes()) {
+            const auto high       = desktop::adjusted(theme, desktop::Contrast::high, desktop::Vision::typical);
+            const auto background = desktop::parseColour(high.background);
+            EXPECT_GE(desktop::contrast(desktop::parseColour(high.foreground), background), 9.99) << theme.name;
+            for (std::size_t index = 1; index < 16; ++index)
+                if (index != 8)
+                    EXPECT_GE(desktop::contrast(desktop::parseColour(high.colours[index]), background), 6.99) << theme.name << " color" << index;
+            EXPECT_GE(desktop::contrast(desktop::parseColour(high.colours[8]), background), 4.49) << theme.name;
+            // What kitty reads is what was measured.
+            const auto reread = desktop::terminalTheme(high.name, high.file);
+            EXPECT_EQ(reread.foreground, high.foreground);
+            EXPECT_EQ(reread.background, high.background);
+            EXPECT_EQ(reread.colours, high.colours);
+        }
+    }
+
+    TEST(Terminal, MovesRedAndGreenForRedGreenColourBlindness) {
+        const auto& dracula = *std::ranges::find(desktop::terminalThemes(), std::string{"Dracula"}, &desktop::TerminalTheme::name);
+        const auto  safe    = desktop::adjusted(dracula, desktop::Contrast::standard, desktop::Vision::redGreen);
+        EXPECT_NEAR(desktop::lchOf(desktop::parseColour(safe.colours[1])).hue, 55, 3);
+        EXPECT_NEAR(desktop::lchOf(desktop::parseColour(safe.colours[2])).hue, 245, 3);
+        // Lightness is the theme's own.
+        EXPECT_NEAR(desktop::lchOf(desktop::parseColour(safe.colours[1])).lightness, desktop::lchOf(desktop::parseColour(dracula.colours[1])).lightness, 0.01);
+        EXPECT_EQ(safe.background, dracula.background);
+        EXPECT_EQ(safe.name, "Dracula");
+        EXPECT_TRUE(safe.file.starts_with("# Dracula, for red-green colour blindness\n"));
+        // Untouched when nothing is asked.
+        EXPECT_EQ(desktop::adjusted(dracula, desktop::Contrast::standard, desktop::Vision::typical).file, dracula.file);
     }
 
 }

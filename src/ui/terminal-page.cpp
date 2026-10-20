@@ -35,6 +35,12 @@ namespace ui {
         // A card: the session, its name, and the margins and gap around them.
         constexpr double      cardHeight = 82 + 2 * 8 + 6 + 18;
 
+        // A theme's name with what was adjusted, as in "Nord, high contrast".
+        std::string fullName(const desktop::TerminalTheme& theme) {
+            const auto adjustment = desktop::adjustmentName(theme.contrast, theme.vision);
+            return adjustment.empty() ? theme.name : std::format("{}, {}", theme.name, adjustment);
+        }
+
     }
 
     TerminalPage::TerminalPage(CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer) :
@@ -60,9 +66,14 @@ namespace ui {
         fontSize               = desktop::kittyFontSize(environment);
         fontFamily             = desktop::kittyFontFamily(environment);
         fonts                  = desktop::terminalFonts();
+        // The adjustments are those of the theme in use, so the page opens on what kitty shows.
         selected               = desktop::currentTerminal(environment);
-        if (selected == nullptr)
-            selected = &desktop::terminalThemes().front();
+        if (selected != nullptr) {
+            contrast = selected->contrast;
+            vision   = selected->vision;
+        } else {
+            selected = &themes().front();
+        }
         kind = selected->dark ? Kind::dark : Kind::light;
         const auto shown = shownThemes();
         if (const auto at = std::ranges::find(shown, selected); at != shown.end())
@@ -110,12 +121,25 @@ namespace ui {
             showOverview();
     }
 
+    std::span<const desktop::TerminalTheme> TerminalPage::themes() const {
+        return desktop::terminalThemes(contrast, vision);
+    }
+
     std::vector<const desktop::TerminalTheme*> TerminalPage::shownThemes() const {
         std::vector<const desktop::TerminalTheme*> shown;
-        for (const auto& theme : desktop::terminalThemes())
-            if (kind == Kind::accessible ? theme.accessible : theme.dark == (kind == Kind::dark))
+        for (const auto& theme : themes())
+            if (theme.dark == (kind == Kind::dark))
                 shown.push_back(&theme);
         return shown;
+    }
+
+    void TerminalPage::adjust(desktop::Contrast wantedContrast, desktop::Vision wantedVision) {
+        // The same theme in the new set: every set holds the bundled themes in one order.
+        const auto index = static_cast<std::size_t>(selected - themes().data());
+        contrast         = wantedContrast;
+        vision           = wantedVision;
+        selected         = &themes()[index];
+        showOverview();
     }
 
     CSharedPointer<Hyprtoolkit::IElement> TerminalPage::sessionOf(const desktop::TerminalTheme* theme, bool large) {
@@ -177,6 +201,31 @@ namespace ui {
             return;
         }
 
+        // Accessibility first, since it applies to every theme below it.
+        const auto access = leftRow();
+        access->rebuild()->gap(4)->commence();
+        const auto label = [this](const char* text) {
+            const auto made = markupLine(text, palette);
+            made->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            return made;
+        };
+        const auto choice = [this](std::string text, double width, desktop::Contrast wantedContrast, desktop::Vision wantedVision) {
+            return button(std::move(text), width, contrast == wantedContrast && vision == wantedVision,
+                          [this, wantedContrast, wantedVision] { defer([this, wantedContrast, wantedVision] { adjust(wantedContrast, wantedVision); }); });
+        };
+        const auto across = [](double width) { return Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, 1.0}})->commence(); };
+        access->addChild(label("Contrast"));
+        access->addChild(across(4));
+        access->addChild(choice("Standard", 100, desktop::Contrast::standard, vision));
+        access->addChild(choice("High", 80, desktop::Contrast::high, vision));
+        access->addChild(across(28));
+        access->addChild(label("Colour vision"));
+        access->addChild(across(4));
+        access->addChild(choice("Typical", 90, contrast, desktop::Vision::typical));
+        access->addChild(choice("Red-green", 110, contrast, desktop::Vision::redGreen));
+        access->addChild(choice("Blue-yellow", 120, contrast, desktop::Vision::blueYellow));
+        body->addChild(access);
+
         // Dark or light, and which eight of them.
         const auto shown = shownThemes();
         const auto top   = leftRow();
@@ -192,7 +241,6 @@ namespace ui {
         };
         top->addChild(filter("Dark", 80, Kind::dark));
         top->addChild(filter("Light", 80, Kind::light));
-        top->addChild(filter("Accessible", 110, Kind::accessible));
         const auto rest = space(1);
         rest->setGrow(true, false);
         top->addChild(rest);
@@ -359,7 +407,7 @@ namespace ui {
         const auto planned     = desktop::planTerminal(*selected, fontSize, usableFamily(), environment);
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         inUse                  = desktop::currentTerminal(environment);
-        const auto shown = std::format("{}|{}|{}|{}|{}|{}|{}", selected->name, fontSize, usableFamily().value_or(""), planned ? planned->empty() : false, planned ? "" : planned.error(), undoable, outcome);
+        const auto shown = std::format("{}|{}|{}|{}|{}|{}|{}", fullName(*selected), fontSize, usableFamily().value_or(""), planned ? planned->empty() : false, planned ? "" : planned.error(), undoable, outcome);
         if (shown == statusShown)
             return;
         statusShown = shown;
@@ -373,7 +421,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
         } else if (planned->empty()) {
-            note = std::format("{}  Your terminal uses {}, in {} at {:g} pt.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name),
+            note = std::format("{}  Your terminal uses {}, in {} at {:g} pt.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(fullName(*selected)),
                                escapeMarkup(desktop::kittyFontFamily(environment).value_or("kitty's default font")), fontSize);
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
@@ -399,7 +447,7 @@ namespace ui {
         outcome.clear();
         body->clearChildren();
         body->addChild(space(4));
-        body->addChild(heading(std::format("Review: {}, in {} at {:g} pt, for the terminal", selected->name, usableFamily().value_or("kitty's default font"), fontSize),
+        body->addChild(heading(std::format("Review: {}, in {} at {:g} pt, for the terminal", fullName(*selected), usableFamily().value_or("kitty's default font"), fontSize),
                                palette));
         body->addChild(paragraph("Applying will:", palette));
         body->addChild(paragraph("•  Write the changes below. A copy of each file is kept first, so it can be undone.", palette, true));
@@ -413,14 +461,14 @@ namespace ui {
         if (!reviewing)
             return;
         const auto record =
-            configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()), std::format("{}: {}", changeName, selected->name));
+            configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()), std::format("{}: {}", changeName, fullName(*selected)));
         if (!record) {
             outcome = std::format("Nothing was written: {}.", record.error());
             return showOverview();
         }
         // kitty reads kitty.conf, and the theme it includes, again on SIGUSR1.
         desktop::signalProcesses("kitty", SIGUSR1);
-        outcome = std::format("Applied {}.", selected->name);
+        outcome = std::format("Applied {}.", fullName(*selected));
         showOverview();
     }
 

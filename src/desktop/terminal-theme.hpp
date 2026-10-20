@@ -14,6 +14,21 @@
 
 namespace desktop {
 
+    // How a theme is adjusted for the person reading it, applied to every theme alike.
+    enum class Contrast {
+        standard,
+        // Text and every colour at least 7:1 against the background (WCAG AAA), comments
+        // at least 4.5:1, each keeping its hue.
+        high,
+    };
+    enum class Vision {
+        typical,
+        // Protanopia and deuteranopia: red and green move to orange and blue.
+        redGreen,
+        // Tritanopia: blue and yellow move to hues told apart without them.
+        blueYellow,
+    };
+
     // A terminal's colour scheme, as kitty writes one: chosen apart from the desktop's
     // palette, since terminal themes are their own family.
     struct TerminalTheme {
@@ -25,10 +40,19 @@ namespace desktop {
         std::string                 foreground;
         std::string                 cursor;
         std::array<std::string, 16> colours;
-        bool                        dark       = true;
-        // Made for colour blindness or low vision.
-        bool                        accessible = false;
+        bool                        dark     = true;
+        // How it was adjusted from the theme bundled.
+        Contrast                    contrast = Contrast::standard;
+        Vision                      vision   = Vision::typical;
     };
+
+    // The theme adjusted: its colours, and its file with each changed value replaced. It
+    // keeps its name; see adjustmentName.
+    [[nodiscard]] TerminalTheme adjusted(const TerminalTheme& theme, Contrast contrast, Vision vision);
+
+    // What was adjusted, said after a theme's name: "high contrast, for red-green colour
+    // blindness", or empty for neither.
+    [[nodiscard]] std::string adjustmentName(Contrast contrast, Vision vision);
 
     // Reads a kitty theme file.
     [[nodiscard]] TerminalTheme terminalTheme(std::string_view name, std::string_view file);
@@ -36,6 +60,10 @@ namespace desktop {
     // The bundled themes, dark and light, from kitty-themes; see terminal-themes/NOTICE.
     // They set colours only, so applying one changes nothing else about kitty.
     [[nodiscard]] std::span<const TerminalTheme> terminalThemes();
+
+    // Every bundled theme adjusted alike, in the same order. Made once for each choice and
+    // kept, so a theme's address stays the same for as long as the studio runs.
+    [[nodiscard]] std::span<const TerminalTheme> terminalThemes(Contrast contrast, Vision vision);
 
     // kitty's folder: $XDG_CONFIG_HOME/kitty, or ~/.config/kitty.
     [[nodiscard]] std::filesystem::path kittyFolder(const foundation::Environment& environment);

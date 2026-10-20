@@ -2,6 +2,7 @@
 #include "desktop/terminal-theme.hpp"
 
 #include "configuration/hyprlang-edit.hpp"
+#include "desktop/colour.hpp"
 #include "desktop/system.hpp"
 
 #include <algorithm>
@@ -9,6 +10,7 @@
 #include <charconv>
 #include <format>
 #include <fstream>
+#include <map>
 #include <sstream>
 
 namespace desktop {
@@ -67,6 +69,84 @@ namespace desktop {
             theme.cursor = theme.foreground;
         theme.dark = lightness(theme.background) < 0.5;
         return theme;
+    }
+
+    TerminalTheme adjusted(const TerminalTheme& theme, Contrast contrast, Vision vision) {
+        if (contrast == Contrast::standard && vision == Vision::typical)
+            return theme;
+        TerminalTheme result = theme;
+
+        // Colour vision first: the six hues of the 16 colours move, keeping each colour's
+        // own lightness and chroma, so the theme keeps its feel. The hues, in OKLCH degrees,
+        // follow the colours used by palettes made for these kinds of colour blindness.
+        if (vision != Vision::typical) {
+            // red, green, yellow, blue, magenta, cyan
+            constexpr std::array<double, 6> redGreen{55, 245, 100, 280, 330, 200};
+            constexpr std::array<double, 6> blueYellow{25, 165, 345, 200, 300, 120};
+            const auto&                     hues = vision == Vision::redGreen ? redGreen : blueYellow;
+            for (std::size_t slot = 0; slot < 6; ++slot)
+                for (const auto index : {slot + 1, slot + 9}) {
+                    auto lch                = lchOf(parseColour(result.colours[index]));
+                    lch.hue                 = hues[slot];
+                    result.colours[index]   = hexOf(colourOf(lch));
+                }
+        }
+
+        if (contrast == Contrast::high) {
+            // The background a little further from the middle, then everything read against it.
+            auto background = lchOf(parseColour(result.background));
+            background.lightness = theme.dark ? background.lightness * 0.7 : background.lightness + (1 - background.lightness) * 0.6;
+            const auto ground    = parseColour(hexOf(colourOf(background)));
+            result.background    = hexOf(ground);
+            result.foreground    = hexOf(withContrast(parseColour(result.foreground), ground, 10.0));
+            for (std::size_t index = 1; index < result.colours.size(); ++index)
+                if (index != 8)
+                    result.colours[index] = hexOf(withContrast(parseColour(result.colours[index]), ground, 7.0));
+            result.colours[8] = hexOf(withContrast(parseColour(result.colours[8]), ground, 4.5));
+            result.cursor     = hexOf(withContrast(parseColour(result.cursor), ground, 4.5));
+        }
+
+        // The file: each value that changed, replaced where the theme sets it.
+        auto file = std::string{theme.file};
+        const auto set = [&file](std::string_view key, const std::string& before, const std::string& after) {
+            if (before != after)
+                file = configuration::withSpacedValue(file, key, after);
+        };
+        set("background", theme.background, result.background);
+        set("foreground", theme.foreground, result.foreground);
+        set("cursor", theme.cursor, result.cursor);
+        for (std::size_t index = 0; index < result.colours.size(); ++index)
+            set(std::format("color{}", index), theme.colours[index], result.colours[index]);
+        result.contrast = contrast;
+        result.vision   = vision;
+        result.file     = std::format("# {}, {}\n{}", theme.name, adjustmentName(contrast, vision), file);
+        return result;
+    }
+
+    std::string adjustmentName(Contrast contrast, Vision vision) {
+        std::vector<std::string_view> parts;
+        if (contrast == Contrast::high)
+            parts.emplace_back("high contrast");
+        if (vision == Vision::redGreen)
+            parts.emplace_back("for red-green colour blindness");
+        if (vision == Vision::blueYellow)
+            parts.emplace_back("for blue-yellow colour blindness");
+        std::string name;
+        for (const auto part : parts)
+            name += std::format("{}{}", name.empty() ? "" : ", ", part);
+        return name;
+    }
+
+    std::span<const TerminalTheme> terminalThemes(Contrast contrast, Vision vision) {
+        if (contrast == Contrast::standard && vision == Vision::typical)
+            return terminalThemes();
+        // Read and written from the interface's thread only.
+        static std::map<std::pair<Contrast, Vision>, std::vector<TerminalTheme>> made;
+        auto& themes = made[{contrast, vision}];
+        if (themes.empty())
+            for (const auto& theme : terminalThemes())
+                themes.push_back(adjusted(theme, contrast, vision));
+        return themes;
     }
 
     std::filesystem::path kittyFolder(const foundation::Environment& environment) {
@@ -148,9 +228,11 @@ namespace desktop {
         std::ifstream     stream{kittyFolder(environment) / "current-theme.conf", std::ios::binary};
         std::stringstream text;
         text << stream.rdbuf();
-        for (const auto& theme : terminalThemes())
-            if (text.str() == theme.file)
-                return &theme;
+        for (const auto contrast : {Contrast::standard, Contrast::high})
+            for (const auto vision : {Vision::typical, Vision::redGreen, Vision::blueYellow})
+                for (const auto& theme : terminalThemes(contrast, vision))
+                    if (text.str() == theme.file)
+                        return &theme;
         return nullptr;
     }
 

@@ -16,6 +16,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <span>
 #include <tuple>
 #include <string>
 #include <vector>
@@ -44,9 +45,12 @@ namespace ui {
         void fillGrid();
         void scroll(Hyprtoolkit::Input::eAxisAxis axis, float delta);
         void fillStatus();
-        // The themes shown: the dark ones, the light ones, or those made for colour
-        // blindness and low vision.
+        // Every theme, adjusted for the contrast and colour vision chosen.
+        [[nodiscard]] std::span<const desktop::TerminalTheme>                  themes() const;
+        // The themes shown: the dark ones or the light ones.
         [[nodiscard]] std::vector<const desktop::TerminalTheme*>               shownThemes() const;
+        // Chooses how every theme is adjusted, keeping the same theme chosen.
+        void                                                                   adjust(desktop::Contrast wanted, desktop::Vision vision);
         // A short terminal session in a theme, made once and kept: large or for a card.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> sessionOf(const desktop::TerminalTheme* theme, bool large);
 
@@ -77,9 +81,10 @@ namespace ui {
         enum class Kind {
             dark,
             light,
-            accessible,
         };
-        Kind                                                                 kind = Kind::dark;
+        Kind                                                                 kind     = Kind::dark;
+        desktop::Contrast                                                    contrast = desktop::Contrast::standard;
+        desktop::Vision                                                      vision   = desktop::Vision::typical;
         // The font size to give kitty, in points; kitty's own until changed.
         double                                                               fontSize = 11;
         // The font family to give kitty, or nothing for kitty's own; and the fonts to choose from.
