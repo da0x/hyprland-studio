@@ -12,6 +12,7 @@
 #include <hyprtoolkit/element/Rectangle.hpp>
 
 #include <cstdlib>
+#include <algorithm>
 #include <format>
 
 namespace ui {
@@ -150,6 +151,38 @@ namespace ui {
             ->commence();
         restyled(made);
         return made;
+    }
+
+    CSharedPointer<Hyprtoolkit::IElement> letterButton(const std::string& letter, float points, const CSharedPointer<Hyprtoolkit::CPalette>& palette,
+                                                       const std::function<void(std::function<void()>)>& defer, std::function<void()> clicked) {
+        constexpr double width  = 40;
+        constexpr double height = 34;
+        const auto       frame  = Hyprtoolkit::CRectangleBuilder::begin()
+                               ->color([palette] { return palette->m_colors.alternateBase; })
+                               ->rounding(palette->m_vars.smallRounding)
+                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})
+                               ->commence();
+        // A column centres the letter across; a spacer above, of half what the line leaves,
+        // centres it up and down.
+        const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})->commence();
+        const auto line   = static_cast<double>(points) * 4.0 / 3.0 * 1.2;
+        column->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, std::max(0.0, (height - line) / 2)}})->commence());
+        const auto text = Hyprtoolkit::CTextBuilder::begin()
+                              ->text(std::string{letter})
+                              ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, points})
+                              ->color([palette] { return palette->m_colors.text; })
+                              ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
+                              ->commence();
+        column->addChild(text);
+        frame->addChild(column);
+        restyled(frame);
+        restyled(text);
+        frame->setReceivesMouse(true);
+        frame->setMouseButton([defer, clicked = std::move(clicked)](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
+            if (button == Hyprtoolkit::Input::MOUSE_BUTTON_LEFT && pressed)
+                defer(clicked);
+        });
+        return frame;
     }
 
     // A full-width row, so what is in it starts at the left edge rather than the column's middle.

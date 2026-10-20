@@ -12,6 +12,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(hyprtoolkit REQUIRED IMPORTED_TARGET hyprtoolkit>=0.6.0)
 
 option(HYPRLAND_STUDIO_WARNINGS_AS_ERRORS "Turn compiler warnings into errors (for CI)" OFF)
+option(HYPRLAND_STUDIO_FIXED_HYPRTOOLKIT "Built against a hyprtoolkit whose scroll area does not crash (newer than 0.6.0, or patched)" OFF)
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 if(HYPRLAND_STUDIO_WARNINGS_AS_ERRORS)

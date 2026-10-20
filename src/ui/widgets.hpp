@@ -46,6 +46,12 @@ namespace ui {
 
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement> button(std::string label, double width, bool accent, std::function<void()> clicked);
 
+    // A button showing one letter at its own size, such as the small and the big A that
+    // make text smaller and bigger: a button's label has one size for all.
+    [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> letterButton(const std::string& letter, float points,
+                                                                                        const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette,
+                                                                                        const std::function<void(std::function<void()>)>& defer, std::function<void()> clicked);
+
     // A full-width row, so what is in it starts at the left edge rather than the column's middle.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement> leftRow(double height = 34.0);
 

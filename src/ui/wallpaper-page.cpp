@@ -9,12 +9,14 @@
 #include "desktop/clipboard.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
+#include "ui/toolkit.hpp"
 #include "ui/widgets.hpp"
 
 #include <hyprtoolkit/element/Combobox.hpp>
 #include <hyprtoolkit/element/Image.hpp>
 #include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
+#include <hyprtoolkit/element/ScrollArea.hpp>
 
 #include <algorithm>
 #include <array>
@@ -416,7 +418,9 @@ namespace ui {
         card->addChild(inside);
         cards[image] = card;
         card->setReceivesMouse(true);
-        card->setMouseAxis([this](Hyprtoolkit::Input::eAxisAxis axis, float delta) { scroll(axis, delta); });
+        // Paged by the wheel only where the scroll area cannot be used; it scrolls by itself.
+        if constexpr (!scrollAreaWorks)
+            card->setMouseAxis([this](Hyprtoolkit::Input::eAxisAxis axis, float delta) { scroll(axis, delta); });
         card->setMouseButton([this, image](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
             if (button != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !pressed)
                 return;
@@ -453,14 +457,34 @@ namespace ui {
     void WallpaperPage::fillGrid() {
         cards.clear();
         gridRows->clearChildren();
-        for (std::size_t first = pageStart; first < std::min(wallpapers.size(), pageStart + pageSize); first += perRow) {
+        // Every image in a scroll area, or a row of them paged in; see ui/toolkit.hpp.
+        const auto first = scrollAreaWorks ? 0 : pageStart;
+        const auto last  = scrollAreaWorks ? wallpapers.size() : std::min(wallpapers.size(), pageStart + pageSize);
+        const auto rows  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(12)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        for (std::size_t start = first; start < last; start += perRow) {
             const auto line = leftRow(0);
             // A fixed height: sized to the cards, the row came out taller than they are.
             line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight}})->gap(12)->commence();
-            for (std::size_t index = first; index < std::min({wallpapers.size(), first + perRow, pageStart + pageSize}); ++index)
+            for (std::size_t index = start; index < std::min(last, start + perRow); ++index)
                 line->addChild(thumbnail(wallpapers[index]));
-            gridRows->addChild(line);
+            rows->addChild(line);
         }
+        if constexpr (scrollAreaWorks) {
+            const auto area = Hyprtoolkit::CScrollAreaBuilder::begin()
+                                  ->scrollY(true)
+                                  ->scrollX(false)
+                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight}})
+                                  ->commence();
+            area->addChild(rows);
+            if (const auto at = std::ranges::find(wallpapers, selected ? selected->image : std::filesystem::path{}); at != wallpapers.end())
+                area->setScroll(Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - wallpapers.begin()) / perRow) * (cardHeight + 12)});
+            gridRows->addChild(area);
+            gridTitle->rebuild()
+                ->text(std::format("<span weight=\"600\">Wallpapers</span>   {}{}", wallpapers.size(), wallpapers.size() > perRow ? " · scroll for more" : ""))
+                ->commence();
+            return;
+        }
+        gridRows->addChild(rows);
         const auto end  = std::min(wallpapers.size(), pageStart + pageSize);
         const auto more = wallpapers.size() > pageSize ? " · scroll for more" : "";
         gridTitle->rebuild()->text(std::format("<span weight=\"600\">Wallpapers</span>   {}–{} of {}{}", pageStart + 1, end, wallpapers.size(), more))->commence();

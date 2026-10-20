@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <functional>
 #include <map>
+#include <optional>
 #include <tuple>
 #include <string>
 #include <vector>
@@ -54,6 +55,7 @@ namespace ui {
             Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> holder;
             Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         name;
         };
+        [[nodiscard]] Card makeCard(const desktop::TerminalTheme* theme);
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
         std::function<void(std::function<void()>)>                           defer;
@@ -64,7 +66,9 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> grid;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         position;
         std::vector<std::pair<const desktop::TerminalTheme*, Card>>          cards;
-        std::map<std::tuple<const desktop::TerminalTheme*, bool, double>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> sessions;
+        std::map<std::tuple<const desktop::TerminalTheme*, bool, double, std::string>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> sessions;
+        // Under the filters: how to install the font chosen, when it is not installed.
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> fontHint;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         fontText;
         RowList                                                              diff;
 
@@ -78,6 +82,12 @@ namespace ui {
         Kind                                                                 kind = Kind::dark;
         // The font size to give kitty, in points; kitty's own until changed.
         double                                                               fontSize = 11;
+        // The font family to give kitty, or nothing for kitty's own; and the fonts to choose from.
+        std::optional<std::string>                                           fontFamily;
+        std::vector<desktop::TerminalFont>                                   fonts;
+        // The font family the plan and the preview use: the one chosen, if it is installed.
+        [[nodiscard]] std::optional<std::string>                             usableFamily() const;
+        void                                                                 showFontHint();
         std::size_t                                                          pageStart  = 0;
         bool                                                                 reviewing  = false;
         std::vector<configuration::FileChange>                               changes;

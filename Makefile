@@ -8,12 +8,18 @@
 #   sudo make uninstall   remove exactly what make install put there
 #   make clean            remove build/release
 #
+#   make HYPRTOOLKIT_PREFIX=~/hyprtoolkit/prefix
+#                         build against a hyprtoolkit installed there, one with its scroll
+#                         area fixed, and use the scroll area for smooth scrolling
+#
 # Packagers can call CMake directly instead; this file adds nothing of its own.
 
 PREFIX     ?= /usr/local
 BUILD_TYPE ?= RelWithDebInfo
 BUILD      ?= build/release
 GENERATOR  ?= $(if $(shell command -v ninja),Ninja,Unix Makefiles)
+HYPRTOOLKIT_PREFIX ?=
+TOOLKIT    := $(if $(HYPRTOOLKIT_PREFIX),-DCMAKE_PREFIX_PATH=$(HYPRTOOLKIT_PREFIX) -DHYPRLAND_STUDIO_FIXED_HYPRTOOLKIT=ON,-DHYPRLAND_STUDIO_FIXED_HYPRTOOLKIT=OFF)
 
 .PHONY: all configure test install uninstall clean
 
@@ -21,7 +27,7 @@ all: configure
 	cmake --build $(BUILD)
 
 configure:
-	cmake -S . -B $(BUILD) -G "$(GENERATOR)" -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_INSTALL_PREFIX=$(PREFIX)
+	cmake -S . -B $(BUILD) -G "$(GENERATOR)" -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_INSTALL_PREFIX=$(PREFIX) $(TOOLKIT)
 
 test: all
 	ctest --test-dir $(BUILD) --output-on-failure

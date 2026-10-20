@@ -150,7 +150,10 @@ sudo make install     # install under /usr/local
 sudo make uninstall   # remove what make install put there
 ```
 
-`make install PREFIX=~/.local` installs for your user only, without `sudo`. `make install`
+`make install PREFIX=~/.local` installs for your user only, without `sudo`. To scroll the theme and
+wallpaper cards smoothly, build against a hyprtoolkit whose scroll area is fixed (newer than
+0.6.0, or patched): `make HYPRTOOLKIT_PREFIX=/where/it/is/installed`. With 0.6.0 the cards
+move a row at a time with the mouse wheel instead, since its scroll area crashes the app. `make install`
 builds nothing itself, so run `make` as yourself first. Packagers can use CMake directly:
 the build takes the usual `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX` and `DESTDIR`.
 

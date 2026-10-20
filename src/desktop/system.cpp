@@ -75,6 +75,29 @@ namespace desktop {
         return fonts != nullptr && fonts->nfont > 0;
     }
 
+    std::vector<std::string> monospaceFamilies() {
+        if (FcInitBringUptoDate() == FcFalse)
+            return {};
+        const std::unique_ptr<FcPattern, PatternDeleter> pattern{FcPatternCreate()};
+        FcPatternAddInteger(pattern.get(), FC_SPACING, FC_MONO);
+        const std::unique_ptr<FcObjectSet, ObjectSetDeleter> objects{FcObjectSetBuild(FC_FAMILY, nullptr)};
+        const std::unique_ptr<FcFontSet, FontSetDeleter>     fonts{FcFontList(nullptr, pattern.get(), objects.get())};
+        std::vector<std::string>                             families;
+        if (fonts == nullptr)
+            return families;
+        for (int index = 0; index < fonts->nfont; ++index) {
+            FcChar8* family = nullptr;
+            if (FcPatternGetString(fonts->fonts[index], FC_FAMILY, 0, &family) != FcResultMatch) // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic): fontconfig's array
+                continue;
+            std::string name{reinterpret_cast<const char*>(family)}; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): fontconfig's string type
+            if (name.contains("Symbols") || std::ranges::contains(families, name))
+                continue;
+            families.push_back(std::move(name));
+        }
+        std::ranges::sort(families);
+        return families;
+    }
+
     bool Distribution::arch() const {
         return id == "arch" || std::ranges::contains(like, std::string_view{"arch"});
     }

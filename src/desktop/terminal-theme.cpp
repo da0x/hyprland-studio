@@ -4,6 +4,8 @@
 #include "configuration/hyprlang-edit.hpp"
 #include "desktop/system.hpp"
 
+#include <algorithm>
+
 #include <charconv>
 #include <format>
 #include <fstream>
@@ -73,6 +75,32 @@ namespace desktop {
         return std::filesystem::path{foundation::variable(environment, "HOME").value_or("")} / ".config" / "kitty";
     }
 
+    std::vector<TerminalFont> terminalFonts() {
+        // Open-source monospace fonts in Arch's own repositories.
+        std::vector<TerminalFont> fonts{
+            {"JetBrains Mono", "ttf-jetbrains-mono", "SIL Open Font License"}, {"Fira Code", "ttf-fira-code", "SIL Open Font License"},
+            {"Cascadia Code", "ttf-cascadia-code", "SIL Open Font License"},   {"Source Code Pro", "adobe-source-code-pro-fonts", "SIL Open Font License"},
+            {"IBM Plex Mono", "ttf-ibm-plex", "SIL Open Font License"},        {"Iosevka", "ttc-iosevka", "SIL Open Font License"},
+            {"Inconsolata", "ttf-inconsolata", "SIL Open Font License"},       {"Monaspace Neon", "otf-monaspace", "SIL Open Font License"},
+            {"Hack", "ttf-hack", "MIT"},                                       {"Roboto Mono", "ttf-roboto-mono", "Apache 2.0"},
+            {"DejaVu Sans Mono", "ttf-dejavu", "free (Bitstream Vera)"},       {"Noto Sans Mono", "noto-fonts", "SIL Open Font License"},
+        };
+        const auto installed = monospaceFamilies();
+        for (auto& font : fonts)
+            font.installed = std::ranges::contains(installed, font.family);
+        for (const auto& family : installed)
+            if (std::ranges::find(fonts, family, &TerminalFont::family) == fonts.end())
+                fonts.push_back({family, "", "", true});
+        return fonts;
+    }
+
+    std::optional<std::string> kittyFontFamily(const foundation::Environment& environment) {
+        std::ifstream     stream{kittyFolder(environment) / "kitty.conf"};
+        std::stringstream text;
+        text << stream.rdbuf();
+        return configuration::spacedValue(text.str(), "font_family");
+    }
+
     double kittyFontSize(const foundation::Environment& environment) {
         std::ifstream     stream{kittyFolder(environment) / "kitty.conf"};
         std::stringstream text;
@@ -85,7 +113,8 @@ namespace desktop {
         return 11.0;
     }
 
-    std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, double fontSize, const foundation::Environment& environment) {
+    std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, double fontSize, const std::optional<std::string>& fontFamily,
+                                                                                   const foundation::Environment& environment) {
         std::vector<configuration::FileChange> changes;
         if (!findProgram("kitty", foundation::variable(environment, "PATH").value_or("")))
             return changes;
@@ -93,7 +122,7 @@ namespace desktop {
         // kitty's own convention, as `kitten themes` follows it: the colours in
         // current-theme.conf, which kitty.conf includes.
         for (auto planned : {configuration::planEdit(folder / "current-theme.conf", [&theme](std::string_view) { return theme.file; }),
-                             configuration::planEdit(folder / "kitty.conf", [fontSize, &environment](std::string_view text) {
+                             configuration::planEdit(folder / "kitty.conf", [fontSize, &fontFamily, &environment](std::string_view text) {
                                  std::string result{text};
                                  if (!configuration::hasLine(result, "include current-theme.conf")) {
                                      if (!result.empty() && !result.ends_with('\n'))
@@ -103,6 +132,8 @@ namespace desktop {
                                  // Written only when it changes, so a config without one keeps kitty's default.
                                  if (fontSize != kittyFontSize(environment))
                                      result = configuration::withSpacedValue(result, "font_size", std::format("{:g}", fontSize));
+                                 if (fontFamily && fontFamily != kittyFontFamily(environment))
+                                     result = configuration::withSpacedValue(result, "font_family", *fontFamily);
                                  return result;
                              })}) {
             if (!planned)

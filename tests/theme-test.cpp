@@ -112,25 +112,34 @@ namespace {
         const auto&                   nord = *std::ranges::find(desktop::terminalThemes(), std::string{"Nord"}, &desktop::TerminalTheme::name);
 
         EXPECT_EQ(desktop::currentTerminal(environment), nullptr);
-        const auto planned = desktop::planTerminal(nord, 11.0, environment);
+        const auto planned = desktop::planTerminal(nord, 11.0, std::nullopt, environment);
         ASSERT_TRUE(planned.has_value()) << planned.error();
         ASSERT_EQ(planned->size(), 2U);
         EXPECT_EQ((*planned)[0].proposed, nord.file);
         EXPECT_EQ((*planned)[1].proposed, "include current-theme.conf\n");
         ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Terminal").has_value());
         EXPECT_EQ(desktop::currentTerminal(environment), &nord);
-        const auto again = desktop::planTerminal(nord, 11.0, environment);
+        const auto again = desktop::planTerminal(nord, 11.0, std::nullopt, environment);
         ASSERT_TRUE(again.has_value());
         EXPECT_TRUE(again->empty());
 
         // A bigger font: only font_size is added to kitty.conf, and then read back.
         EXPECT_EQ(desktop::kittyFontSize(environment), 11.0);
-        const auto bigger = desktop::planTerminal(nord, 13.0, environment);
+        const auto bigger = desktop::planTerminal(nord, 13.0, std::nullopt, environment);
         ASSERT_TRUE(bigger.has_value());
         ASSERT_EQ(bigger->size(), 1U);
         EXPECT_EQ((*bigger)[0].proposed, "include current-theme.conf\nfont_size 13\n");
         ASSERT_TRUE(configuration::applyChanges(*bigger, root / "backups", "Terminal").has_value());
         EXPECT_EQ(desktop::kittyFontSize(environment), 13.0);
+
+        // A font family: font_family is set, and read back.
+        EXPECT_FALSE(desktop::kittyFontFamily(environment).has_value());
+        const auto family = desktop::planTerminal(nord, 13.0, std::string{"JetBrains Mono"}, environment);
+        ASSERT_TRUE(family.has_value());
+        ASSERT_EQ(family->size(), 1U);
+        EXPECT_EQ((*family)[0].proposed, "include current-theme.conf\nfont_size 13\nfont_family JetBrains Mono\n");
+        ASSERT_TRUE(configuration::applyChanges(*family, root / "backups", "Terminal").has_value());
+        EXPECT_EQ(desktop::kittyFontFamily(environment), std::optional<std::string>{"JetBrains Mono"});
         std::filesystem::remove_all(root);
     }
 
@@ -150,6 +159,15 @@ namespace {
                 EXPECT_TRUE(colour) << theme.name << " sets " << key;
             }
         }
+    }
+
+    TEST(Terminal, RecommendsOpenSourceFontsFirst) {
+        const auto fonts = desktop::terminalFonts();
+        ASSERT_GE(fonts.size(), 12U);
+        EXPECT_EQ(fonts.front().family, "JetBrains Mono");
+        EXPECT_EQ(fonts.front().package, "ttf-jetbrains-mono");
+        for (std::size_t index = 12; index < fonts.size(); ++index)
+            EXPECT_TRUE(fonts[index].installed) << fonts[index].family;
     }
 
 }

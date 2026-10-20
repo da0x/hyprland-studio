@@ -16,6 +16,10 @@ namespace desktop {
     // font installed while the studio runs is found.
     [[nodiscard]] bool hasFontFamily(const std::string& family);
 
+    // The families of the monospace fonts fontconfig has, rescanning the font folders first.
+    // Symbol-only fonts, which have no letters, are left out.
+    [[nodiscard]] std::vector<std::string> monospaceFamilies();
+
     // The Linux distribution, from os-release.
     struct Distribution {
         // Its display name, such as "Arch Linux".
