@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "configuration/file-change.hpp"
+#include "desktop/waybar-style.hpp"
 #include "desktop/window-look.hpp"
 
 #include <gtest/gtest.h>
@@ -42,6 +43,36 @@ namespace {
 
         ASSERT_TRUE(configuration::applyChanges({**planned}, root / "backups", "Windows").has_value());
         EXPECT_EQ(desktop::currentWindowLook(config), wanted);
+        std::filesystem::remove_all(root);
+    }
+
+    TEST(WindowLook, TheBarFollowsTheWindowsCornersAndGap) {
+        static std::atomic<int> counter = 0;
+        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-bar-follows-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        std::filesystem::create_directories(root / "home/.config/waybar");
+        const foundation::Environment environment{{"HOME", (root / "home").string()}};
+        // A bar written before it followed the windows, with the fixed geometry.
+        const desktop::WaybarStyle old{desktop::Shape::floating, &desktop::waybarPalettes()[0], {}};
+        const auto                 written = desktop::planWaybarStyle(old, environment);
+        ASSERT_TRUE(written.has_value());
+        ASSERT_TRUE(configuration::applyChanges(*written, root / "backups", "Waybar").has_value());
+
+        const desktop::WindowLook square{.rounding = 0, .gapsIn = 2, .gapsOut = 10, .borderSize = 1, .resizeOnBorder = true};
+        const auto                planned = desktop::planBarFollowing(square, desktop::WindowLook{.rounding = 4, .gapsIn = 5, .gapsOut = 30, .borderSize = 2, .resizeOnBorder = false}, environment);
+        ASSERT_TRUE(planned.has_value()) << planned.error();
+        ASSERT_EQ(planned->size(), 2U);
+        EXPECT_TRUE((*planned)[0].proposed.contains("\"margin-top\": 5,"));
+        EXPECT_TRUE((*planned)[0].proposed.contains("\"margin-left\": 10,"));
+        EXPECT_TRUE((*planned)[1].proposed.contains("border-radius: 0px;"));
+        EXPECT_FALSE((*planned)[1].proposed.contains("border-radius: 10px;"));
+        ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Windows").has_value());
+        EXPECT_EQ(desktop::currentWaybarStyle(environment, desktop::barGeometry(square)), (desktop::WaybarStyle{old.shape, old.palette, desktop::barGeometry(square)}));
+
+        // A bar the studio did not write is left alone.
+        std::ofstream{root / "home/.config/waybar/style.css"} << "/* mine */\n";
+        const auto mine = desktop::planBarFollowing(square, square, environment);
+        ASSERT_TRUE(mine.has_value());
+        EXPECT_TRUE(mine->empty());
         std::filesystem::remove_all(root);
     }
 

@@ -61,10 +61,23 @@ namespace desktop {
     [[nodiscard]] std::span<const Palette>   waybarPalettes();
     [[nodiscard]] std::span<const ShapeInfo> waybarShapes();
 
-    // A complete style: the shape and the palette.
+    // How round the bar is and how far it sits from the screen's edges: the windows' own,
+    // set on the Windows page, so that the bar lines up with them. The defaults are what
+    // the studio's styles had before they followed the windows.
+    struct BarGeometry {
+        // The corners of the bar, or of its islands; the workspace buttons' follow.
+        int rounding = 10;
+        // From the sides; the top gets half, since windows keep the same gap below the bar.
+        int edgeGap  = 20;
+
+        friend bool operator==(const BarGeometry&, const BarGeometry&) = default;
+    };
+
+    // A complete style: the shape, the palette, and the geometry.
     struct WaybarStyle {
-        Shape          shape   = Shape::islands;
-        const Palette* palette = nullptr;
+        Shape          shape    = Shape::islands;
+        const Palette* palette  = nullptr;
+        BarGeometry    geometry = {};
 
         bool operator==(const WaybarStyle&) const = default;
     };
@@ -83,6 +96,8 @@ namespace desktop {
                                                                                                     const std::filesystem::path& systemFolder = "/etc/xdg");
 
     // The studio's style that Waybar's files hold now, if they hold one exactly.
-    [[nodiscard]] std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const std::filesystem::path& systemFolder = "/etc/xdg");
+    // Only styles with `geometry` are looked for, since the files hold it too.
+    [[nodiscard]] std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry = {},
+                                                                const std::filesystem::path& systemFolder = "/etc/xdg");
 
 }

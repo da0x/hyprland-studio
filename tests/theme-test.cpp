@@ -182,9 +182,11 @@ namespace {
             const auto high       = desktop::adjusted(theme, desktop::Contrast::high, desktop::Vision::typical);
             const auto background = desktop::parseColour(high.background);
             EXPECT_GE(desktop::contrast(desktop::parseColour(high.foreground), background), 9.99) << theme.name;
-            for (std::size_t index = 1; index < 16; ++index)
-                if (index != 8)
-                    EXPECT_GE(desktop::contrast(desktop::parseColour(high.colours[index]), background), 6.99) << theme.name << " color" << index;
+            for (std::size_t index = 1; index < 16; ++index) {
+                if (index == 8)
+                    continue;
+                EXPECT_GE(desktop::contrast(desktop::parseColour(high.colours[index]), background), 6.99) << theme.name << " color" << index;
+            }
             EXPECT_GE(desktop::contrast(desktop::parseColour(high.colours[8]), background), 4.49) << theme.name;
             // What kitty reads is what was measured.
             const auto reread = desktop::terminalTheme(high.name, high.file);

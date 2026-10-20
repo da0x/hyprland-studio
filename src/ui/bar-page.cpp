@@ -10,6 +10,7 @@
 #include "configuration/diff.hpp"
 #include "desktop/clipboard.hpp"
 #include "desktop/waybar.hpp"
+#include "desktop/window-look.hpp"
 #include "ui/bar-preview.hpp"
 #include "ui/widgets.hpp"
 #include "ui/markup.hpp"
@@ -73,7 +74,8 @@ namespace ui {
 
         const auto environment = foundation::currentEnvironment();
         settings               = application::loadSettings(application::studioFolder(environment));
-        selected               = desktop::currentWaybarStyle(environment).value_or(desktop::WaybarStyle{desktop::Shape::islands, &desktop::waybarPalettes().front()});
+        selected               = desktop::currentBarStyle(environment, desktop::runningBarGeometry())
+                                     .value_or(desktop::WaybarStyle{desktop::Shape::islands, &desktop::waybarPalettes().front(), desktop::runningBarGeometry()});
         check();
     }
 
@@ -182,9 +184,9 @@ namespace ui {
             made.name->rebuild()->text(chosen ? std::format("<span weight=\"600\">{}</span>", escapeMarkup(made.title)) : escapeMarkup(made.title))->commence();
         };
         for (auto& [shape, made] : shapeCards)
-            mark(made, shape == selected.shape, desktop::WaybarStyle{shape, selected.palette}, 1);
+            mark(made, shape == selected.shape, desktop::WaybarStyle{shape, selected.palette, selected.geometry}, 1);
         for (auto& [shown, made] : paletteCards)
-            mark(made, shown == selected.palette, desktop::WaybarStyle{selected.shape, shown}, 2);
+            mark(made, shown == selected.palette, desktop::WaybarStyle{selected.shape, shown, selected.geometry}, 2);
         fillStyleStatus();
     }
 
@@ -204,6 +206,8 @@ namespace ui {
     }
 
     void BarPage::fillStyleStatus() {
+        // The windows' geometry, which the bar follows, may have changed on the Windows page.
+        selected.geometry = desktop::runningBarGeometry();
         const auto environment = foundation::currentEnvironment();
         const auto planned     = plan(selected);
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), "Waybar").has_value();

@@ -7,6 +7,7 @@
 #include "desktop/process.hpp"
 #include "desktop/system.hpp"
 #include "desktop/theme.hpp"
+#include "desktop/window-look.hpp"
 #include "ui/bar-preview.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
@@ -129,7 +130,7 @@ namespace ui {
         const auto config = configuration::mainConfig(configuration::studioLaunch());
         selected          = config ? desktop::currentTheme(*config) : nullptr;
         if (selected == nullptr)
-            if (const auto style = desktop::currentWaybarStyle(foundation::currentEnvironment()))
+            if (const auto style = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()))
                 selected = style->palette;
         if (selected == nullptr)
             selected = &desktop::waybarPalettes().front();
@@ -147,7 +148,7 @@ namespace ui {
         // The large one is drawn smaller when the page has less height to give it.
         const double scale  = large ? previewHeight / 250 : 0.42;
         const double height = large ? previewHeight : 105;
-        const auto   shape  = desktop::currentWaybarStyle(foundation::currentEnvironment()).value_or(desktop::WaybarStyle{desktop::Shape::islands, shown}).shape;
+        const auto   shape  = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, shown}).shape;
 
         const auto backdrop = Hyprtoolkit::CRectangleBuilder::begin()
                                   ->color([c = shown->dark ? paletteColour("#3b4252") : paletteColour("#b6bccb")] { return c; })
@@ -155,7 +156,7 @@ namespace ui {
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
                                   ->commence();
         const auto stack = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
-        stack->addChild(barPreview(desktop::WaybarStyle{shape, shown}, scale * 0.8));
+        stack->addChild(barPreview(desktop::WaybarStyle{shape, shown, desktop::runningBarGeometry()}, scale * 0.8));
         const auto windows = Hyprtoolkit::CRowLayoutBuilder::begin()
                                  ->gap(static_cast<std::size_t>(14 * scale))
                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height - barPreviewHeight({shape, shown}, scale * 0.8) - 12 * scale}})
@@ -240,7 +241,7 @@ namespace ui {
     void ThemePage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::studioLaunch());
-        const auto shape       = desktop::currentWaybarStyle(environment).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
+        const auto shape       = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
         const auto planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
@@ -277,7 +278,7 @@ namespace ui {
     void ThemePage::showReview() {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::studioLaunch());
-        const auto shape       = desktop::currentWaybarStyle(environment).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
+        const auto shape       = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
         auto       planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         if (!planned) {

@@ -5,12 +5,14 @@
 #include "configuration/file-change.hpp"
 #include "desktop/window-look.hpp"
 #include "ui/choice-cards.hpp"
+#include "ui/program-switch.hpp"
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
+#include <expected>
 #include <functional>
 #include <optional>
 #include <string>
@@ -30,11 +32,16 @@ namespace ui {
         // Draws the page again, after the studio's colours or text size changed.
         void restyle();
 
+        // Stops watching Waybar. Called before the event loop goes away.
+        void close();
+
       private:
         void showOverview();
         void showReview();
         void apply();
         void undo();
+        // The Hyprland config's change, and Waybar's files when the bar follows the windows.
+        [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> plan() const;
         // After a choice: the picture of the desktop and the footer.
         void fillPreview();
         void fillStatus();
@@ -48,6 +55,8 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> preview;
         ChoiceCards                                                          cards;
         RowList                                                              diff;
+        // Waybar, to restart it after its files change. Its switch is on the Bar page.
+        ProgramSwitch                                                        waybar;
 
         // What the config sets now, and what is chosen; nothing when it cannot be read.
         std::optional<desktop::WindowLook>                                   current;

@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <format>
 
 namespace desktop {
@@ -251,7 +252,7 @@ window#waybar {
     }}
 }}
 )",
-                           floating ? 38 : 34, floating ? 10 : 0, floating ? 20 : 0, floating ? 20 : 0, palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928", "\U000F0200", "\U000F092D");
+                           floating ? 38 : 34, floating ? style.geometry.edgeGap / 2 : 0, floating ? style.geometry.edgeGap : 0, floating ? style.geometry.edgeGap : 0, palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928", "\U000F0200", "\U000F092D");
     }
 
     std::string waybarStyleText(const WaybarStyle& style) {
@@ -282,6 +283,15 @@ window#waybar {
                                       palette.text, palette.accent, palette.audio, palette.network, palette.alert);
         text += shapeRules(style.shape);
         text += moduleRules;
+        // The radii written above are the default geometry's: the bar's 10 and the
+        // workspace buttons' 7, which keep that proportion to it.
+        const auto replaced = [&text](std::string_view from, int pixels) {
+            const auto to = std::format("border-radius: {}px;", pixels);
+            for (auto at = text.find(from); at != std::string::npos; at = text.find(from, at + to.size()))
+                text.replace(at, from.size(), to);
+        };
+        replaced("border-radius: 10px;", style.geometry.rounding);
+        replaced("border-radius: 7px;", static_cast<int>(std::lround(style.geometry.rounding * 0.7)));
         return text;
     }
 
@@ -311,10 +321,10 @@ window#waybar {
         return changes;
     }
 
-    std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const std::filesystem::path& systemFolder) {
+    std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry, const std::filesystem::path& systemFolder) {
         for (const auto& info : shapes) {
             for (const auto& palette : palettes) {
-                const WaybarStyle style{info.shape, &palette};
+                const WaybarStyle style{info.shape, &palette, geometry};
                 const auto        planned = planWaybarStyle(style, environment, systemFolder);
                 if (planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); }))
                     return style;

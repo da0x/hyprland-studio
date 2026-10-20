@@ -207,13 +207,13 @@ namespace {
         const Folder                  folder;
         const auto                    system = folder.root / "etc";
         const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};
-        EXPECT_FALSE(desktop::currentWaybarStyle(environment, system).has_value());
+        EXPECT_FALSE(desktop::currentWaybarStyle(environment, {}, system).has_value());
 
         const desktop::WaybarStyle style{desktop::Shape::floating, &desktop::waybarPalettes()[3]};
         const auto                 planned = desktop::planWaybarStyle(style, environment, system);
         ASSERT_TRUE(planned.has_value());
         ASSERT_TRUE(configuration::applyChanges(*planned, folder.root / "backups", "test").has_value());
-        EXPECT_EQ(desktop::currentWaybarStyle(environment, system), style);
+        EXPECT_EQ(desktop::currentWaybarStyle(environment, {}, system), style);
     }
 
     TEST(Waybar, FloatsWhatTheBarOpensOnce) {

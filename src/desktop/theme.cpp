@@ -4,6 +4,7 @@
 #include "configuration/hyprlang-edit.hpp"
 #include "desktop/process.hpp"
 #include "desktop/system.hpp"
+#include "desktop/window-look.hpp"
 #include "configuration/lua-edit.hpp"
 #include "syntax/highlight.hpp"
 
@@ -149,7 +150,7 @@ window {{
         if (hyprland->changes())
             changes.push_back(std::move(*hyprland));
 
-        auto waybar = planWaybarStyle(WaybarStyle{shape, &palette}, environment);
+        auto waybar = planWaybarStyle(WaybarStyle{shape, &palette, barGeometry(config)}, environment);
         if (!waybar)
             return std::unexpected{waybar.error()};
         for (auto& change : *waybar)

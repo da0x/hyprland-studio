@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <format>
 #include <string>
 
@@ -25,7 +26,8 @@ namespace ui {
         // Waybar's sizes in the studio's config, in pixels.
         constexpr double barHeight      = 38;
         constexpr double fullHeight     = 34;
-        constexpr double edgeGap        = 20;
+        // The gap above the bar, kept as drawn whatever the windows' gap is, since the
+        // previews' heights are laid out from it; the sides follow the windows.
         constexpr double topGap         = 10;
         constexpr double pillWidth      = 30;
         constexpr double pillGap        = 4;
@@ -108,14 +110,14 @@ namespace ui {
         }
 
         // Workspace 1 active, 2 and 3 with windows, 4 and 5 empty.
-        CSharedPointer<Hyprtoolkit::IElement> workspaces(const desktop::Palette& palette, double scale, double height) {
+        CSharedPointer<Hyprtoolkit::IElement> workspaces(const desktop::Palette& palette, double scale, double height, double rounding) {
             const auto made = row(workspacesWidth(scale), height, pillGap * scale);
             made->addChild(gap((groupPadding - pillGap) * scale));
             for (int number = 1; number <= 5; ++number) {
                 const auto textColour = number == 1 ? palette.onAccent : number <= 3 ? palette.subtle : palette.raised;
                 const auto pill       = Hyprtoolkit::CRectangleBuilder::begin()
                                       ->color([c = colour(palette.accent, number == 1 ? 1.F : 0.F)] { return c; })
-                                      ->rounding(static_cast<int>(7 * scale))
+                                      ->rounding(static_cast<int>(std::lround(rounding * 0.7 * scale)))
                                       ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {pillWidth * scale, height - 10 * scale}})
                                       ->commence();
                 const auto inside = row(pillWidth * scale, height - 10 * scale);
@@ -157,8 +159,8 @@ namespace ui {
             return builder->commence();
         }
 
-        CSharedPointer<Hyprtoolkit::IElement> island(const CSharedPointer<Hyprtoolkit::IElement>& content, double width, const desktop::Palette& palette, double scale) {
-            const auto made = panel(palette, width, barHeight * scale, 10 * scale, true, islandOpacity);
+        CSharedPointer<Hyprtoolkit::IElement> island(const CSharedPointer<Hyprtoolkit::IElement>& content, double width, const desktop::Palette& palette, double scale, double rounding) {
+            const auto made = panel(palette, width, barHeight * scale, rounding * scale, true, islandOpacity);
             made->addChild(content);
             return made;
         }
@@ -193,26 +195,26 @@ namespace ui {
         const auto bar     = line;
         const auto barSize = (floating ? barHeight : fullHeight) * scale;
         if (floating)
-            line->addChild(gap(edgeGap * scale));
+            line->addChild(gap(style.geometry.edgeGap * scale));
 
         switch (style.shape) {
             case desktop::Shape::islands: {
-                line->addChild(thirds(island(workspaces(palette, scale, barSize), workspacesWidth(scale), palette, scale),
-                                      island(clock(palette, scale, barSize), clockWidth * scale, palette, scale),
-                                      island(status(palette, scale, barSize), statusWidth * scale, palette, scale), barSize, true));
+                line->addChild(thirds(island(workspaces(palette, scale, barSize, style.geometry.rounding), workspacesWidth(scale), palette, scale, style.geometry.rounding),
+                                      island(clock(palette, scale, barSize), clockWidth * scale, palette, scale, style.geometry.rounding),
+                                      island(status(palette, scale, barSize), statusWidth * scale, palette, scale, style.geometry.rounding), barSize, true));
                 break;
             }
             case desktop::Shape::floating:
             case desktop::Shape::fullWidth: {
-                const auto whole = panel(palette, 1, barSize, floating ? 10 * scale : 0, floating, floating ? islandOpacity : 1.F);
+                const auto whole = panel(palette, 1, barSize, floating ? style.geometry.rounding * scale : 0, floating, floating ? islandOpacity : 1.F);
                 whole->setGrow(true, false);
-                whole->addChild(thirds(workspaces(palette, scale, barSize), clock(palette, scale, barSize), status(palette, scale, barSize), barSize, false));
+                whole->addChild(thirds(workspaces(palette, scale, barSize, style.geometry.rounding), clock(palette, scale, barSize), status(palette, scale, barSize), barSize, false));
                 line->addChild(whole);
                 break;
             }
         }
         if (floating)
-            line->addChild(gap(edgeGap * scale));
+            line->addChild(gap(style.geometry.edgeGap * scale));
         stack->addChild(bar);
         return backdrop;
     }

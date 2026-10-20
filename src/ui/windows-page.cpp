@@ -93,7 +93,8 @@ namespace ui {
         diff{this->palette, this->defer,
              {RowList::Column{.width = 24, .monospace = true, .secondary = false, .markup = true, .heading = ""},
               RowList::Column{.width = 0, .monospace = true, .secondary = false, .markup = true, .heading = ""}},
-             20} {
+             20},
+        waybar{this->palette, this->defer, this->loop, "waybar", "Waybar", nullptr} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(filling())->commence();
         root->setMargin(28);
         root->addChild(pageTitle("Windows", this->palette));
@@ -109,6 +110,25 @@ namespace ui {
             current = desktop::currentWindowLook(*config);
         wanted = current.value_or(desktop::WindowLook{});
         showOverview();
+    }
+
+    void WindowsPage::close() {
+        waybar.close();
+    }
+
+    std::expected<std::vector<configuration::FileChange>, std::string> WindowsPage::plan() const {
+        const auto config = configuration::mainConfig(configuration::studioLaunch());
+        if (!config)
+            return std::unexpected{config.error()};
+        const auto hyprland = desktop::planWindowLook(wanted, *config);
+        if (!hyprland)
+            return std::unexpected{hyprland.error()};
+        auto planned = desktop::planBarFollowing(wanted, current, foundation::currentEnvironment());
+        if (!planned)
+            return std::unexpected{planned.error()};
+        if (*hyprland)
+            planned->insert(planned->begin(), **hyprland);
+        return planned;
     }
 
     void WindowsPage::restyle() {
@@ -268,11 +288,9 @@ namespace ui {
 
     void WindowsPage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
-        const auto planned     = config ? desktop::planWindowLook(wanted, *config)
-                                        : std::expected<std::optional<configuration::FileChange>, std::string>{std::unexpect, config.error()};
+        const auto planned     = plan();
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
-        const bool same        = planned && !planned->has_value();
+        const bool same        = planned && planned->empty();
         const auto shown       = std::format("{}|{}|{}|{}|{}|{}|{}|{}|{}", wanted.rounding, wanted.gapsIn, wanted.gapsOut, wanted.borderSize, wanted.resizeOnBorder, same,
                                              planned ? "" : planned.error(), undoable, outcome);
         if (shown == statusShown)
@@ -302,21 +320,23 @@ namespace ui {
     }
 
     void WindowsPage::showReview() {
-        const auto config  = configuration::mainConfig(configuration::studioLaunch());
-        auto       planned = config ? desktop::planWindowLook(wanted, *config)
-                                    : std::expected<std::optional<configuration::FileChange>, std::string>{std::unexpect, config.error()};
-        if (!planned || !planned->has_value()) {
+        auto planned = plan();
+        if (!planned || planned->empty()) {
             outcome = planned ? "" : planned.error();
             return showOverview();
         }
         reviewing = true;
-        changes   = {std::move(**planned)};
+        changes   = std::move(*planned);
         outcome.clear();
         body->clearChildren();
         body->addChild(space(4));
         body->addChild(heading("Review: windows", palette));
-        body->addChild(paragraph("Applying writes the change below to the Hyprland config, after keeping a copy so it can be undone. Hyprland reads it at once; if it "
-                                 "reports a problem with it, the studio puts the config back.",
+        const bool bar = std::ranges::any_of(changes, [](const auto& change) { return change.file.parent_path().filename() == "waybar"; });
+        body->addChild(paragraph(std::format("Applying writes the changes below, after keeping a copy of each file so it can be undone. Hyprland reads its config at "
+                                             "once; if it reports a problem with it, the studio puts the config back.{}",
+                                             bar ? " Waybar's corners and its distance from the edges follow the windows', so its files change too, and it restarts to "
+                                                   "read them while it is on."
+                                                 : ""),
                                  palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
         diff.setRows(diffRows(changes, *palette));
@@ -333,6 +353,14 @@ namespace ui {
             return showOverview();
         }
         outcome = "Applied.";
+        if (std::ranges::any_of(changes, [](const auto& change) { return change.file.parent_path().filename() == "waybar"; }))
+            waybar.restartToRead(*record, [this](std::string what) {
+                if (!what.contains("put back"))
+                    return;
+                outcome = std::move(what);
+                if (!reviewing)
+                    showOverview();
+            });
         if (const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or("")))
             application::checkHyprlandConfig(loop, *hyprctl, *record, [this](std::optional<std::string> problem) {
                 if (!problem)

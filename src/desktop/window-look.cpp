@@ -70,6 +70,43 @@ namespace desktop {
         return look;
     }
 
+    BarGeometry barGeometry(const std::optional<WindowLook>& look) {
+        if (!look)
+            return {};
+        return {.rounding = look->rounding, .edgeGap = look->gapsOut};
+    }
+
+    BarGeometry barGeometry(const configuration::MainConfig& config) {
+        return barGeometry(currentWindowLook(config));
+    }
+
+    BarGeometry runningBarGeometry() {
+        const auto config = configuration::mainConfig(configuration::studioLaunch());
+        return config ? barGeometry(*config) : BarGeometry{};
+    }
+
+    std::optional<WaybarStyle> currentBarStyle(const foundation::Environment& environment, const BarGeometry& geometry) {
+        // Files written before the bar followed the windows have the old fixed geometry.
+        auto style = currentWaybarStyle(environment, geometry);
+        if (!style)
+            style = currentWaybarStyle(environment, BarGeometry{});
+        if (style)
+            style->geometry = geometry;
+        return style;
+    }
+
+    std::expected<std::vector<configuration::FileChange>, std::string> planBarFollowing(const WindowLook& wanted, const std::optional<WindowLook>& current,
+                                                                                       const foundation::Environment& environment) {
+        auto style = currentBarStyle(environment, barGeometry(current));
+        if (!style)
+            return std::vector<configuration::FileChange>{};
+        style->geometry = barGeometry(wanted);
+        auto planned    = planWaybarStyle(*style, environment);
+        if (planned)
+            std::erase_if(*planned, [](const auto& change) { return !change.changes(); });
+        return planned;
+    }
+
     std::expected<std::optional<configuration::FileChange>, std::string> planWindowLook(const WindowLook& wanted, const configuration::MainConfig& config) {
         if (!config.lua())
             return std::unexpected{"windows are set only in a Lua config (hyprland.lua) so far"};
