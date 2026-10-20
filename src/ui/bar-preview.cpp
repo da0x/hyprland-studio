@@ -165,6 +165,10 @@ namespace ui {
 
     }
 
+    Hyprtoolkit::CHyprColor paletteColour(std::string_view hex, float alpha) {
+        return colour(hex, alpha);
+    }
+
     double barPreviewHeight(const desktop::WaybarStyle& style, double scale) {
         return style.shape == desktop::Shape::fullWidth ? (fullHeight + 2 * topGap) * scale : (barHeight + 2 * topGap) * scale;
     }

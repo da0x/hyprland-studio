@@ -66,8 +66,10 @@ desktop's own file chooser, through xdg-desktop-portal. Its Copy button runs
 own.
 
 **Writes:** files you approved after reviewing the change line by line, such as Waybar's
-config and stylesheet, the wallpaper in `hyprpaper.conf`, or the line in your Hyprland
-config that starts the wallpaper program at login (if your config is a link, the file it
+config and stylesheet, the wallpaper in `hyprpaper.conf`, the line in your Hyprland
+config that starts the wallpaper program at login, the window border colours in its
+`hl.config` (only those values, nothing else in the file), the colours in
+`~/.config/hypr/hyprtoolkit.conf` (if your config is a link, the file it
 points at, which the review names); an image you add from files, copied into your
 wallpapers folder under a new random name (a UUID, with the image's own extension); and its own folder, `~/.config/hyprland-studio/`: its settings
 (window size, last page, which areas you allowed, whether you dismissed a page's checklist), the effects you set up (plain Hyprland

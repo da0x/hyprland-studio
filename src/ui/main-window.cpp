@@ -4,6 +4,7 @@
 #include "application/session.hpp"
 #include "ui/bar-page.hpp"
 #include "ui/keybindings-page.hpp"
+#include "ui/theme-page.hpp"
 #include "ui/wallpaper-page.hpp"
 #include "ui/texts.hpp"
 
@@ -131,6 +132,7 @@ namespace ui {
         KeybindingsPage keybindings{palette, defer};
         BarPage         bar{palette, defer, loop};
         WallpaperPage   wallpaper{palette, defer, loop};
+        ThemePage       theme{palette, defer, loop};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
         opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
@@ -161,6 +163,7 @@ namespace ui {
         addPageButton("Keybindings", keybindings.element());
         addPageButton("Bar", bar.element());
         addPageButton("Wallpaper", wallpaper.element());
+        addPageButton("Theme", theme.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
         show(keybindings.element());
@@ -179,11 +182,12 @@ namespace ui {
             });
 
         // The session and the setup pages go first: they unwatch descriptors, which needs a live event loop.
-        window->m_events.closeRequest.listenStatic([&session, &bar, &wallpaper, window, backend] {
+        window->m_events.closeRequest.listenStatic([&session, &bar, &wallpaper, &theme, window, backend] {
             session.reset();
             bar.close();
             wallpaper.leave(true);
             wallpaper.close();
+            theme.close();
             window->close();
             backend->destroy();
         });

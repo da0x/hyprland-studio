@@ -46,4 +46,10 @@ namespace syntax {
     };
     [[nodiscard]] std::optional<Range> luaFunctionAt(std::string_view source, int line);
 
+    // The bytes of the value at `path` in the table passed to the first `call` that sets
+    // it: for hl.config and {"general", "col", "active_border"}, the value of
+    // hl.config({ general = { col = { active_border = ... } } }). Each step but the last
+    // must be a table written in place.
+    [[nodiscard]] std::optional<Range> luaCallField(std::string_view source, std::string_view call, const std::vector<std::string_view>& path);
+
 }

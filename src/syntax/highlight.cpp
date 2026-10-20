@@ -103,6 +103,70 @@ namespace syntax {
         return found;
     }
 
+    std::optional<Range> luaCallField(std::string_view source, std::string_view call, const std::vector<std::string_view>& path) {
+        if (path.empty() || source.size() > UINT32_MAX)
+            return std::nullopt;
+        const std::unique_ptr<TSParser, DeleteParser> parser{ts_parser_new()};
+        ts_parser_set_language(parser.get(), tree_sitter_lua());
+        const std::unique_ptr<TSTree, DeleteTree> tree{ts_parser_parse_string(parser.get(), nullptr, source.data(), static_cast<std::uint32_t>(source.size()))};
+        if (!tree)
+            return std::nullopt;
+
+        const auto text = [source](TSNode node) { return source.substr(ts_node_start_byte(node), ts_node_end_byte(node) - ts_node_start_byte(node)); };
+        // The value of the field `name` in a table constructor.
+        const auto field = [&text](TSNode table, std::string_view name) -> std::optional<TSNode> {
+            for (std::uint32_t index = 0; index < ts_node_named_child_count(table); ++index) {
+                const auto child = ts_node_named_child(table, index);
+                if (std::string_view{ts_node_type(child)} != "field")
+                    continue;
+                const auto key = ts_node_child_by_field_name(child, "name", 4);
+                if (!ts_node_is_null(key) && text(key) == name) {
+                    const auto value = ts_node_child_by_field_name(child, "value", 5);
+                    if (!ts_node_is_null(value))
+                        return value;
+                }
+            }
+            return std::nullopt;
+        };
+
+        // Every call to `call`, in source order; the first whose table has the path wins.
+        std::vector<TSNode> pending{ts_tree_root_node(tree.get())};
+        std::vector<TSNode> calls;
+        while (!pending.empty()) {
+            const auto node = pending.back();
+            pending.pop_back();
+            if (std::string_view{ts_node_type(node)} == "function_call") {
+                const auto name = ts_node_child_by_field_name(node, "name", 4);
+                if (!ts_node_is_null(name) && text(name) == call)
+                    calls.push_back(node);
+            }
+            for (std::uint32_t index = ts_node_named_child_count(node); index-- > 0;)
+                pending.push_back(ts_node_named_child(node, index));
+        }
+        for (const auto& found : calls) {
+            const auto arguments = ts_node_child_by_field_name(found, "arguments", 9);
+            if (ts_node_is_null(arguments) || ts_node_named_child_count(arguments) == 0)
+                continue;
+            auto current = ts_node_named_child(arguments, 0);
+            bool reached = true;
+            for (std::size_t step = 0; step < path.size(); ++step) {
+                if (std::string_view{ts_node_type(current)} != "table_constructor") {
+                    reached = false;
+                    break;
+                }
+                const auto value = field(current, path[step]);
+                if (!value) {
+                    reached = false;
+                    break;
+                }
+                current = *value;
+            }
+            if (reached)
+                return Range{.begin = ts_node_start_byte(current), .end = ts_node_end_byte(current)};
+        }
+        return std::nullopt;
+    }
+
     std::vector<Span> highlightLua(std::string_view source) {
         const auto* compiled = query();
         if (compiled == nullptr || source.size() > UINT32_MAX)

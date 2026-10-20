@@ -27,13 +27,13 @@ below.
 |---|---|---|
 | `foundation` | Strong types, flag sets, UTF-8 cleanup, formatters | the standard library |
 | `lua` | The one wrapper around the Lua 5.5 C API: owned state, allocator with a limit, instruction hook, and a trampoline so Lua's `longjmp` never skips a C++ destructor | Lua |
-| `configuration` | The recording interpreter, key combinations, bindings, conflicts, option assignments, finding the active config, line diffs, writing reviewed changes with a backup and undo, and the autostart lines | foundation, lua |
-| `desktop` | The desktop around Hyprland: programs on the `PATH` and running ones, installed fonts, the distribution, the clipboard through `wl-copy`, Waybar's needs, config and styles, and wallpapers with hyprpaper's config and awww's commands | foundation, configuration, fontconfig |
+| `configuration` | The recording interpreter, key combinations, bindings, conflicts, option assignments, finding the active config, line diffs, writing reviewed changes with a backup and undo, the autostart lines, and in-place edits of hl.config values and hyprlang keys | foundation, lua |
+| `desktop` | The desktop around Hyprland: programs on the `PATH` and running ones, installed fonts, the distribution, the clipboard through `wl-copy`, Waybar's needs, config and styles, wallpapers with hyprpaper's config and awww's commands, and the desktop-wide theme | foundation, configuration, fontconfig |
 | `ipc` | Instances, the read-only request allow-list, the request client, reply and event parsing, the event connection, the running instance's launch | foundation, configuration, nlohmann-json |
 | `compositor` | Monitors, workspaces and windows, built from a snapshot and kept current by events | ipc |
 | `activation` | The live layer: allowed areas, effects, applying and removing them, the theme restore record | ipc, configuration, GIO (GSettings) |
 | `application` | The session that ties it together: workers, results, merging recorded and live bindings, the option catalog, outside programs' On and Off, the studio's own settings, running short commands, the desktop portal's file chooser (sd-bus) | all of the above |
-| `ui` | Pages on hyprtoolkit: keybindings, bar, wallpaper, options, live tree, event log, console, areas and Activate | application, desktop, hyprtoolkit |
+| `ui` | Pages on hyprtoolkit: keybindings, bar, wallpaper, theme, options, live tree, event log, console, areas and Activate | application, desktop, hyprtoolkit |
 
 `foundation`, `lua` and `configuration` use no UI library; the build fails if one is
 linked. hyprtoolkit's `CMyClass` naming stays inside `ui`.

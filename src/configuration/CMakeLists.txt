@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-add_library(hyprland-studio-configuration STATIC autostart.cpp bindings.cpp diff.cpp file-change.cpp location.cpp main-config.cpp recording.cpp value.cpp)
+add_library(hyprland-studio-configuration STATIC autostart.cpp bindings.cpp diff.cpp file-change.cpp hyprlang-edit.cpp location.cpp lua-edit.cpp main-config.cpp recording.cpp value.cpp)
 target_include_directories(hyprland-studio-configuration PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(hyprland-studio-configuration PUBLIC hyprland-studio-foundation PRIVATE hyprland-studio-lua)
+target_link_libraries(hyprland-studio-configuration PUBLIC hyprland-studio-foundation PRIVATE hyprland-studio-lua hyprland-studio-syntax)
 # recording.cpp embeds recorder.lua; rebuild it when the script changes.
 set_property(SOURCE recording.cpp APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/recorder.lua)

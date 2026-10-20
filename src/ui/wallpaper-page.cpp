@@ -2,6 +2,7 @@
 #include "ui/wallpaper-page.hpp"
 
 #include "application/command.hpp"
+#include "application/config-check.hpp"
 #include "application/studio-folder.hpp"
 #include "desktop/system.hpp"
 #include "configuration/main-config.hpp"
@@ -634,22 +635,12 @@ namespace ui {
     }
 
     void WallpaperPage::checkConfig(const std::filesystem::path& record) {
-        // Hyprland reads its config again when the file changes; give it a moment.
-        loop.after(std::chrono::milliseconds{1500}, [this, record] {
-            if (!hyprctl)
-                return;
-            (void)application::runCommand(loop, *hyprctl, {"configerrors"}, [this, record](bool, std::string output) {
-                const auto first = output.find_first_not_of(" \n\t");
-                if (first == std::string::npos)
-                    return;
-                const auto line = output.substr(first, output.find('\n', first) - first);
-                if (const auto undone = configuration::undoChange(record); undone)
-                    outcome = std::format("Hyprland found errors in the changed config, so the files were put back: {}", line);
-                else
-                    outcome = std::format("Hyprland found errors in the changed config, and the files could not be put back: {}", undone.error());
-                if (!reviewing)
-                    showOverview();
-            });
+        if (!hyprctl)
+            return;
+        application::checkHyprlandConfig(loop, *hyprctl, record, [this](std::string what) {
+            outcome = std::move(what);
+            if (!reviewing)
+                showOverview();
         });
     }
 
