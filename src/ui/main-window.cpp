@@ -135,13 +135,19 @@ namespace ui {
         std::vector<std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>>                                titles;
         // Told which page opens, for a page that has to tidy up when it is left.
         std::function<void(const CSharedPointer<Hyprtoolkit::IElement>&)> opening;
-        const auto show = [content, &pages, &opening](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+        // The page shown, whose button is the one in the accent.
+        CSharedPointer<Hyprtoolkit::IElement> current;
+        const auto show = [content, &pages, &opening, &current](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (opening)
                 opening(page);
             content->clearChildren();
             content->addChild(page);
+            // Only the two buttons that change are rebuilt: a rebuilt button keeps whatever
+            // hover it had, so rebuilding the rest could leave one lit that the pointer left.
             for (const auto& [button, shown] : pages)
-                button->rebuild()->accent(shown == page)->commence();
+                if (shown == page || shown == current)
+                    button->rebuild()->accent(shown == page)->commence();
+            current = page;
         };
 
         const auto defer = [backend](std::function<void()> function) { backend->addIdle(function); };
@@ -227,12 +233,13 @@ namespace ui {
             });
 
         // The session and the setup pages go first: they unwatch descriptors, which needs a live event loop.
-        const auto quit = [&session, &bar, &wallpaper, &theme, window, backend] {
+        const auto quit = [&session, &bar, &wallpaper, &theme, &windows, window, backend] {
             session.reset();
             bar.close();
             wallpaper.leave(true);
             wallpaper.close();
             theme.close();
+            windows.close();
             window->close();
             backend->destroy();
         };
