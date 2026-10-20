@@ -28,7 +28,8 @@ namespace ui {
         using Hyprtoolkit::CFontSize;
         using Hyprutils::Memory::CSharedPointer;
 
-        constexpr auto   changeName = "Theme";
+        constexpr auto   desktopChange  = "Theme";
+        constexpr auto   terminalChange = "Terminal";
         constexpr double cardShare  = 0.32;
 
         CSharedPointer<Hyprtoolkit::IElement> gap(double width, double height) {
@@ -113,9 +114,17 @@ namespace ui {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
         root->addChild(pageTitle("Theme", this->palette));
-        root->addChild(paragraph("One palette for the whole desktop: the borders of your windows, Waybar, and the apps built on hyprtoolkit, this studio among "
-                                 "them. Nothing is written until you review the change.",
+        root->addChild(paragraph("One palette for the desktop: the borders of your windows, Waybar, the launcher, notifications, GTK apps and the apps built "
+                                 "on hyprtoolkit, this studio among them. The terminal has its own, since terminal programs mostly print for a dark "
+                                 "background. Nothing is written until you review the change.",
                                  this->palette));
+        const auto parts = leftRow();
+        parts->rebuild()->gap(4)->commence();
+        desktopButton  = button("Desktop", 110, true, [this] { this->defer([this] { showPart(false); }); });
+        terminalButton = button("Terminal", 110, false, [this] { this->defer([this] { showPart(true); }); });
+        parts->addChild(desktopButton);
+        parts->addChild(terminalButton);
+        root->addChild(parts);
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         body->setGrow(false, true);
         root->addChild(body);
@@ -129,6 +138,9 @@ namespace ui {
                 selected = style->palette;
         if (selected == nullptr)
             selected = &desktop::waybarPalettes().front();
+        selectedTerminal = desktop::currentTerminal(foundation::currentEnvironment());
+        if (selectedTerminal == nullptr)
+            selectedTerminal = &desktop::terminalFor(*selected);
         showOverview();
     }
 
@@ -165,6 +177,82 @@ namespace ui {
         return made;
     }
 
+    const desktop::Palette*& ThemePage::chosen() {
+        return terminalShown ? selectedTerminal : selected;
+    }
+
+    void ThemePage::showPart(bool terminal) {
+        if (terminal == terminalShown && !reviewing)
+            return;
+        terminalShown = terminal;
+        outcome.clear();
+        desktopButton->rebuild()->accent(!terminal)->commence();
+        terminalButton->rebuild()->accent(terminal)->commence();
+        showOverview();
+    }
+
+    CSharedPointer<Hyprtoolkit::IElement> ThemePage::previewOf(const desktop::Palette* shown, bool large) {
+        return terminalShown ? terminalOf(shown, large) : desktopOf(shown, large);
+    }
+
+    CSharedPointer<Hyprtoolkit::IElement> ThemePage::terminalOf(const desktop::Palette* shown, bool large) {
+        auto& made = terminals[{shown, large}];
+        if (made)
+            return made;
+        const auto& colour = shown->terminal;
+        const auto  font   = large ? 11.F : 5.5F;
+        const auto  height = large ? 250.0 : 105.0;
+        const auto  frame  = Hyprtoolkit::CRectangleBuilder::begin()
+                               ->color([c = paletteColour(shown->base)] { return c; })
+                               ->rounding(static_cast<int>(large ? 10 : 5))
+                               ->borderColor([c = paletteColour(shown->raised)] { return c; })
+                               ->borderThickness(1)
+                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
+                               ->commence();
+        const auto lines = Hyprtoolkit::CColumnLayoutBuilder::begin()
+                               ->gap(static_cast<std::size_t>(large ? 4 : 1))
+                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
+                               ->commence();
+        lines->setMargin(large ? 16 : 7);
+        // A short session, coloured as a shell and the usual tools colour their output.
+        const auto in = [](std::string_view hex, std::string_view text) { return coloured(text, std::string{hex}); };
+        const auto prompt = std::format("{} {} {} ", in(colour[2], "da@studio"), in(colour[4], "~/hyprland-studio"), in(shown->text, "$"));
+        const std::vector<std::string> session{
+            prompt + in(shown->text, "ls"),
+            std::format("{}  {}  {}  {}  {}", in(colour[4], "build"), in(colour[4], "docs"), in(colour[4], "src"), in(shown->text, "README.md"), in(colour[2], "configure")),
+            prompt + in(shown->text, "make test"),
+            std::format("{} {}", in(colour[3], "warning:"), in(shown->text, "unused variable ") + in(colour[5], "'scale'")),
+            std::format("{} {}", in(colour[1], "error:"), in(shown->text, "expected ';' before ") + in(colour[6], "'}'")),
+            in(colour[8], "# 80 tests, 79 passed"),
+            prompt + in(shown->cursor, "█"),
+        };
+        for (std::size_t index = 0; index < session.size(); ++index) {
+            if (!large && index >= 5)
+                break;
+            lines->addChild(Hyprtoolkit::CTextBuilder::begin()
+                                ->text(std::format("<span font_family=\"monospace\">{}</span>", session[index]))
+                                ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, font})
+                                ->color([c = paletteColour(shown->text)] { return c; })
+                                ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
+                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
+                                ->commence());
+        }
+        frame->addChild(lines);
+        made = frame;
+        return made;
+    }
+
+    std::expected<std::vector<configuration::FileChange>, std::string> ThemePage::plan() {
+        const auto environment = foundation::currentEnvironment();
+        if (terminalShown)
+            return desktop::planTerminal(*selectedTerminal, environment);
+        const auto config = configuration::mainConfig(configuration::studioLaunch());
+        if (!config)
+            return std::unexpected{config.error()};
+        const auto shape = desktop::currentWaybarStyle(environment).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
+        return desktop::planTheme(*selected, shape, *config, environment);
+    }
+
     void ThemePage::showOverview() {
         reviewing = false;
         changes.clear();
@@ -191,17 +279,17 @@ namespace ui {
                 const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
                 inside->setMargin(10);
                 made.holder = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-                made.holder->addChild(desktopOf(&all[index], false));
+                made.holder->addChild(previewOf(&all[index], false));
                 made.name = markupLine(escapeMarkup(all[index].name), palette);
                 inside->addChild(made.holder);
                 inside->addChild(made.name);
                 made.frame->addChild(inside);
                 made.frame->setReceivesMouse(true);
-                made.frame->setMouseButton([this, chosen = &all[index]](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
+                made.frame->setMouseButton([this, picked = &all[index]](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
                     if (button != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !pressed)
                         return;
-                    defer([this, chosen] {
-                        selected = chosen;
+                    defer([this, picked] {
+                        chosen() = picked;
                         updateSelection();
                     });
                 });
@@ -215,10 +303,10 @@ namespace ui {
 
     void ThemePage::updateSelection() {
         largePreview->clearChildren();
-        largePreview->addChild(desktopOf(selected, true));
+        largePreview->addChild(previewOf(chosen(), true));
         fillStatus();
         for (auto& [shown, made] : cards) {
-            const bool chosen = shown == selected;
+            const bool chosen = shown == this->chosen();
             made.frame->rebuild()->borderColor([palette = palette, chosen] { return chosen ? palette->m_colors.accent : Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })->commence();
             auto name = escapeMarkup(shown->name);
             if (chosen)
@@ -232,13 +320,13 @@ namespace ui {
     void ThemePage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::studioLaunch());
-        const auto shape       = desktop::currentWaybarStyle(environment).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
-        const auto planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
-                                        : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
-        const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
-        const bool gtkSame     = desktop::gtkChanges(*selected, environment).empty();
-        inUse                  = config ? desktop::currentTheme(*config) : nullptr;
-        const auto shown = std::format("{}|{}|{}|{}|{}|{}", selected->name, planned ? planned->empty() : false, gtkSame, planned ? "" : planned.error(), undoable, outcome);
+        const auto planned     = plan();
+        const auto kind        = terminalShown ? terminalChange : desktopChange;
+        const bool undoable    = configuration::latestChange(application::backupsFolder(environment), kind).has_value();
+        const bool gtkSame     = terminalShown || desktop::gtkChanges(*selected, environment).empty();
+        inUse                  = terminalShown ? desktop::currentTerminal(environment) : config ? desktop::currentTheme(*config) : nullptr;
+        const auto shown = std::format("{}|{}|{}|{}|{}|{}|{}", terminalShown, chosen()->name, planned ? planned->empty() : false, gtkSame, planned ? "" : planned.error(),
+                                       undoable, outcome);
         if (shown == statusShown)
             return;
         statusShown = shown;
@@ -252,7 +340,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
         } else if (planned->empty() && gtkSame) {
-            note = std::format("{}  Your desktop uses {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name));
+            note = std::format("{}  Your {} uses {}.", coloured("✓", hex(palette->m_colors.accent)), terminalShown ? "terminal" : "desktop", escapeMarkup(chosen()->name));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);
@@ -268,10 +356,7 @@ namespace ui {
 
     void ThemePage::showReview() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
-        const auto shape       = desktop::currentWaybarStyle(environment).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
-        auto       planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
-                                        : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
+        auto       planned     = plan();
         if (!planned) {
             outcome = planned.error();
             return showOverview();
@@ -281,15 +366,16 @@ namespace ui {
         outcome.clear();
         body->clearChildren();
         body->addChild(space(4));
-        body->addChild(heading(std::format("Review: {}", selected->name), palette));
-        gtk = desktop::gtkChanges(*selected, environment);
+        body->addChild(heading(std::format("Review: {}, for the {}", chosen()->name, terminalShown ? "terminal" : "desktop"), palette));
+        gtk = terminalShown ? std::vector<desktop::GtkSetting>{} : desktop::gtkChanges(*selected, environment);
         body->addChild(paragraph("Applying will:", palette));
         std::vector<std::string> steps;
         if (!changes.empty())
             steps.emplace_back("Write the changes below. A copy of each file is kept first, so it can be undone.");
         for (const auto& setting : gtk)
             steps.push_back(std::format("Set GTK's {} from {} to {}, for GTK apps.", setting.key, setting.current, setting.wanted));
-        steps.emplace_back("Show the new colours at once: Hyprland's borders, this studio, Waybar, dunst's notifications and open kitty windows.");
+        steps.emplace_back(terminalShown ? "Show the new colours in every open kitty window at once."
+                                         : "Show the new colours at once: Hyprland's borders, this studio, Waybar, the launcher and dunst's notifications.");
         for (const auto& step : steps)
             body->addChild(paragraph(std::format("•  {}", step), palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
@@ -303,9 +389,15 @@ namespace ui {
         if (!reviewing)
             return;
         const auto environment = foundation::currentEnvironment();
-        const auto record      = configuration::applyChanges(changes, application::backupsFolder(environment), std::format("{}: {}", changeName, selected->name));
+        const auto record      = configuration::applyChanges(changes, application::backupsFolder(environment),
+                                                             std::format("{}: {}", terminalShown ? terminalChange : desktopChange, chosen()->name));
         if (!record) {
             outcome = std::format("Nothing was written: {}.", record.error());
+            return showOverview();
+        }
+        if (terminalShown) {
+            reloadApps();
+            outcome = std::format("Applied {} to the terminal.", selectedTerminal->name);
             return showOverview();
         }
         // GTK's settings live in dconf, not in a file: their old values go beside the change's
@@ -376,7 +468,7 @@ namespace ui {
 
     void ThemePage::undo() {
         const auto environment = foundation::currentEnvironment();
-        const auto latest      = configuration::latestChange(application::backupsFolder(environment), changeName);
+        const auto latest      = configuration::latestChange(application::backupsFolder(environment), terminalShown ? terminalChange : desktopChange);
         if (!latest)
             return showOverview();
         if (const auto undone = configuration::undoChange(*latest); !undone) {
@@ -394,7 +486,8 @@ namespace ui {
             }
             reloadApps();
             outcome = "Undone.";
-            waybar.restart();
+            if (!terminalShown)
+                waybar.restart();
         }
         showOverview();
     }

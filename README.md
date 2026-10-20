@@ -70,7 +70,7 @@ config and stylesheet, the wallpaper in `hyprpaper.conf`, the lines in your Hypr
 config that start the wallpaper program at login and turn off Hyprland's own wallpaper, the window border colours in its
 `hl.config` (only those values, nothing else in the file), the colours in
 `~/.config/hypr/hyprtoolkit.conf`, kitty's `current-theme.conf` (and the line in
-`kitty.conf` that includes it), wofi's `style.css` and dunst's `dunstrc` (a first one starts
+`kitty.conf` that includes it, chosen apart from the desktop's on the page's Terminal part), wofi's `style.css` and dunst's `dunstrc` (a first one starts
 as a copy of the system's), and, outside any file, GTK's `color-scheme` and `accent-color`
 through `gsettings`, whose old values are kept with the change so Undo can restore them (if your config is a link, the file it
 points at, which the review names); an image you add from files, copied into your

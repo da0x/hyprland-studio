@@ -84,14 +84,8 @@ namespace desktop {
         };
     }
 
-    std::string kittyTheme(const Palette& chosen) {
-        // A light palette lends its terminal to its dark sibling.
-        const Palette* found = &chosen;
-        for (const auto& candidate : waybarPalettes())
-            if (!chosen.terminalFrom.empty() && candidate.name == chosen.terminalFrom)
-                found = &candidate;
-        const auto& palette = *found;
-        auto        text    = std::format("# {}\n\n"
+    std::string kittyTheme(const Palette& palette) {
+        auto text = std::format("# {}\n\n"
                                 "foreground              {}\n"
                                 "background              {}\n"
                                 "selection_foreground    {}\n"
@@ -181,6 +175,47 @@ window {{
         return changes;
     }
 
+    const Palette& terminalFor(const Palette& desktop) {
+        for (const auto& candidate : waybarPalettes())
+            if (!desktop.terminalFrom.empty() && candidate.name == desktop.terminalFrom)
+                return candidate;
+        return desktop;
+    }
+
+    std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const Palette& palette, const foundation::Environment& environment) {
+        std::vector<configuration::FileChange> changes;
+        if (!installed("kitty", environment))
+            return changes;
+        const auto home = configHome(environment);
+        std::vector<std::expected<std::optional<configuration::FileChange>, std::string>> more;
+        // kitty's own convention: the colours in current-theme.conf, included from kitty.conf.
+        more.push_back(planEdit(home / "kitty" / "current-theme.conf", [&palette](std::string_view) { return kittyTheme(palette); }));
+        more.push_back(planEdit(home / "kitty" / "kitty.conf", [](std::string_view text) {
+            std::string result{text};
+            if (configuration::hasLine(result, "include current-theme.conf"))
+                return result;
+            if (!result.empty() && !result.ends_with('\n'))
+                result += '\n';
+            return result + "include current-theme.conf\n";
+        }));
+        for (auto& planned : more) {
+            if (!planned)
+                return std::unexpected{planned.error()};
+            if (*planned)
+                changes.push_back(std::move(**planned));
+        }
+        return changes;
+    }
+
+    const Palette* currentTerminal(const foundation::Environment& environment) {
+        // current-theme.conf starts with its palette's name, as the studio writes it.
+        const auto text = readAll(configHome(environment) / "kitty" / "current-theme.conf");
+        for (const auto& palette : waybarPalettes())
+            if (text == kittyTheme(palette))
+                return &palette;
+        return nullptr;
+    }
+
     std::filesystem::path hyprtoolkitConfigFile(const foundation::Environment& environment) {
         if (const auto home = foundation::variable(environment, "XDG_CONFIG_HOME"); home && std::filesystem::path{*home}.is_absolute())
             return std::filesystem::path{*home} / "hypr" / "hyprtoolkit.conf";
@@ -225,18 +260,6 @@ window {{
 
         const auto home = configHome(environment);
         std::vector<std::expected<std::optional<configuration::FileChange>, std::string>> more;
-        if (installed("kitty", environment)) {
-            // kitty's own convention: the colours in current-theme.conf, included from kitty.conf.
-            more.push_back(planEdit(home / "kitty" / "current-theme.conf", [&palette](std::string_view) { return kittyTheme(palette); }));
-            more.push_back(planEdit(home / "kitty" / "kitty.conf", [](std::string_view text) {
-                std::string result{text};
-                if (configuration::hasLine(result, "include current-theme.conf"))
-                    return result;
-                if (!result.empty() && !result.ends_with('\n'))
-                    result += '\n';
-                return result + "include current-theme.conf\n";
-            }));
-        }
         if (installed("wofi", environment))
             more.push_back(planEdit(home / "wofi" / "style.css", [&palette](std::string_view) { return wofiStyle(palette); }));
         if (installed("dunst", environment)) {

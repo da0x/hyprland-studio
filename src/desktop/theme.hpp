@@ -30,9 +30,9 @@ namespace desktop {
 
     // Every file change that gives the desktop `palette`: the Hyprland config (only a Lua
     // config, through its hl.config borders; a linked config is followed), Waybar in
-    // `shape`, hyprtoolkit.conf, and, for those installed, kitty (current-theme.conf, and an
-    // include line in kitty.conf), wofi's style.css and dunst's dunstrc (started from the
-    // system's when there is none). Only files that change are listed.
+    // `shape`, hyprtoolkit.conf, and, for those installed, wofi's style.css and dunst's
+    // dunstrc (started from the system's when there is none). Only files that change are
+    // listed. The terminal is themed apart; see planTerminal.
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTheme(const Palette& palette, Shape shape, const configuration::MainConfig& config,
                                                                                                const foundation::Environment& environment);
 
@@ -47,10 +47,20 @@ namespace desktop {
     // and accent-color. Empty when gsettings is not installed.
     [[nodiscard]] std::vector<GtkSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment);
 
-    // kitty's colours for the palette, as current-theme.conf, which kitty.conf includes. A
-    // light palette gives its dark sibling's: terminal programs mostly print for a dark
-    // background, and their white text vanishes on a light one.
+    // kitty's colours for the palette, as current-theme.conf, which kitty.conf includes.
     [[nodiscard]] std::string kittyTheme(const Palette& palette);
+
+    // The terminal's own theme, chosen apart from the desktop's: kitty's current-theme.conf,
+    // and the line in kitty.conf that includes it. Empty when kitty is not installed or
+    // already uses the palette.
+    [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const Palette& palette, const foundation::Environment& environment);
+
+    // The palette kitty's current-theme.conf was written for, if it is one of the studio's.
+    [[nodiscard]] const Palette* currentTerminal(const foundation::Environment& environment);
+
+    // The terminal palette that goes with a desktop palette: itself, or for a light one
+    // its dark sibling, since most terminal programs print for a dark background.
+    [[nodiscard]] const Palette& terminalFor(const Palette& desktop);
     // wofi's stylesheet for the palette.
     [[nodiscard]] std::string wofiStyle(const Palette& palette);
 

@@ -69,26 +69,31 @@ namespace {
                     return &change;
             return nullptr;
         };
-        ASSERT_NE(find("current-theme.conf"), nullptr);
-        EXPECT_TRUE(find("current-theme.conf")->proposed.contains("color14                 #8fbcbb\n"));
-        ASSERT_NE(find("kitty.conf"), nullptr);
-        EXPECT_EQ(find("kitty.conf")->proposed, "font_size 12\ninclude current-theme.conf\n");
         ASSERT_NE(find("style.css"), nullptr);
         ASSERT_NE(find("dunstrc"), nullptr);
         EXPECT_TRUE(find("dunstrc")->proposed.starts_with("[global]\n    frame_color = \"#88c0d0\"\n"));
         EXPECT_TRUE(find("dunstrc")->proposed.contains("[urgency_critical]\n    background = \"#2e3440\"\n"));
+        // The terminal is themed on its own.
+        EXPECT_EQ(find("current-theme.conf"), nullptr);
+        const auto terminal = desktop::planTerminal(nord, environment);
+        ASSERT_TRUE(terminal.has_value()) << terminal.error();
+        ASSERT_EQ(terminal->size(), 2U);
+        EXPECT_TRUE((*terminal)[0].proposed.contains("color14                 #8fbcbb\n"));
+        EXPECT_EQ((*terminal)[1].proposed, "font_size 12\ninclude current-theme.conf\n");
+        ASSERT_TRUE(configuration::applyChanges(*terminal, root / "backups", "Terminal").has_value());
+        EXPECT_EQ(desktop::currentTerminal(environment), &nord);
         std::filesystem::remove_all(root);
     }
 
-    TEST(Theme, KeepsTheTerminalDarkWithALightPalette) {
+    TEST(Theme, SuggestsADarkTerminalForALightDesktop) {
         const auto& latte = desktop::waybarPalettes()[1];
         ASSERT_FALSE(latte.dark);
-        const auto kitty = desktop::kittyTheme(latte);
-        EXPECT_TRUE(kitty.starts_with("# Catppuccin Mocha\n"));
-        EXPECT_TRUE(kitty.contains("background              #1e1e2e\n"));
+        EXPECT_EQ(&desktop::terminalFor(latte), &desktop::waybarPalettes()[0]);
+        // Latte's own terminal colours stay available to choose.
+        EXPECT_TRUE(desktop::kittyTheme(latte).contains("background              #eff1f5\n"));
         for (const auto& palette : desktop::waybarPalettes())
             if (palette.dark)
-                EXPECT_TRUE(desktop::kittyTheme(palette).starts_with(std::format("# {}\n", palette.name)));
+                EXPECT_EQ(&desktop::terminalFor(palette), &palette);
     }
 
 }
