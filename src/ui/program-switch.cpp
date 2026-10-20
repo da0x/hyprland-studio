@@ -4,6 +4,7 @@
 #include "configuration/file-change.hpp"
 #include "desktop/system.hpp"
 #include "foundation/environment.hpp"
+#include "ui/restyle.hpp"
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
 
@@ -25,6 +26,7 @@ namespace ui {
                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
                     ->commence();
         state->setGrow(true, false);
+        restyled(state);
         onButton  = button("On", 70, false, [this] { this->defer([this] { if (this->program) this->program->turnOn(); }); });
         offButton = button("Off", 70, false, [this] { this->defer([this] { if (this->program) this->program->turnOff(); }); });
         refresh();

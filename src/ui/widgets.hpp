@@ -51,8 +51,11 @@ namespace ui {
 
     // Puts a page's action buttons in its footer, at the right, the main action last: the
     // order GNOME and macOS use, and the place KDE and GTK dialogs put them.
+    // `note`, when given, goes just before the buttons: where a page says what is applied,
+    // so that saying it does not move anything else on the page.
     void setFooter(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>&            footer,
-                   const std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>& buttons);
+                   const std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>& buttons,
+                   const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>&                    note = nullptr);
 
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> heading(const std::string& text, const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette);
 

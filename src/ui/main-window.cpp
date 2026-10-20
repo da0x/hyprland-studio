@@ -4,6 +4,7 @@
 #include "application/session.hpp"
 #include "ui/bar-page.hpp"
 #include "ui/keybindings-page.hpp"
+#include "ui/restyle.hpp"
 #include "ui/theme-page.hpp"
 #include "ui/wallpaper-page.hpp"
 #include "ui/texts.hpp"
@@ -60,7 +61,7 @@ namespace ui {
 
     }
 
-    Ending run(const Options& options) {
+    int run(const Options& options) {
         // hyprtoolkit logs every step at debug level. Only warnings and errors, unless asked.
         Hyprutils::CLI::CLogger logger;
         logger.setLogLevel(options.verbose ? Hyprutils::CLI::LOG_DEBUG : Hyprutils::CLI::LOG_WARN);
@@ -69,9 +70,11 @@ namespace ui {
 
         const auto backend = Hyprtoolkit::IBackend::createWithData(creation);
         if (!backend)
-            return Ending{.code = 1, .restart = false, .page = {}};
+            return 1;
 
         const auto palette    = backend->getPalette();
+        // The studio's colours: hyprtoolkit's, from hyprtoolkit.conf or its defaults, until
+        // the Theme page sets new ones here and every element is made again in them.
         const auto background = [palette] { return palette->m_colors.background; };
         const auto base       = [palette] { return palette->m_colors.base; };
 
@@ -87,6 +90,8 @@ namespace ui {
                               ->color(background)
                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1, 1}})
                               ->commence();
+
+        restyled(root);
 
         const auto body = Hyprtoolkit::CRowLayoutBuilder::begin()
                               ->gap(12)
@@ -107,6 +112,7 @@ namespace ui {
         // Growing only adds the space left over, so the base width stays minimal; sized to its
         // text instead, the panel would push past the window's right edge.
         content->setGrow(true, false);
+        restyled(content);
 
         // The sidebar's buttons, each with its page; the open page's button is in the accent.
         std::vector<std::pair<CSharedPointer<Hyprtoolkit::CButtonElement>, CSharedPointer<Hyprtoolkit::IElement>>> pages;
@@ -151,17 +157,20 @@ namespace ui {
                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 34}})
                                     ->onMainClick([&show, page](CSharedPointer<Hyprtoolkit::CButtonElement>) { show(page); })
                                     ->commence();
+            restyled(button);
             sidebar->addChild(button);
             pages.emplace_back(button, std::move(page));
         };
 
-        sidebar->addChild(Hyprtoolkit::CTextBuilder::begin()
+        const auto studioName = Hyprtoolkit::CTextBuilder::begin()
                               ->text("<span weight=\"600\">Hyprland Studio</span>")
                               ->fontSize(CFontSize{CFontSize::HT_FONT_H2})
                               ->color([palette] { return palette->m_colors.text; })
                               ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1, 1}})
-                              ->commence());
+                              ->commence();
+        restyled(studioName);
+        sidebar->addChild(studioName);
         sidebar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 12}})->commence());
         addPageButton("Keybindings", keybindings.element());
         addPageButton("Bar", bar.element());
@@ -186,7 +195,6 @@ namespace ui {
             });
 
         // The session and the setup pages go first: they unwatch descriptors, which needs a live event loop.
-        Ending     ending;
         const auto quit = [&session, &bar, &wallpaper, &theme, window, backend] {
             session.reset();
             bar.close();
@@ -197,16 +205,20 @@ namespace ui {
             backend->destroy();
         };
         window->m_events.closeRequest.listenStatic(quit);
-        theme.onRestart([&ending, &quit, defer] {
-            ending.restart = true;
-            ending.page    = "Theme";
-            defer(quit);
+        // Every element made in the old colours is made again: the long-lived ones in place,
+        // and the pages' contents, some with colours baked into their text, from their data.
+        theme.onRecoloured([&keybindings, &bar, &wallpaper] {
+            restyleAll();
+            keybindings.restyle();
+            bar.restyle();
+            wallpaper.restyle();
         });
+
 
         window->open();
         session->start();
         backend->enterLoop();
-        return ending;
+        return 0;
     }
 
 }

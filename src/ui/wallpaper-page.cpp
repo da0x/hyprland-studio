@@ -238,6 +238,11 @@ namespace ui {
             outcome = started.error();
     }
 
+    void WallpaperPage::restyle() {
+        if (!reviewing)
+            showOverview();
+    }
+
     void WallpaperPage::check() {
         const auto environment = foundation::currentEnvironment();
         hyprctl                = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or(""));

@@ -35,6 +35,10 @@ namespace ui {
         void showConnection(application::Connection connection, const std::string& reason);
         void showKeybindings(const std::expected<application::Keybindings, std::string>& keybindings);
 
+        // Draws the bindings again, after the studio's colours changed: their keys and
+        // actions carry colours in their text.
+        void restyle();
+
       private:
         void                                                                 updateStatus();
         void                                                                 showList();
@@ -83,6 +87,7 @@ namespace ui {
                                                                                    const std::optional<configuration::Location>& location, std::string notes) const;
 
         std::vector<Entry>                                                   entries;
+        std::optional<std::expected<application::Keybindings, std::string>> shown;
         std::vector<Target>                                                  targets;
         std::set<std::string>                                                expanded;
         std::vector<application::SourceFile>                                 sources;

@@ -40,6 +40,9 @@ namespace ui {
         // Stops watching Waybar. Called before the event loop goes away.
         void close();
 
+        // Draws the page again, after the studio's colours changed.
+        void restyle();
+
       private:
         void showOverview();
         void showReview(const desktop::WaybarStyle& style);

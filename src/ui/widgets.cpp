@@ -4,6 +4,7 @@
 #include "configuration/diff.hpp"
 #include "desktop/clipboard.hpp"
 #include "ui/markup.hpp"
+#include "ui/restyle.hpp"
 #include "ui/texts.hpp"
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
@@ -38,6 +39,8 @@ namespace ui {
                                   ->commence();
             text->setMargin(12);
             panel->addChild(text);
+            restyled(panel);
+            restyled(text);
             return panel;
         }
 
@@ -45,7 +48,7 @@ namespace ui {
 
     // A line of markup that wraps, as wide as its column.
     CSharedPointer<Hyprtoolkit::CTextElement> markupLine(const std::string& markup, const CSharedPointer<Hyprtoolkit::CPalette>& palette, CFontSize size, float alpha) {
-        return Hyprtoolkit::CTextBuilder::begin()
+        const auto made = Hyprtoolkit::CTextBuilder::begin()
             ->text(std::string{markup})
             ->fontSize(std::move(size))
             ->color([palette] { return palette->m_colors.text; })
@@ -54,6 +57,8 @@ namespace ui {
             ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
             ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
             ->commence();
+        restyled(made);
+        return made;
     }
 
     CSharedPointer<Hyprtoolkit::IElement> space(double height) {
@@ -76,17 +81,20 @@ namespace ui {
                                                      const CSharedPointer<Hyprtoolkit::CPalette>& palette, const std::function<void(std::function<void()>)>& defer,
                                                      const std::string& lead) {
         const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 40.0}})->commence();
-        if (!lead.empty())
-            row->addChild(Hyprtoolkit::CTextBuilder::begin()
-                              ->text(std::string{lead})
-                              ->color([palette] { return palette->m_colors.text; })
-                              ->a(0.85F)
-                              ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
-                              ->commence());
+        if (!lead.empty()) {
+            const auto text = Hyprtoolkit::CTextBuilder::begin()
+                                  ->text(std::string{lead})
+                                  ->color([palette] { return palette->m_colors.text; })
+                                  ->a(0.85F)
+                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
+                                  ->commence();
+            restyled(text);
+            row->addChild(text);
+        }
         row->addChild(commandPanel(command, palette));
         if (!copier)
             return row;
-        row->addChild(Hyprtoolkit::CButtonBuilder::begin()
+        const auto copy = Hyprtoolkit::CButtonBuilder::begin()
                           ->label("Copy")
                           ->noBorder(true)
                           ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {90.0, 40.0}})
@@ -97,7 +105,9 @@ namespace ui {
                                       shown->rebuild()->label(copied ? "Copied" : "Not copied")->commence();
                               });
                           })
-                          ->commence());
+                          ->commence();
+        restyled(copy);
+        row->addChild(copy);
         return row;
     }
 
@@ -131,13 +141,15 @@ namespace ui {
     }
 
     CSharedPointer<Hyprtoolkit::CButtonElement> button(std::string label, double width, bool accent, std::function<void()> clicked) {
-        return Hyprtoolkit::CButtonBuilder::begin()
+        const auto made = Hyprtoolkit::CButtonBuilder::begin()
             ->label(std::move(label))
             ->noBorder(true)
             ->accent(accent)
             ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, 34.0}})
             ->onMainClick([clicked = std::move(clicked)](CSharedPointer<Hyprtoolkit::CButtonElement>) { clicked(); })
             ->commence();
+        restyled(made);
+        return made;
     }
 
     // A full-width row, so what is in it starts at the left edge rather than the column's middle.
@@ -176,11 +188,16 @@ namespace ui {
         return rows;
     }
 
-    void setFooter(const CSharedPointer<Hyprtoolkit::CRowLayoutElement>& footer, const std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>>& buttons) {
+    void setFooter(const CSharedPointer<Hyprtoolkit::CRowLayoutElement>& footer, const std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>>& buttons,
+                   const CSharedPointer<Hyprtoolkit::IElement>& note) {
         footer->clearChildren();
         const auto spring = space(1);
         spring->setGrow(true, false);
         footer->addChild(spring);
+        if (note) {
+            footer->addChild(note);
+            footer->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {16.0, 1.0}})->commence());
+        }
         for (const auto& made : buttons)
             footer->addChild(made);
     }

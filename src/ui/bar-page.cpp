@@ -83,6 +83,11 @@ namespace ui {
         waybar.close();
     }
 
+    void BarPage::restyle() {
+        if (!reviewing)
+            showOverview();
+    }
+
     void BarPage::check() {
         waybar.refresh();
         if (!reviewing)

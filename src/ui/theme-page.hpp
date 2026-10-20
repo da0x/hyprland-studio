@@ -34,15 +34,15 @@ namespace ui {
         // Stops watching Waybar. Called before the event loop goes away.
         void close();
 
-        // How to start the studio again, so it takes the colours it just wrote.
-        void onRestart(std::function<void()> restart) { this->restart = std::move(restart); }
+        // What to redraw once the studio's palette has new colours.
+        void onRecoloured(std::function<void()> recoloured) { this->recoloured = std::move(recoloured); }
 
       private:
         void showOverview();
         void showReview();
         void apply();
         void undo();
-        // After a click on a palette: changes the preview, borders and status in place.
+        // After a click on a palette: changes the preview, the borders and the footer in place.
         void updateSelection();
         void fillStatus();
         // A drawing of the desktop in a palette, made once and kept: large or for a card.
@@ -61,7 +61,6 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> status;
         std::string                                                          statusShown;
         std::vector<std::pair<const desktop::Palette*, Card>>                cards;
         std::map<std::pair<const desktop::Palette*, bool>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> desktops;
@@ -70,10 +69,12 @@ namespace ui {
         ProgramSwitch                                                        waybar;
 
         const desktop::Palette*                                              selected = nullptr;
+        // The palette the desktop uses now, marked on its card.
+        const desktop::Palette*                                              inUse    = nullptr;
         bool                                                                 reviewing = false;
         std::vector<configuration::FileChange>                               changes;
         std::string                                                          outcome;
-        std::function<void()>                                                restart;
+        std::function<void()>                                                recoloured;
     };
 
 }

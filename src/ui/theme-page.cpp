@@ -168,10 +168,8 @@ namespace ui {
         body->clearChildren();
 
         largePreview = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-        status       = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         statusShown.clear();
         body->addChild(largePreview);
-        body->addChild(status);
 
         cards.clear();
         const auto all = desktop::waybarPalettes();
@@ -215,12 +213,17 @@ namespace ui {
     void ThemePage::updateSelection() {
         largePreview->clearChildren();
         largePreview->addChild(desktopOf(selected, true));
+        fillStatus();
         for (auto& [shown, made] : cards) {
             const bool chosen = shown == selected;
             made.frame->rebuild()->borderColor([palette = palette, chosen] { return chosen ? palette->m_colors.accent : Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })->commence();
-            made.name->rebuild()->text(chosen ? std::format("<span weight=\"600\">{}</span>", escapeMarkup(shown->name)) : escapeMarkup(shown->name))->commence();
+            auto name = escapeMarkup(shown->name);
+            if (chosen)
+                name = std::format("<span weight=\"600\">{}</span>", name);
+            if (shown == inUse)
+                name += std::format("   {}", coloured("· in use", hex(palette->m_colors.accent)));
+            made.name->rebuild()->text(std::string{name})->commence();
         }
-        fillStatus();
     }
 
     void ThemePage::fillStatus() {
@@ -230,24 +233,32 @@ namespace ui {
         const auto planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
+        inUse                  = config ? desktop::currentTheme(*config) : nullptr;
         const auto shown       = std::format("{}|{}|{}|{}|{}", selected->name, planned ? planned->empty() : false, planned ? "" : planned.error(), undoable, outcome);
         if (shown == statusShown)
             return;
         statusShown = shown;
-        status->clearChildren();
 
+        // Everything said here sits in the footer, so that saying it moves nothing above.
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
         if (undoable)
             buttons.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
-        if (!planned)
-            status->addChild(paragraph(std::format("The studio cannot apply it: {}.", planned.error()), palette));
-        else if (planned->empty())
-            status->addChild(markupLine(std::format("{}  Your desktop uses {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name)), palette));
-        else
+        std::string note;
+        if (!planned) {
+            note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
+        } else if (planned->empty()) {
+            note = std::format("{}  Your desktop uses {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name));
+        } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
-        setFooter(footer, buttons);
-        if (!outcome.empty())
-            status->addChild(paragraph(outcome, palette));
+            note = escapeMarkup(outcome);
+        }
+        CSharedPointer<Hyprtoolkit::IElement> noteText;
+        if (!note.empty()) {
+            const auto made = markupLine(note, palette);
+            made->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            noteText = made;
+        }
+        setFooter(footer, buttons, noteText);
     }
 
     void ThemePage::showReview() {
@@ -286,23 +297,37 @@ namespace ui {
         }
         const auto changed = [this](auto test) { return std::ranges::any_of(changes, test); };
         const bool toolkit = changed([](const auto& change) { return change.file.filename() == "hyprtoolkit.conf"; });
+        if (toolkit) {
+            // The studio's own colours, set before hyprtoolkit sees the file change and
+            // redraws every element with them.
+            auto& colours          = palette->m_colors;
+            colours.background     = paletteColour(selected->base);
+            colours.base           = paletteColour(selected->surface);
+            colours.alternateBase  = paletteColour(selected->raised);
+            colours.text           = paletteColour(selected->text);
+            colours.brightText     = paletteColour(selected->text);
+            colours.linkText       = paletteColour(selected->audio);
+            colours.accent         = paletteColour(selected->accent);
+            colours.accentSecondary = paletteColour(selected->network);
+            // Every element is made again in the new colours.
+            if (recoloured)
+                defer(recoloured);
+        }
         const bool bar     = changed([](const auto& change) { return change.file.parent_path().filename() == "waybar"; });
         const bool config  = changed([](const auto& change) { return change.file.extension() == ".lua"; });
         const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or(""));
 
-        // The studio takes the new colours only by starting again, which waits for Waybar to
-        // come back and for Hyprland to say the config is fine: both need the studio running.
+        // Waybar comes back and Hyprland checks the config while the studio keeps running;
+        // a problem with either is reported here.
         auto waiting  = std::make_shared<int>((bar ? 1 : 0) + (config && hyprctl ? 1 : 0));
         auto problem  = std::make_shared<std::optional<std::string>>();
-        auto finished = [this, waiting, problem, toolkit] {
+        auto finished = [this, waiting, problem] {
             if (--*waiting > 0)
                 return;
             if (*problem) {
                 outcome = **problem;
                 if (!reviewing)
                     showOverview();
-            } else if (toolkit && restart) {
-                restart();
             }
         };
         outcome = std::format("Applied {}.", selected->name);

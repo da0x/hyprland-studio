@@ -43,6 +43,9 @@ namespace ui {
         // Stops watching hyprpaper. Called before the event loop goes away.
         void close();
 
+        // Draws the page again, after the studio's colours changed.
+        void restyle();
+
         // The page is no longer shown: a wallpaper tried on the desktop and not kept is
         // replaced by the one hyprpaper.conf sets. When the studio is `closing` and the file
         // sets none, it is left: restarting hyprpaper would not finish.

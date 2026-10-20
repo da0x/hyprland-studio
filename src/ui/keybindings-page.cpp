@@ -2,6 +2,7 @@
 #include "ui/keybindings-page.hpp"
 
 #include "ui/markup.hpp"
+#include "ui/restyle.hpp"
 #include "ui/texts.hpp"
 
 #include <algorithm>
@@ -98,12 +99,14 @@ namespace ui {
         }
 
         CSharedPointer<Hyprtoolkit::CButtonElement> button(std::string label, double width, std::function<void()> clicked) {
-            return Hyprtoolkit::CButtonBuilder::begin()
+            const auto made = Hyprtoolkit::CButtonBuilder::begin()
                 ->label(std::move(label))
                 ->noBorder(true)
                 ->size(CDynamicSize{width > 0 ? CDynamicSize::HT_SIZE_ABSOLUTE : CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {width > 0 ? width : 1.0, buttonHeight}})
                 ->onMainClick([clicked = std::move(clicked)](CSharedPointer<Hyprtoolkit::CButtonElement>) { clicked(); })
                 ->commence();
+            restyled(made);
+            return made;
         }
 
     }
@@ -228,7 +231,15 @@ namespace ui {
         updateStatus();
     }
 
+    void KeybindingsPage::restyle() {
+        if (shown) {
+            const auto again = *shown;
+            showKeybindings(again);
+        }
+    }
+
     void KeybindingsPage::showKeybindings(const std::expected<application::Keybindings, std::string>& keybindings) {
+        shown = keybindings;
         if (!keybindings) {
             bindingsError = keybindings.error();
             updateStatus();

@@ -90,9 +90,9 @@ the studio keeps only the fit you chose, in its settings. After a change to your
 config, the studio asks Hyprland for config errors and puts the files back if it reports
 any.
 
-**Starts itself again** after the Theme page changes `hyprtoolkit.conf`, on the same
-page, because apps built on hyprtoolkit read their colours only when they start. It waits
-first for Waybar to restart and for Hyprland to report no config errors.
+**Takes its colours** from hyprtoolkit, as every app built on it does: from
+`hyprtoolkit.conf`, or hyprtoolkit's own defaults. When the Theme page applies a palette,
+the studio changes to it at once, without closing.
 
 **Changes while active, only in areas you allowed:** the running Hyprland's options, rules
 and keybindings (through IPC; a reload undoes them), the programs it started for you, and

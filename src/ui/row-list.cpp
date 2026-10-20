@@ -2,6 +2,7 @@
 #include "ui/row-list.hpp"
 
 #include "ui/markup.hpp"
+#include "ui/restyle.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -73,16 +74,20 @@ namespace ui {
                                    ->commence();
                 if (spec.width <= 0)
                     heading->setGrow(true, false);
+                restyled(heading);
                 headings->addChild(heading);
             }
             root->addChild(headings);
-            root->addChild(Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([p = this->palette] { return p->m_colors.text.mix(p->m_colors.base, 0.85F); })
-                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})
-                               ->commence());
+            const auto separator = Hyprtoolkit::CRectangleBuilder::begin()
+                                       ->color([p = this->palette] { return p->m_colors.text.mix(p->m_colors.base, 0.85F); })
+                                       ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})
+                                       ->commence();
+            restyled(separator);
+            root->addChild(separator);
         }
 
         position = Hyprtoolkit::CTextBuilder::begin()->text(" ")->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
+        restyled(position);
 
         root->addChild(viewport);
         root->addChild(position);
@@ -131,6 +136,7 @@ namespace ui {
                               ->commence();
         const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(columnGap)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         made.background->addChild(row);
+        restyled(made.background);
 
         // The row takes the pointer, so the wheel has to scroll from here too.
         made.background->setReceivesMouse(true);
@@ -170,6 +176,7 @@ namespace ui {
             auto cell = builder->commence();
             if (spec.width <= 0)
                 cell->setGrow(true, false);
+            restyled(cell);
             row->addChild(cell);
             made.cells.push_back(std::move(cell));
         }
