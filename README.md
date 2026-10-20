@@ -56,7 +56,9 @@ If you ever wonder "what did this do to my system?", that is a bug.
 find which config it loaded), and, if present, Hyprland's API stubs in
 `/usr/share/hypr/stubs/`. For the Bar page it looks for Waybar on your `PATH`, asks
 fontconfig whether the icon font is installed, finds the config Waybar would read, and
-reads `/etc/os-release` to name the right install command.
+reads `/etc/os-release` to name the right install command. Its Copy button runs
+`wl-copy`, from wl-clipboard, if you have it, since the toolkit offers no clipboard of its
+own.
 
 **Writes:** only into `~/.config/hyprland-studio/`: its settings (window size, last page,
 which areas you allowed), the effects you set up (plain Hyprland Lua you can read and copy

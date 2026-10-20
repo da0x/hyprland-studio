@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "desktop/clipboard.hpp"
 #include "desktop/system.hpp"
 #include "desktop/waybar.hpp"
 
@@ -7,6 +8,7 @@
 #include <atomic>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 
 #include <unistd.h>
@@ -100,6 +102,31 @@ namespace {
     TEST(Desktop, FindsNoWaybarConfigWhereThereIsNone) {
         const Folder folder;
         EXPECT_FALSE(desktop::waybarConfig({{"HOME", folder.root.string()}}, folder.root / "etc").has_value());
+    }
+
+    TEST(Desktop, CopiesThroughTheClipboardProgram) {
+        const Folder folder;
+        // A stand-in for wl-copy that writes what it was given to a file.
+        const auto received = folder.root / "received";
+        const auto program  = folder.root / "bin" / "wl-copy";
+        std::filesystem::create_directories(program.parent_path());
+        std::ofstream{program} << "#!/bin/sh\n[ \"$1\" = -- ] || exit 2\nprintf '%s' \"$2\" > '" << received.string() << "'\n";
+        std::filesystem::permissions(program, std::filesystem::perms::owner_all, std::filesystem::perm_options::add);
+
+        const auto found = desktop::clipboardProgram((folder.root / "bin").string());
+        ASSERT_TRUE(found.has_value());
+        ASSERT_TRUE(desktop::copyText(*found, "sudo pacman -S ttf-nerd-fonts-symbols").has_value());
+        std::stringstream text;
+        text << std::ifstream{received}.rdbuf();
+        EXPECT_EQ(text.str(), "sudo pacman -S ttf-nerd-fonts-symbols");
+    }
+
+    TEST(Desktop, ReportsAClipboardProgramThatFails) {
+        const Folder folder;
+        const auto   program = folder.root / "wl-copy";
+        std::ofstream{program} << "#!/bin/sh\nexit 1\n";
+        std::filesystem::permissions(program, std::filesystem::perms::owner_all, std::filesystem::perm_options::add);
+        EXPECT_FALSE(desktop::copyText(program, "text").has_value());
     }
 
 }
