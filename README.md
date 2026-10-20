@@ -58,7 +58,7 @@ find which config it loaded), and, if present, Hyprland's API stubs in
 fontconfig whether the icon font is installed, finds the config Waybar would read, and
 reads `/etc/os-release` to name the right install command. The Wallpaper page looks for images in `~/Pictures/Wallpapers`,
 `~/Pictures`, `~/.local/share/backgrounds`, `/usr/share/hypr` and `/usr/share/backgrounds`,
-and reads `~/.config/hypr/hyprpaper.conf`. Its Copy button runs
+and reads `~/.config/hypr/hyprpaper.conf`, or, with awww, asks `awww query` which image it shows. Its Copy button runs
 `wl-copy`, from wl-clipboard, if you have it, since the toolkit offers no clipboard of its
 own.
 
@@ -71,12 +71,13 @@ the desktop-theme area is active, a record of the theme values it changed so the
 always be put back, even after a crash. No caches, no exports: copying goes to the
 clipboard. A menu item removes that folder for you.
 
-**Starts and stops Waybar and hyprpaper** only when you press their On or Off switch, on
-the Bar and Wallpaper pages. While one is on, the studio restarts it after writing its
+**Starts and stops Waybar, hyprpaper and awww** only when you press their On or Off switch,
+on the Bar and Wallpaper pages. While one is on, the studio restarts it after writing its
 files, so it reads them. It never adds them to what starts at login: it shows the line to
 add instead. While hyprpaper runs, picking a wallpaper shows it on the desktop
 through `hyprctl hyprpaper`, without writing anything; leaving the page puts back the one
-`hyprpaper.conf` sets, unless you kept the new one.
+`hyprpaper.conf` sets, unless you kept the new one. With awww the studio writes no file: awww remembers the image
+itself, and the studio keeps only the fit you chose, in its settings.
 
 **Changes while active, only in areas you allowed:** the running Hyprland's options, rules
 and keybindings (through IPC; a reload undoes them), the programs it started for you, and

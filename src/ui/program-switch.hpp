@@ -45,6 +45,8 @@ namespace ui {
 
         // Starts it, as its On button does.
         void                                                                   turnOn();
+        // Stops it, as its Off button does.
+        void                                                                   turnOff();
 
       private:
         void                                                                   update();

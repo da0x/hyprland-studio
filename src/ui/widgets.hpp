@@ -32,10 +32,11 @@ namespace ui {
     // A path under the home folder with ~ for the home folder.
     [[nodiscard]] std::string shortPath(const std::filesystem::path& path);
 
-    // A command to type on a panel of its own, with a button that copies it when wl-copy is installed.
+    // A command to type on a panel of its own, with a button that copies it when wl-copy is
+    // installed. `lead`, markup, goes before it on the same line.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> commandRow(const std::string& command, const std::optional<std::filesystem::path>& copier,
                                                                                       const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette,
-                                                                                      const std::function<void(std::function<void()>)>&               defer);
+                                                                                      const std::function<void(std::function<void()>)>& defer, const std::string& lead = {});
 
     // One thing a page needs: whether it is installed, why it is needed, and how to install it.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> requirementBlock(const desktop::Requirement& requirement, const desktop::Distribution& distribution,

@@ -73,8 +73,16 @@ namespace ui {
 
     // The command's panel, with a button that copies it when wl-copy is installed.
     CSharedPointer<Hyprtoolkit::IElement> commandRow(const std::string& command, const std::optional<std::filesystem::path>& copier,
-                                                     const CSharedPointer<Hyprtoolkit::CPalette>& palette, const std::function<void(std::function<void()>)>& defer) {
+                                                     const CSharedPointer<Hyprtoolkit::CPalette>& palette, const std::function<void(std::function<void()>)>& defer,
+                                                     const std::string& lead) {
         const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 40.0}})->commence();
+        if (!lead.empty())
+            row->addChild(Hyprtoolkit::CTextBuilder::begin()
+                              ->text(std::string{lead})
+                              ->color([palette] { return palette->m_colors.text; })
+                              ->a(0.85F)
+                              ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
+                              ->commence());
         row->addChild(commandPanel(command, palette));
         if (!copier)
             return row;

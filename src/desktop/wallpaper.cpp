@@ -3,6 +3,8 @@
 
 #include "desktop/system.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <array>
 #include <format>
@@ -125,17 +127,60 @@ namespace desktop {
         return fits;
     }
 
-    std::vector<Requirement> wallpaperRequirements(const foundation::Environment& environment) {
-        Requirement hyprpaper{
-            .name     = "hyprpaper",
-            .purpose  = "Hyprland's own wallpaper program. Without it, Hyprland shows its default wallpaper.",
-            .upstream = "https://github.com/hyprwm/hyprpaper",
-            .package  = "hyprpaper",
-            .found    = std::nullopt,
-        };
-        if (const auto program = findProgram("hyprpaper", foundation::variable(environment, "PATH").value_or("")))
-            hyprpaper.found = program->string();
-        return {std::move(hyprpaper)};
+    Requirement wallpaperRequirement(WallpaperProgram program, const foundation::Environment& environment) {
+        Requirement requirement;
+        std::string_view binary;
+        if (program == WallpaperProgram::hyprpaper) {
+            requirement = Requirement{
+                .name     = "hyprpaper",
+                .purpose  = "Hyprland's own wallpaper program. Without a wallpaper program, Hyprland shows its default wallpaper.",
+                .upstream = "https://github.com/hyprwm/hyprpaper",
+                .package  = "hyprpaper",
+                .found    = std::nullopt,
+            };
+            binary = "hyprpaper";
+        } else {
+            requirement = Requirement{
+                .name     = "awww",
+                .purpose  = "A wallpaper program that fades from one image to the next, and shows the last one again when it starts.",
+                .upstream = "https://codeberg.org/LGFae/awww",
+                .package  = "awww",
+                .found    = std::nullopt,
+            };
+            binary = "awww-daemon";
+        }
+        if (const auto found = findProgram(binary, foundation::variable(environment, "PATH").value_or("")))
+            requirement.found = found->string();
+        return requirement;
+    }
+
+    std::expected<std::vector<std::string>, std::string> awwwArguments(const Wallpaper& wallpaper) {
+        std::string_view resize;
+        switch (wallpaper.fit) {
+            case FitMode::cover: resize = "crop"; break;
+            case FitMode::contain: resize = "fit"; break;
+            case FitMode::fill: resize = "stretch"; break;
+            case FitMode::tile: return std::unexpected{"awww cannot tile an image"};
+        }
+        return std::vector<std::string>{"img", wallpaper.image.string(), "--resize", std::string{resize}, "--transition-type", "fade"};
+    }
+
+    std::optional<std::filesystem::path> awwwImage(std::string_view queryJson) {
+        const auto json = nlohmann::json::parse(queryJson, nullptr, false);
+        if (!json.is_object())
+            return std::nullopt;
+        for (const auto& [name, outputs] : json.items()) {
+            if (!outputs.is_array())
+                continue;
+            for (const auto& output : outputs) {
+                const auto displaying = output.find("displaying");
+                if (displaying == output.end() || !displaying->is_object())
+                    continue;
+                if (const auto image = displaying->find("image"); image != displaying->end() && image->is_string())
+                    return std::filesystem::path{image->get<std::string>()};
+            }
+        }
+        return std::nullopt;
     }
 
     std::filesystem::path hyprpaperConfigFile(const foundation::Environment& environment) {

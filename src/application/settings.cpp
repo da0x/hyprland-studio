@@ -26,8 +26,11 @@ namespace application {
         Settings   settings;
         if (const auto bar = json.find("bar"); bar != json.end() && bar->is_object())
             settings.barRequirementsDismissed = bar->value("requirementsDismissed", false);
-        if (const auto wallpaper = json.find("wallpaper"); wallpaper != json.end() && wallpaper->is_object())
+        if (const auto wallpaper = json.find("wallpaper"); wallpaper != json.end() && wallpaper->is_object()) {
             settings.wallpaperRequirementsDismissed = wallpaper->value("requirementsDismissed", false);
+            settings.wallpaperProgram               = wallpaper->value("program", std::string{});
+            settings.awwwFit                        = wallpaper->value("awwwFit", std::string{"cover"});
+        }
         return settings;
     }
 
@@ -38,6 +41,8 @@ namespace application {
                 json[page] = nlohmann::json::object();
         json["bar"]["requirementsDismissed"]       = settings.barRequirementsDismissed;
         json["wallpaper"]["requirementsDismissed"] = settings.wallpaperRequirementsDismissed;
+        json["wallpaper"]["program"]               = settings.wallpaperProgram;
+        json["wallpaper"]["awwwFit"]               = settings.awwwFit;
         return configuration::writeWhole(studioFolder / "settings.json", json.dump(4) + "\n");
     }
 

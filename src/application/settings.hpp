@@ -12,7 +12,13 @@ namespace application {
         // The user has seen that everything the bar needs is installed, and hid the list.
         bool barRequirementsDismissed       = false;
         // The same for the Wallpaper page.
-        bool wallpaperRequirementsDismissed = false;
+        bool        wallpaperRequirementsDismissed = false;
+        // The wallpaper program the Wallpaper page uses: "hyprpaper" or "awww", or empty
+        // before the user chose.
+        std::string wallpaperProgram;
+        // The fit of the wallpaper last kept with awww, which awww does not report back:
+        // "cover", "contain" or "fill".
+        std::string awwwFit = "cover";
     };
 
     // Missing or unreadable settings are the defaults.

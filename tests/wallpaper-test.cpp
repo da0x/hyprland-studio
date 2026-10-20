@@ -96,4 +96,17 @@ namespace {
         EXPECT_FALSE(desktop::showWallpaperArguments(Wallpaper{"/a,b.png", FitMode::cover}).has_value());
     }
 
+    TEST(Wallpaper, AsksAwwwToFadeIn) {
+        EXPECT_EQ(desktop::awwwArguments(Wallpaper{"/a.png", FitMode::contain}),
+                  (std::vector<std::string>{"img", "/a.png", "--resize", "fit", "--transition-type", "fade"}));
+        EXPECT_FALSE(desktop::awwwArguments(Wallpaper{"/a.png", FitMode::tile}).has_value());
+    }
+
+    TEST(Wallpaper, ReadsWhatAwwwShows) {
+        const auto shown = R"({"": [{"name": "DP-10", "width": 3840, "height": 2160, "scale": 1.0, "displaying": {"image": "/usr/share/hypr/wall2.png"}}]})";
+        EXPECT_EQ(desktop::awwwImage(shown), std::filesystem::path{"/usr/share/hypr/wall2.png"});
+        EXPECT_FALSE(desktop::awwwImage(R"({"": [{"name": "DP-10", "displaying": {"color": "#000000"}}]})").has_value());
+        EXPECT_FALSE(desktop::awwwImage("not json").has_value());
+    }
+
 }

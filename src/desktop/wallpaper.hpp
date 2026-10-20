@@ -39,8 +39,24 @@ namespace desktop {
         bool operator==(const Wallpaper&) const = default;
     };
 
-    // hyprpaper, which draws the wallpaper.
-    [[nodiscard]] std::vector<Requirement> wallpaperRequirements(const foundation::Environment& environment);
+    // The programs the studio can draw the wallpaper with.
+    enum class WallpaperProgram {
+        // Hyprland's own, set through hyprpaper.conf.
+        hyprpaper,
+        // Fades from one image to the next, and remembers the last one itself.
+        awww,
+    };
+
+    // What the program needs: itself.
+    [[nodiscard]] Requirement wallpaperRequirement(WallpaperProgram program, const foundation::Environment& environment);
+
+    // The arguments that make `awww` show `wallpaper` on every monitor, fading in. awww
+    // remembers it and shows it again when its daemon starts. Refuses the tile fit, which
+    // awww does not have.
+    [[nodiscard]] std::expected<std::vector<std::string>, std::string> awwwArguments(const Wallpaper& wallpaper);
+
+    // The image `awww query -j` reports for the first monitor, if it shows one.
+    [[nodiscard]] std::optional<std::filesystem::path> awwwImage(std::string_view queryJson);
 
     // $XDG_CONFIG_HOME/hypr/hyprpaper.conf, or ~/.config/hypr/hyprpaper.conf.
     [[nodiscard]] std::filesystem::path hyprpaperConfigFile(const foundation::Environment& environment);

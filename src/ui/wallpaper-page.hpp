@@ -23,8 +23,9 @@
 namespace ui {
 
     // The wallpaper. The studio draws none of its own: it uses hyprpaper, Hyprland's own
-    // wallpaper program, shows the images it finds to choose from, and writes the choice
-    // to hyprpaper.conf only after the user reviews the change.
+    // wallpaper program, or awww, which fades between images. It shows the images it finds
+    // to choose from and tries them on the desktop. With hyprpaper it writes the choice to
+    // hyprpaper.conf only after the user reviews the change; awww remembers it itself.
     class WallpaperPage {
       public:
         // `defer` runs a function after the current layout pass; see RowList.
@@ -47,6 +48,15 @@ namespace ui {
         void                                                                   showOverview();
         void                                                                   showReview();
         void                                                                   apply(bool turnOn);
+        void                                                                   choose(desktop::WallpaperProgram chosen);
+        // Ends a trial with awww: it already shows the image and remembers it.
+        void                                                                   keepWithAwww();
+        // Asks awww which image it shows.
+        void                                                                   askAwww();
+        void                                                                   showSwitch();
+        [[nodiscard]] ProgramSwitch&                                           current();
+        // The wallpaper the chosen program keeps: hyprpaper.conf's, or what awww shows.
+        [[nodiscard]] std::optional<desktop::Wallpaper>                        kept() const;
         // Shows the chosen wallpaper on the desktop through hyprpaper, writing nothing.
         void                                                                   tryOnDesktop();
         void                                                                   undo();
@@ -61,6 +71,12 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         RowList                                                              diff;
         ProgramSwitch                                                        hyprpaper;
+        ProgramSwitch                                                        awww;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> switchArea;
+        desktop::WallpaperProgram                                            program = desktop::WallpaperProgram::hyprpaper;
+        // awww's command, and the image it shows with the fit last kept.
+        std::optional<std::filesystem::path>                                 awwwCommand;
+        std::optional<desktop::Wallpaper>                                    awwwShows;
         application::Settings                                                settings;
 
         std::vector<std::filesystem::path>                                   wallpapers;

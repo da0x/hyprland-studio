@@ -28,7 +28,7 @@ below.
 | `foundation` | Strong types, flag sets, UTF-8 cleanup, formatters | the standard library |
 | `lua` | The one wrapper around the Lua 5.5 C API: owned state, allocator with a limit, instruction hook, and a trampoline so Lua's `longjmp` never skips a C++ destructor | Lua |
 | `configuration` | The recording interpreter, key combinations, bindings, conflicts, option assignments, finding the active config, line diffs, and writing reviewed changes with a backup and undo | foundation, lua |
-| `desktop` | The desktop around Hyprland: programs on the `PATH` and running ones, installed fonts, the distribution, the clipboard through `wl-copy`, Waybar's needs, config and styles, and wallpapers with hyprpaper's config | foundation, configuration, fontconfig |
+| `desktop` | The desktop around Hyprland: programs on the `PATH` and running ones, installed fonts, the distribution, the clipboard through `wl-copy`, Waybar's needs, config and styles, and wallpapers with hyprpaper's config and awww's commands | foundation, configuration, fontconfig |
 | `ipc` | Instances, the read-only request allow-list, the request client, reply and event parsing, the event connection, the running instance's launch | foundation, configuration, nlohmann-json |
 | `compositor` | Monitors, workspaces and windows, built from a snapshot and kept current by events | ipc |
 | `activation` | The live layer: allowed areas, effects, applying and removing them, the theme restore record | ipc, configuration, GIO (GSettings) |
