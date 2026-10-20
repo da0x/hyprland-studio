@@ -3,6 +3,7 @@
 
 #include "application/session.hpp"
 #include "configuration/file-change.hpp"
+#include "desktop/theme.hpp"
 #include "desktop/waybar-style.hpp"
 #include "ui/program-switch.hpp"
 #include "ui/row-list.hpp"
@@ -44,6 +45,8 @@ namespace ui {
         void undo();
         // After a click on a palette: changes the preview, the borders and the footer in place.
         void updateSelection();
+        // Asks dunst and the open kitty windows to read their files again.
+        void reloadApps();
         void fillStatus();
         // A drawing of the desktop in a palette, made once and kept: large or for a card.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> desktopOf(const desktop::Palette* shown, bool large);
@@ -73,6 +76,7 @@ namespace ui {
         const desktop::Palette*                                              inUse    = nullptr;
         bool                                                                 reviewing = false;
         std::vector<configuration::FileChange>                               changes;
+        std::vector<desktop::GtkSetting>                                     gtk;
         std::string                                                          outcome;
         std::function<void()>                                                recoloured;
     };

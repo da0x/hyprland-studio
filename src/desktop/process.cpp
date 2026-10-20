@@ -13,6 +13,7 @@
 #include <system_error>
 
 #include <fcntl.h>
+#include <spawn.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
@@ -94,6 +95,54 @@ namespace desktop {
                 return std::unexpected{std::format("cannot start {}: {}", name, errorText(errno))};
         }
         return {};
+    }
+
+    std::expected<std::string, std::string> readCommand(const std::filesystem::path& program, const std::vector<std::string>& arguments) {
+        std::array<int, 2> pipe{};
+        if (::pipe2(pipe.data(), O_CLOEXEC) != 0)
+            return std::unexpected{std::format("cannot run {}: {}", program.string(), errorText(errno))};
+        std::vector<std::string> words{program.filename().string()};
+        words.insert(words.end(), arguments.begin(), arguments.end());
+        std::vector<char*> argv;
+        for (auto& word : words)
+            argv.push_back(word.data());
+        argv.push_back(nullptr);
+        posix_spawn_file_actions_t actions;
+        posix_spawn_file_actions_init(&actions);
+        posix_spawn_file_actions_adddup2(&actions, pipe[1], STDOUT_FILENO);
+        pid_t      child  = 0;
+        const auto failed = ::posix_spawn(&child, program.c_str(), &actions, nullptr, argv.data(), environ);
+        posix_spawn_file_actions_destroy(&actions);
+        ::close(pipe[1]);
+        if (failed != 0) {
+            ::close(pipe[0]);
+            return std::unexpected{std::format("cannot run {}: {}", program.string(), errorText(failed))};
+        }
+        std::string            output;
+        std::array<char, 4096> buffer{};
+        while (true) {
+            const auto count = ::read(pipe[0], buffer.data(), buffer.size());
+            if (count < 0 && errno == EINTR)
+                continue;
+            if (count <= 0)
+                break;
+            output.append(buffer.data(), static_cast<std::size_t>(count));
+        }
+        ::close(pipe[0]);
+        int status = 0;
+        while (::waitpid(child, &status, 0) < 0 && errno == EINTR) {
+        }
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            return std::unexpected{std::format("{} failed", program.filename().string())};
+        return output;
+    }
+
+    std::size_t signalProcesses(std::string_view name, int signal) {
+        std::size_t reached = 0;
+        for (const auto process : findProcesses(name))
+            if (::kill(process, signal) == 0)
+                ++reached;
+        return reached;
     }
 
     std::expected<void, std::string> stopProcess(pid_t process) {

@@ -169,7 +169,7 @@ namespace configuration {
 
     std::expected<void, std::string> undoChange(const std::filesystem::path& record) {
         const auto entries = readManifest(record);
-        if (entries.empty())
+        if (!std::filesystem::exists(record / manifestName))
             return std::unexpected{std::format("{} records no change", record.string())};
         // Refuse before touching anything if a file was edited since.
         for (std::size_t index = 0; index < entries.size(); ++index) {

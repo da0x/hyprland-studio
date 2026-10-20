@@ -37,7 +37,9 @@ namespace configuration {
                                                                                  std::string_view description);
 
     // Puts back the files of one applied change: a replaced file gets its old content, a
-    // created one is removed. Refuses, changing nothing, if any of them was edited since.
+    // created one is removed. Refuses, changing nothing, if any of them was edited since. A
+    // change of no files (what it changed lies outside them, recorded beside change.txt) is
+    // simply marked undone.
     [[nodiscard]] std::expected<void, std::string> undoChange(const std::filesystem::path& record);
 
     // The newest change under `backups` that has not been undone, among those whose

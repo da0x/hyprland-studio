@@ -4,6 +4,7 @@
 #include "configuration/file-change.hpp"
 #include "foundation/environment.hpp"
 
+#include <array>
 #include <expected>
 #include <filesystem>
 #include <optional>
@@ -37,6 +38,13 @@ namespace desktop {
         std::string_view network;
         // Urgent workspaces, no network, and today in the calendar.
         std::string_view alert;
+        // The 16 terminal colours, color0 to color15, as the palette's authors publish
+        // them for terminals, and the cursor and selection.
+        std::array<std::string_view, 16> terminal{};
+        std::string_view                 cursor;
+        std::string_view                 selection;
+        // The nearest of GNOME's accent colours, for GTK apps.
+        std::string_view                 gnomeAccent;
     };
 
     // How the bar sits on the screen.

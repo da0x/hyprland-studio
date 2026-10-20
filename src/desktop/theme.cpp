@@ -2,10 +2,14 @@
 #include "desktop/theme.hpp"
 
 #include "configuration/hyprlang-edit.hpp"
+#include "desktop/process.hpp"
+#include "desktop/system.hpp"
 #include "configuration/lua-edit.hpp"
 #include "syntax/highlight.hpp"
 
+#include <array>
 #include <format>
+#include <functional>
 #include <fstream>
 #include <sstream>
 
@@ -30,6 +34,35 @@ namespace desktop {
             return text.str();
         }
 
+        std::filesystem::path configHome(const foundation::Environment& environment) {
+            if (const auto home = foundation::variable(environment, "XDG_CONFIG_HOME"); home && std::filesystem::path{*home}.is_absolute())
+                return *home;
+            return std::filesystem::path{foundation::variable(environment, "HOME").value_or("")} / ".config";
+        }
+
+        bool installed(std::string_view program, const foundation::Environment& environment) {
+            return findProgram(program, foundation::variable(environment, "PATH").value_or("")).has_value();
+        }
+
+        // The change to `file` that `edit` makes of what it holds now (or of `start` when it
+        // does not exist). A link is followed: the file it points at is the one changed.
+        std::expected<std::optional<configuration::FileChange>, std::string> planEdit(std::filesystem::path file, const std::function<std::string(std::string_view)>& edit,
+                                                                                       std::string_view start = {}) {
+            std::error_code error;
+            if (std::filesystem::is_symlink(file, error)) {
+                file = std::filesystem::canonical(file, error);
+                if (error)
+                    return std::unexpected{std::format("cannot follow {}: {}", file.string(), error.message())};
+            }
+            auto change = configuration::planFile(file, "");
+            if (!change)
+                return std::unexpected{change.error()};
+            change->proposed = edit(change->current ? std::string_view{*change->current} : start);
+            if (!change->changes())
+                return std::nullopt;
+            return std::optional{std::move(*change)};
+        }
+
         const std::vector<std::string_view> activePath{"general", "col", "active_border"};
         const std::vector<std::string_view> inactivePath{"general", "col", "inactive_border"};
 
@@ -49,6 +82,97 @@ namespace desktop {
             {"text", argb(palette.text)},             {"bright_text", argb(palette.text)},     {"link_text", argb(palette.audio)},
             {"accent", argb(palette.accent)},         {"accent_secondary", argb(palette.network)},
         };
+    }
+
+    std::string kittyTheme(const Palette& palette) {
+        auto text = std::format("# {}\n\n"
+                                "foreground              {}\n"
+                                "background              {}\n"
+                                "selection_foreground    {}\n"
+                                "selection_background    {}\n"
+                                "cursor                  {}\n"
+                                "cursor_text_color       {}\n"
+                                "url_color               {}\n"
+                                "active_border_color     {}\n"
+                                "inactive_border_color   {}\n"
+                                "active_tab_foreground   {}\n"
+                                "active_tab_background   {}\n"
+                                "inactive_tab_foreground {}\n"
+                                "inactive_tab_background {}\n\n",
+                                palette.name, palette.text, palette.base, palette.text, palette.selection, palette.cursor, palette.base, palette.audio, palette.accent,
+                                palette.raised, palette.onAccent, palette.accent, palette.subtle, palette.surface);
+        for (std::size_t index = 0; index < palette.terminal.size(); ++index)
+            text += std::format("color{:<2}                 {}\n", index, palette.terminal[index]);
+        return text;
+    }
+
+    std::string wofiStyle(const Palette& palette) {
+        return std::format(R"(/* {} */
+
+window {{
+    margin: 0;
+    border: 2px solid {};
+    border-radius: 10px;
+    background-color: {};
+    font-family: "Adwaita Sans";
+}}
+
+#input {{
+    margin: 8px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 7px;
+    color: {};
+    background-color: {};
+}}
+
+#outer-box {{
+    margin: 4px;
+}}
+
+#scroll {{
+    margin: 0 8px 8px 8px;
+}}
+
+#text {{
+    color: {};
+}}
+
+#entry {{
+    padding: 4px 8px;
+    border-radius: 7px;
+}}
+
+#entry:selected {{
+    background-color: {};
+}}
+
+#entry:selected #text {{
+    color: {};
+}}
+)",
+                           palette.name, palette.accent, palette.base, palette.text, palette.surface, palette.text, palette.accent, palette.onAccent);
+    }
+
+    std::vector<GtkSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment) {
+        const auto gsettings = findProgram("gsettings", foundation::variable(environment, "PATH").value_or(""));
+        if (!gsettings)
+            return {};
+        std::vector<GtkSetting> changes;
+        const std::array<std::pair<std::string, std::string>, 2> wanted{{
+            {"color-scheme", palette.dark ? "'prefer-dark'" : "'prefer-light'"},
+            {"accent-color", std::format("'{}'", palette.gnomeAccent)},
+        }};
+        for (const auto& [key, value] : wanted) {
+            auto current = readCommand(*gsettings, {"get", "org.gnome.desktop.interface", key});
+            if (!current)
+                continue;
+            while (!current->empty() && (current->back() == '\n' || current->back() == ' '))
+                current->pop_back();
+            if (*current != value)
+                changes.push_back({key, *current, value});
+        }
+        return changes;
     }
 
     std::filesystem::path hyprtoolkitConfigFile(const foundation::Environment& environment) {
@@ -92,6 +216,46 @@ namespace desktop {
         toolkit->proposed = configuration::withHyprlangValues(toolkit->current.value_or(""), hyprtoolkitColours(palette));
         if (toolkit->changes())
             changes.push_back(std::move(*toolkit));
+
+        const auto home = configHome(environment);
+        std::vector<std::expected<std::optional<configuration::FileChange>, std::string>> more;
+        if (installed("kitty", environment)) {
+            // kitty's own convention: the colours in current-theme.conf, included from kitty.conf.
+            more.push_back(planEdit(home / "kitty" / "current-theme.conf", [&palette](std::string_view) { return kittyTheme(palette); }));
+            more.push_back(planEdit(home / "kitty" / "kitty.conf", [](std::string_view text) {
+                std::string result{text};
+                if (configuration::hasLine(result, "include current-theme.conf"))
+                    return result;
+                if (!result.empty() && !result.ends_with('\n'))
+                    result += '\n';
+                return result + "include current-theme.conf\n";
+            }));
+        }
+        if (installed("wofi", environment))
+            more.push_back(planEdit(home / "wofi" / "style.css", [&palette](std::string_view) { return wofiStyle(palette); }));
+        if (installed("dunst", environment)) {
+            // A dunstrc of the user's own replaces the system's whole, so the first one starts as a copy of it.
+            std::string system;
+            for (const auto* candidate : {"/etc/xdg/dunst/dunstrc", "/etc/dunst/dunstrc"})
+                if (system.empty())
+                    system = readAll(candidate);
+            const auto quoted = [](std::string_view hex) { return std::format("\"{}\"", hex); };
+            const std::vector<configuration::IniValue> colours{
+                {"global", "frame_color", quoted(palette.accent)},
+                {"urgency_low", "background", quoted(palette.base)},       {"urgency_low", "foreground", quoted(palette.subtle)},
+                {"urgency_low", "frame_color", quoted(palette.raised)},    {"urgency_normal", "background", quoted(palette.base)},
+                {"urgency_normal", "foreground", quoted(palette.text)},    {"urgency_normal", "frame_color", quoted(palette.accent)},
+                {"urgency_critical", "background", quoted(palette.base)},  {"urgency_critical", "foreground", quoted(palette.text)},
+                {"urgency_critical", "frame_color", quoted(palette.alert)},
+            };
+            more.push_back(planEdit(home / "dunst" / "dunstrc", [&colours](std::string_view text) { return configuration::withIniValues(text, colours); }, system));
+        }
+        for (auto& planned : more) {
+            if (!planned)
+                return std::unexpected{planned.error()};
+            if (*planned)
+                changes.push_back(std::move(**planned));
+        }
         return changes;
     }
 

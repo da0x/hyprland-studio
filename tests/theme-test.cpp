@@ -42,4 +42,41 @@ namespace {
         std::filesystem::remove_all(root);
     }
 
+    TEST(Theme, ThemesKittyWofiAndDunstWhenInstalled) {
+        static std::atomic<int> counter = 0;
+        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-theme-apps-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        std::filesystem::create_directories(root / "bin");
+        for (const auto* program : {"kitty", "wofi", "dunst"}) {
+            std::ofstream{root / "bin" / program} << "#!/bin/sh\n";
+            std::filesystem::permissions(root / "bin" / program, std::filesystem::perms::owner_all);
+        }
+        std::filesystem::create_directories(root / "home/.config/hypr");
+        std::filesystem::create_directories(root / "home/.config/kitty");
+        std::ofstream{root / "home/.config/kitty/kitty.conf"} << "font_size 12\n";
+        std::filesystem::create_directories(root / "home/.config/dunst");
+        std::ofstream{root / "home/.config/dunst/dunstrc"} << "[global]\n    frame_color = \"#aaaaaa\"\n";
+        std::ofstream{root / "home/.config/hypr/hyprland.lua"} << "hl.config({ general = { col = { active_border = \"x\", inactive_border = \"y\" } } })\n";
+        const foundation::Environment  environment{{"HOME", (root / "home").string()}, {"PATH", (root / "bin").string()}};
+        const configuration::MainConfig config{.file = root / "home/.config/hypr/hyprland.lua", .choice = configuration::Choice::search, .safeMode = false};
+
+        const auto& nord    = desktop::waybarPalettes()[4];
+        const auto  planned = desktop::planTheme(nord, desktop::Shape::islands, config, environment);
+        ASSERT_TRUE(planned.has_value()) << planned.error();
+        const auto find = [&planned](const std::string& name) -> const configuration::FileChange* {
+            for (const auto& change : *planned)
+                if (change.file.filename() == name)
+                    return &change;
+            return nullptr;
+        };
+        ASSERT_NE(find("current-theme.conf"), nullptr);
+        EXPECT_TRUE(find("current-theme.conf")->proposed.contains("color14                 #8fbcbb\n"));
+        ASSERT_NE(find("kitty.conf"), nullptr);
+        EXPECT_EQ(find("kitty.conf")->proposed, "font_size 12\ninclude current-theme.conf\n");
+        ASSERT_NE(find("style.css"), nullptr);
+        ASSERT_NE(find("dunstrc"), nullptr);
+        EXPECT_TRUE(find("dunstrc")->proposed.starts_with("[global]\n    frame_color = \"#88c0d0\"\n"));
+        EXPECT_TRUE(find("dunstrc")->proposed.contains("[urgency_critical]\n    background = \"#2e3440\"\n"));
+        std::filesystem::remove_all(root);
+    }
+
 }

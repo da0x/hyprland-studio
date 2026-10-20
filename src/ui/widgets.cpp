@@ -123,7 +123,7 @@ namespace ui {
         const auto state = requirement.met() ? escapeMarkup(*requirement.found) : coloured("not installed", red);
         block->addChild(markupLine(std::format("{}  <span weight=\"600\">{}</span>   {}", mark, escapeMarkup(requirement.name), state), palette));
         block->addChild(paragraph(requirement.purpose, palette, true));
-        block->addChild(markupLine(coloured(escapeMarkup(requirement.upstream), hex(palette->m_colors.linkText)), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
+        block->addChild(markupLine(coloured(requirement.upstream, hex(palette->m_colors.linkText)), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
         if (requirement.met())
             return block;
 
@@ -181,8 +181,9 @@ namespace ui {
                 }
                 const auto& colour = line.kind == Kind::added ? added : line.kind == Kind::removed ? removed : faded;
                 const auto* sign   = line.kind == Kind::added ? "+" : line.kind == Kind::removed ? "−" : "";
-                const auto  text   = escapeMarkup(line.text.empty() ? std::string{" "} : line.text);
-                rows.push_back({{coloured(sign, colour), line.kind == Kind::same ? text : coloured(text, colour)}, false});
+                // coloured() escapes what it is given, so only the plain line is escaped here.
+                const auto  text   = line.text.empty() ? std::string{" "} : line.text;
+                rows.push_back({{coloured(sign, colour), line.kind == Kind::same ? escapeMarkup(text) : coloured(text, colour)}, false});
             }
         }
         return rows;

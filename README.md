@@ -66,10 +66,13 @@ desktop's own file chooser, through xdg-desktop-portal. Its Copy button runs
 own.
 
 **Writes:** files you approved after reviewing the change line by line, such as Waybar's
-config and stylesheet, the wallpaper in `hyprpaper.conf`, the line in your Hyprland
-config that starts the wallpaper program at login, the window border colours in its
+config and stylesheet, the wallpaper in `hyprpaper.conf`, the lines in your Hyprland
+config that start the wallpaper program at login and turn off Hyprland's own wallpaper, the window border colours in its
 `hl.config` (only those values, nothing else in the file), the colours in
-`~/.config/hypr/hyprtoolkit.conf` (if your config is a link, the file it
+`~/.config/hypr/hyprtoolkit.conf`, kitty's `current-theme.conf` (and the line in
+`kitty.conf` that includes it), wofi's `style.css` and dunst's `dunstrc` (a first one starts
+as a copy of the system's), and, outside any file, GTK's `color-scheme` and `accent-color`
+through `gsettings`, whose old values are kept with the change so Undo can restore them (if your config is a link, the file it
 points at, which the review names); an image you add from files, copied into your
 wallpapers folder under a new random name (a UUID, with the image's own extension); and its own folder, `~/.config/hyprland-studio/`: its settings
 (window size, last page, which areas you allowed, whether you dismissed a page's checklist), the effects you set up (plain Hyprland

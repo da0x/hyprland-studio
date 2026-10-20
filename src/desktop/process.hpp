@@ -23,6 +23,14 @@ namespace desktop {
     // Asks the process to exit, as closing it would.
     [[nodiscard]] std::expected<void, std::string> stopProcess(pid_t process);
 
+    // Runs `program` with `arguments`, waits for it, and returns what it printed. For quick
+    // reads such as gsettings get; anything slow belongs in application::runCommand.
+    [[nodiscard]] std::expected<std::string, std::string> readCommand(const std::filesystem::path& program, const std::vector<std::string>& arguments);
+
+    // Sends `signal` to the user's processes called `name`, as asking them to read their
+    // config again (kitty reloads it on SIGUSR1). Returns how many it reached.
+    std::size_t signalProcesses(std::string_view name, int signal);
+
     // A descriptor that becomes readable when the process exits.
     [[nodiscard]] std::expected<foundation::FileDescriptor, std::string> exitOf(pid_t process);
 

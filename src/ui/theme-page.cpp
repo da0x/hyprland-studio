@@ -4,6 +4,7 @@
 #include "application/config-check.hpp"
 #include "application/studio-folder.hpp"
 #include "configuration/main-config.hpp"
+#include "desktop/process.hpp"
 #include "desktop/system.hpp"
 #include "desktop/theme.hpp"
 #include "ui/bar-preview.hpp"
@@ -14,6 +15,8 @@
 #include <hyprtoolkit/element/Null.hpp>
 
 #include <algorithm>
+#include <csignal>
+#include <fstream>
 #include <format>
 #include <numbers>
 
@@ -233,8 +236,9 @@ namespace ui {
         const auto planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
+        const bool gtkSame     = desktop::gtkChanges(*selected, environment).empty();
         inUse                  = config ? desktop::currentTheme(*config) : nullptr;
-        const auto shown       = std::format("{}|{}|{}|{}|{}", selected->name, planned ? planned->empty() : false, planned ? "" : planned.error(), undoable, outcome);
+        const auto shown = std::format("{}|{}|{}|{}|{}|{}", selected->name, planned ? planned->empty() : false, gtkSame, planned ? "" : planned.error(), undoable, outcome);
         if (shown == statusShown)
             return;
         statusShown = shown;
@@ -247,7 +251,7 @@ namespace ui {
         std::string note;
         if (!planned) {
             note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
-        } else if (planned->empty()) {
+        } else if (planned->empty() && gtkSame) {
             note = std::format("{}  Your desktop uses {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
@@ -278,13 +282,21 @@ namespace ui {
         body->clearChildren();
         body->addChild(space(4));
         body->addChild(heading(std::format("Review: {}", selected->name), palette));
-        body->addChild(paragraph(std::format("Applying writes these files, keeping a copy of each first so it can be undone. Hyprland shows the new borders at once; "
-                                             "{}; apps built on hyprtoolkit, this studio among them, take the colours when they next start.",
-                                             waybar.running() ? "Waybar restarts to read its files" : "Waybar reads its files when it starts"),
-                                 palette, true));
+        gtk = desktop::gtkChanges(*selected, environment);
+        body->addChild(paragraph("Applying will:", palette));
+        std::vector<std::string> steps;
+        if (!changes.empty())
+            steps.emplace_back("Write the changes below. A copy of each file is kept first, so it can be undone.");
+        for (const auto& setting : gtk)
+            steps.push_back(std::format("Set GTK's {} from {} to {}, for GTK apps.", setting.key, setting.current, setting.wanted));
+        steps.emplace_back("Show the new colours at once: Hyprland's borders, this studio, Waybar, dunst's notifications and open kitty windows.");
+        for (const auto& step : steps)
+            body->addChild(paragraph(std::format("•  {}", step), palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
-        diff.setRows(diffRows(changes, *palette));
-        body->addChild(diff.element());
+        if (!changes.empty()) {
+            diff.setRows(diffRows(changes, *palette));
+            body->addChild(diff.element());
+        }
     }
 
     void ThemePage::apply() {
@@ -296,6 +308,17 @@ namespace ui {
             outcome = std::format("Nothing was written: {}.", record.error());
             return showOverview();
         }
+        // GTK's settings live in dconf, not in a file: their old values go beside the change's
+        // record, for Undo, before they are set.
+        if (const auto gsettings = desktop::findProgram("gsettings", foundation::variable(environment, "PATH").value_or("")); gsettings && !gtk.empty()) {
+            std::ofstream kept{*record / "gsettings"};
+            for (const auto& setting : gtk) {
+                kept << setting.key << '\t' << setting.current << '\n';
+                (void)desktop::readCommand(*gsettings, {"set", "org.gnome.desktop.interface", setting.key, setting.wanted});
+            }
+        }
+        reloadApps();
+
         const auto changed = [this](auto test) { return std::ranges::any_of(changes, test); };
         const bool toolkit = changed([](const auto& change) { return change.file.filename() == "hyprtoolkit.conf"; });
         if (toolkit) {
@@ -352,16 +375,39 @@ namespace ui {
     }
 
     void ThemePage::undo() {
-        const auto latest = configuration::latestChange(application::backupsFolder(foundation::currentEnvironment()), changeName);
+        const auto environment = foundation::currentEnvironment();
+        const auto latest      = configuration::latestChange(application::backupsFolder(environment), changeName);
         if (!latest)
             return showOverview();
         if (const auto undone = configuration::undoChange(*latest); !undone) {
             outcome = std::format("Nothing was undone: {}.", undone.error());
         } else {
+            // GTK's settings as they were before the change.
+            if (const auto gsettings = desktop::findProgram("gsettings", foundation::variable(environment, "PATH").value_or(""))) {
+                std::ifstream kept{*latest / "gsettings"};
+                std::string   line;
+                while (std::getline(kept, line)) {
+                    const auto tab = line.find('\t');
+                    if (tab != std::string::npos)
+                        (void)desktop::readCommand(*gsettings, {"set", "org.gnome.desktop.interface", line.substr(0, tab), line.substr(tab + 1)});
+                }
+            }
+            reloadApps();
             outcome = "Undone.";
             waybar.restart();
         }
         showOverview();
+    }
+
+    void ThemePage::reloadApps() {
+        const auto environment = foundation::currentEnvironment();
+        const auto path        = foundation::variable(environment, "PATH").value_or("");
+        // dunst reads its files again on request; kitty on SIGUSR1, which every open
+        // kitty window answers by reading kitty.conf and the theme it includes.
+        if (!desktop::findProcesses("dunst").empty())
+            if (const auto dunstctl = desktop::findProgram("dunstctl", path))
+                (void)desktop::readCommand(*dunstctl, {"reload"});
+        desktop::signalProcesses("kitty", SIGUSR1);
     }
 
 }

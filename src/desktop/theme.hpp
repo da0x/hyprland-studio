@@ -30,9 +30,27 @@ namespace desktop {
 
     // Every file change that gives the desktop `palette`: the Hyprland config (only a Lua
     // config, through its hl.config borders; a linked config is followed), Waybar in
-    // `shape`, and hyprtoolkit.conf. Only files that change are listed.
+    // `shape`, hyprtoolkit.conf, and, for those installed, kitty (current-theme.conf, and an
+    // include line in kitty.conf), wofi's style.css and dunst's dunstrc (started from the
+    // system's when there is none). Only files that change are listed.
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTheme(const Palette& palette, Shape shape, const configuration::MainConfig& config,
                                                                                                const foundation::Environment& environment);
+
+    // A GTK setting in org.gnome.desktop.interface: what it is now and what the palette wants.
+    struct GtkSetting {
+        std::string key;
+        std::string current;
+        std::string wanted;
+    };
+
+    // The GTK settings that differ from what `palette` wants: color-scheme, dark or light,
+    // and accent-color. Empty when gsettings is not installed.
+    [[nodiscard]] std::vector<GtkSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment);
+
+    // kitty's colours for the palette, as current-theme.conf, which kitty.conf includes.
+    [[nodiscard]] std::string kittyTheme(const Palette& palette);
+    // wofi's stylesheet for the palette.
+    [[nodiscard]] std::string wofiStyle(const Palette& palette);
 
     // The palette whose borders the Hyprland config sets now, if it is one of the studio's.
     [[nodiscard]] const Palette* currentTheme(const configuration::MainConfig& config);

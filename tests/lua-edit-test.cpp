@@ -58,4 +58,15 @@ hl.config({ decoration = { rounding = 10 } })
         EXPECT_EQ(configuration::withHyprlangValues("", {{"accent", "0x1"}}), "accent = 0x1\n");
     }
 
+    TEST(IniEdit, SetsKeysInTheirSectionsLosslessly) {
+        const auto config = "[global]\n    font = Monospace 8\n    frame_color = \"#aaaaaa\"\n\n[urgency_low]\n    background = \"#222222\"\n    # foreground = \"#888888\"\n\n";
+        const auto edited = configuration::withIniValues(config, {{"global", "frame_color", "\"#cba6f7\""},
+                                                                  {"urgency_low", "background", "\"#1e1e2e\""},
+                                                                  {"urgency_low", "foreground", "\"#cdd6f4\""},
+                                                                  {"urgency_low", "frame_color", "\"#313244\""},
+                                                                  {"urgency_critical", "background", "\"#f38ba8\""}});
+        EXPECT_EQ(edited, "[global]\n    font = Monospace 8\n    frame_color = \"#cba6f7\"\n\n[urgency_low]\n    background = \"#1e1e2e\"\n    foreground = \"#cdd6f4\"\n"
+                          "    frame_color = \"#313244\"\n\n\n[urgency_critical]\n    background = \"#f38ba8\"\n");
+    }
+
 }
