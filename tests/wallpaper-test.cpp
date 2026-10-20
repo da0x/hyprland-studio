@@ -91,4 +91,9 @@ namespace {
         std::filesystem::remove_all(root);
     }
 
+    TEST(Wallpaper, AsksHyprctlInItsOwnWords) {
+        EXPECT_EQ(desktop::showWallpaperArguments(Wallpaper{"/a b/c.png", FitMode::fill}), (std::vector<std::string>{"hyprpaper", "wallpaper", ", /a b/c.png, stretch"}));
+        EXPECT_FALSE(desktop::showWallpaperArguments(Wallpaper{"/a,b.png", FitMode::cover}).has_value());
+    }
+
 }

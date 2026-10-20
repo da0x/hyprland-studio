@@ -74,7 +74,9 @@ clipboard. A menu item removes that folder for you.
 **Starts and stops Waybar and hyprpaper** only when you press their On or Off switch, on
 the Bar and Wallpaper pages. While one is on, the studio restarts it after writing its
 files, so it reads them. It never adds them to what starts at login: it shows the line to
-add instead.
+add instead. While hyprpaper runs, picking a wallpaper shows it on the desktop
+through `hyprctl hyprpaper`, without writing anything; leaving the page puts back the one
+`hyprpaper.conf` sets, unless you kept the new one.
 
 **Changes while active, only in areas you allowed:** the running Hyprland's options, rules
 and keybindings (through IPC; a reload undoes them), the programs it started for you, and

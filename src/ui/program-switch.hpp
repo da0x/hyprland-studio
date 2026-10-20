@@ -43,6 +43,9 @@ namespace ui {
         // Restarts it, if it is on, as after an undo.
         void                                                                   restart();
 
+        // Starts it, as its On button does.
+        void                                                                   turnOn();
+
       private:
         void                                                                   update();
         void                                                                   programChanged();

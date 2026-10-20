@@ -18,6 +18,7 @@
 #include <hyprutils/cli/Logger.hpp>
 
 #include <array>
+#include <functional>
 #include <optional>
 #include <string_view>
 #include <utility>
@@ -107,7 +108,11 @@ namespace ui {
 
         // The sidebar's buttons, each with its page; the open page's button is in the accent.
         std::vector<std::pair<CSharedPointer<Hyprtoolkit::CButtonElement>, CSharedPointer<Hyprtoolkit::IElement>>> pages;
-        const auto show = [content, &pages](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+        // Told which page opens, for a page that has to tidy up when it is left.
+        std::function<void(const CSharedPointer<Hyprtoolkit::IElement>&)> opening;
+        const auto show = [content, &pages, &opening](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+            if (opening)
+                opening(page);
             content->clearChildren();
             content->addChild(page);
             for (const auto& [button, shown] : pages)
@@ -126,6 +131,11 @@ namespace ui {
         KeybindingsPage keybindings{palette, defer};
         BarPage         bar{palette, defer, loop};
         WallpaperPage   wallpaper{palette, defer, loop};
+        // A wallpaper tried on the desktop and not kept goes back when its page is left.
+        opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+            if (page != wallpaper.element())
+                wallpaper.leave();
+        };
 
         const auto addPageButton = [&sidebar, &show, &pages](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
             const auto button = Hyprtoolkit::CButtonBuilder::begin()
@@ -172,6 +182,7 @@ namespace ui {
         window->m_events.closeRequest.listenStatic([&session, &bar, &wallpaper, window, backend] {
             session.reset();
             bar.close();
+            wallpaper.leave(true);
             wallpaper.close();
             window->close();
             backend->destroy();

@@ -9,11 +9,13 @@
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Image.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
 #include <cstddef>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -36,10 +38,17 @@ namespace ui {
         // Stops watching hyprpaper. Called before the event loop goes away.
         void close();
 
+        // The page is no longer shown: a wallpaper tried on the desktop and not kept is
+        // replaced by the one hyprpaper.conf sets. When the studio is `closing` and the file
+        // sets none, it is left: restarting hyprpaper would not finish.
+        void leave(bool closing = false);
+
       private:
         void                                                                   showOverview();
         void                                                                   showReview();
-        void                                                                   apply();
+        void                                                                   apply(bool turnOn);
+        // Shows the chosen wallpaper on the desktop through hyprpaper, writing nothing.
+        void                                                                   tryOnDesktop();
         void                                                                   undo();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> chooser();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> grid();
@@ -61,6 +70,13 @@ namespace ui {
         std::size_t                                                          pageSize  = 8;
         std::optional<desktop::Wallpaper>                                    selected;
         bool                                                                 reviewing = false;
+        // The desktop shows the chosen wallpaper, which hyprpaper.conf does not set yet.
+        bool                                                                 tried     = false;
+        std::optional<std::filesystem::path>                                 hyprctl;
+        // Images already loaded, kept so that choosing again does not load them anew.
+        std::map<std::filesystem::path, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CImageElement>> thumbnails;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CImageElement>        preview;
+        std::filesystem::path                                                previewImage;
         std::vector<configuration::FileChange>                               changes;
         std::string                                                          outcome;
     };

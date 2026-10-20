@@ -66,6 +66,11 @@ namespace ui {
             program->restart();
     }
 
+    void ProgramSwitch::turnOn() {
+        if (program)
+            program->turnOn();
+    }
+
     void ProgramSwitch::programChanged() {
         // A change was just written and the program restarted with it: keep it if the
         // program runs, put the files back if it does not.

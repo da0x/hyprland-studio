@@ -228,6 +228,21 @@ namespace desktop {
         return configuration::FileChange{file, current->current, std::move(*text)};
     }
 
+    std::expected<std::vector<std::string>, std::string> showWallpaperArguments(const Wallpaper& wallpaper) {
+        const auto path = wallpaper.image.string();
+        if (path.contains(','))
+            return std::unexpected{std::format("{} has a comma in it, which hyprctl cannot pass on", path)};
+        // hyprctl's words for the fit, which differ from the config's for fill.
+        std::string_view fit = "cover";
+        switch (wallpaper.fit) {
+            case FitMode::cover: fit = "cover"; break;
+            case FitMode::contain: fit = "contain"; break;
+            case FitMode::fill: fit = "stretch"; break;
+            case FitMode::tile: fit = "tile"; break;
+        }
+        return std::vector<std::string>{"hyprpaper", "wallpaper", std::format(", {}, {}", path, fit)};
+    }
+
     std::optional<Wallpaper> currentWallpaper(const foundation::Environment& environment) {
         const auto text = readFile(hyprpaperConfigFile(environment));
         return text ? fallbackWallpaper(*text, homeOf(environment)) : std::nullopt;

@@ -60,6 +60,11 @@ namespace desktop {
     // The change to hyprpaper.conf that sets `wallpaper` for every monitor.
     [[nodiscard]] std::expected<configuration::FileChange, std::string> planWallpaper(const Wallpaper& wallpaper, const foundation::Environment& environment);
 
+    // The arguments that make `hyprctl` show `wallpaper` on every monitor at once, through
+    // hyprpaper's own socket, without writing anything. Refuses a path with a comma,
+    // which hyprctl would split.
+    [[nodiscard]] std::expected<std::vector<std::string>, std::string> showWallpaperArguments(const Wallpaper& wallpaper);
+
     // The fallback wallpaper hyprpaper.conf sets now.
     [[nodiscard]] std::optional<Wallpaper> currentWallpaper(const foundation::Environment& environment);
 
