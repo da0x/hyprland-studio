@@ -54,7 +54,9 @@ If you ever wonder "what did this do to my system?", that is a bug.
 **Reads:** your Hyprland config folder (following links), Hyprland's IPC sockets in
 `$XDG_RUNTIME_DIR/hypr/`, the running instance's `hyprland.lock` and command line (to
 find which config it loaded), and, if present, Hyprland's API stubs in
-`/usr/share/hypr/stubs/`.
+`/usr/share/hypr/stubs/`. For the Bar page it looks for Waybar on your `PATH`, asks
+fontconfig whether the icon font is installed, finds the config Waybar would read, and
+reads `/etc/os-release` to name the right install command.
 
 **Writes:** only into `~/.config/hyprland-studio/`: its settings (window size, last page,
 which areas you allowed), the effects you set up (plain Hyprland Lua you can read and copy

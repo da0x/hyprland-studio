@@ -105,7 +105,7 @@ because a dead connection otherwise looks exactly like a quiet compositor.
   needed). Releases are signed git tags that are never moved. The app ships a desktop
   file, AppStream metainfo and hicolor icons.
 - **Mainstream libraries only.** hyprtoolkit (Hyprland's own Wayland-native toolkit,
-  already present wherever Hyprland's own apps are), tree-sitter, Lua 5.5, nlohmann-json,
+  already present wherever Hyprland's own apps are), tree-sitter, Lua 5.5, nlohmann-json, fontconfig,
   and the C++ standard library: things distributions package. No personal or niche libraries, so the studio builds from distribution
   packages alone and stays easy to package.
 - **The latest C++ standard the shipping compilers support**, currently C++26. Modern

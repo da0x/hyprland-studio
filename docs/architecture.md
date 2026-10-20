@@ -28,11 +28,12 @@ below.
 | `foundation` | Strong types, flag sets, UTF-8 cleanup, formatters | the standard library |
 | `lua` | The one wrapper around the Lua 5.5 C API: owned state, allocator with a limit, instruction hook, and a trampoline so Lua's `longjmp` never skips a C++ destructor | Lua |
 | `configuration` | The recording interpreter, key combinations, bindings, conflicts, option assignments, finding the active config | foundation, lua |
-| `ipc` | Instances, the read-only request allow-list, the request client, reply and event parsing, the event connection | foundation, nlohmann-json |
+| `desktop` | The desktop around Hyprland: programs on the `PATH`, installed fonts, the distribution, and what an outside program such as Waybar needs | foundation, fontconfig |
+| `ipc` | Instances, the read-only request allow-list, the request client, reply and event parsing, the event connection, the running instance's launch | foundation, configuration, nlohmann-json |
 | `compositor` | Monitors, workspaces and windows, built from a snapshot and kept current by events | ipc |
 | `activation` | The live layer: allowed areas, effects, applying and removing them, the theme restore record | ipc, configuration, GIO (GSettings) |
 | `application` | The session that ties it together: workers, results, merging recorded and live bindings, the option catalog | all of the above |
-| `ui` | Pages on hyprtoolkit: keybindings, options, live tree, event log, console, areas and Activate | application, hyprtoolkit |
+| `ui` | Pages on hyprtoolkit: keybindings, bar, options, live tree, event log, console, areas and Activate | application, desktop, hyprtoolkit |
 
 `foundation`, `lua` and `configuration` use no UI library; the build fails if one is
 linked. hyprtoolkit's `CMyClass` naming stays inside `ui`.

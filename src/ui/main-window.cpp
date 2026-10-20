@@ -2,6 +2,7 @@
 #include "ui/main-window.hpp"
 
 #include "application/session.hpp"
+#include "ui/bar-page.hpp"
 #include "ui/keybindings-page.hpp"
 #include "ui/texts.hpp"
 
@@ -112,7 +113,9 @@ namespace ui {
                 button->rebuild()->accent(shown == page)->commence();
         };
 
-        KeybindingsPage keybindings{palette, [backend](std::function<void()> function) { backend->addIdle(function); }};
+        const auto      defer = [backend](std::function<void()> function) { backend->addIdle(function); };
+        KeybindingsPage keybindings{palette, defer};
+        BarPage         bar{palette, defer};
 
         const auto addPageButton = [&sidebar, &show, &pages](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
             const auto button = Hyprtoolkit::CButtonBuilder::begin()
@@ -136,6 +139,7 @@ namespace ui {
                               ->commence());
         sidebar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 12}})->commence());
         addPageButton("Keybindings", keybindings.element());
+        addPageButton("Bar", bar.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
         show(keybindings.element());
