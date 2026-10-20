@@ -26,6 +26,10 @@ namespace ui {
                                                                                           Hyprtoolkit::CFontSize size  = Hyprtoolkit::CFontSize{Hyprtoolkit::CFontSize::HT_FONT_TEXT},
                                                                                           float                  alpha = 0.85F);
 
+    // A size in pixels, given at the default text size, grown with the text size chosen on
+    // the Accessibility page, so that a button or a row still fits its text.
+    [[nodiscard]] double scaled(double pixels);
+
     // Empty space of a height.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> space(double height);
 

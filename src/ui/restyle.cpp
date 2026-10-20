@@ -9,8 +9,8 @@ namespace ui {
     namespace {
 
         // The UI runs on one thread, so this needs no lock.
-        std::vector<std::function<bool(bool)>>& registered() {
-            static std::vector<std::function<bool(bool)>> list;
+        std::vector<std::function<bool(Restyle)>>& registered() {
+            static std::vector<std::function<bool(Restyle)>> list;
             return list;
         }
 
@@ -20,18 +20,24 @@ namespace ui {
 
     }
 
-    void registerRestyle(std::function<bool(bool rebuild)> again) {
+    void registerRestyle(std::function<bool(Restyle)> again) {
         auto& list = registered();
         list.push_back(std::move(again));
         if (list.size() < prunedAt * 2)
             return;
-        std::erase_if(list, [](const auto& entry) { return !entry(false); });
+        std::erase_if(list, [](const auto& entry) { return !entry(Restyle::check); });
         prunedAt = std::max<std::size_t>(64, list.size());
     }
 
-    void restyleAll() {
-        auto& list = registered();
-        std::erase_if(list, [](const auto& entry) { return !entry(true); });
+    std::size_t restyleCount() {
+        return registered().size();
+    }
+
+    void restyleAll(bool resized, std::size_t upTo) {
+        auto& list  = registered();
+        auto  first = list.begin();
+        auto  last  = list.begin() + static_cast<std::ptrdiff_t>(std::min(upTo, list.size()));
+        list.erase(std::remove_if(first, last, [resized](const auto& entry) { return !entry(resized ? Restyle::resize : Restyle::recolour); }), last);
     }
 
 }

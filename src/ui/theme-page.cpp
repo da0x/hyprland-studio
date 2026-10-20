@@ -386,6 +386,12 @@ namespace ui {
         showOverview();
     }
 
+    void ThemePage::restyle() {
+        desktops.clear();
+        if (!reviewing)
+            showOverview();
+    }
+
     void ThemePage::reloadApps() {
         const auto environment = foundation::currentEnvironment();
         const auto path        = foundation::variable(environment, "PATH").value_or("");

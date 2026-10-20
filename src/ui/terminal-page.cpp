@@ -35,7 +35,9 @@ namespace ui {
         constexpr std::size_t perPage    = 2 * perRow;
         constexpr double      cardShare  = 0.24;
         // A card: the session, its name, and the margins and gap around them.
-        constexpr double      cardHeight = 82 + 2 * 8 + 6 + 18;
+        double cardHeight() {
+            return 82 + 2 * 8 + 6 + scaled(18);
+        }
 
         // A theme's name with what was adjusted, as in "Nord, high contrast".
         std::string fullName(const desktop::TerminalTheme& theme) {
@@ -249,7 +251,7 @@ namespace ui {
                                   updateSelection();
                               });
                           })
-                          ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {260.0, 34.0}})
+                          ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(260.0), scaled(34.0)}})
                           ->commence());
         const auto size = [this](double step) {
             fontSize = std::clamp(fontSize + step, 6.0, 32.0);
@@ -343,7 +345,7 @@ namespace ui {
         const auto rows  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(12)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         for (std::size_t start = first; start < last; start += perRow) {
             const auto line = leftRow(0);
-            line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight}})->gap(12)->commence();
+            line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight()}})->gap(12)->commence();
             for (std::size_t index = start; index < std::min(last, start + perRow); ++index) {
                 auto made = makeCard(shown[index]);
                 line->addChild(made.frame);
@@ -360,7 +362,7 @@ namespace ui {
             area->addChild(rows);
             // Opens with the chosen theme's row in view.
             if (const auto at = std::ranges::find(shown, selected); at != shown.end())
-                area->setScroll(Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - shown.begin()) / perRow) * (cardHeight + 12)});
+                area->setScroll(Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - shown.begin()) / perRow) * (cardHeight() + 12)});
             grid->addChild(area);
             position->rebuild()->text(std::format("{} themes{}", shown.size(), shown.size() > perPage ? " · scroll for more" : ""))->commence();
             return;

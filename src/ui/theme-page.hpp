@@ -35,6 +35,9 @@ namespace ui {
         // Stops watching Waybar. Called before the event loop goes away.
         void close();
 
+        // Draws the page again, after the studio's text size changed.
+        void restyle();
+
         // What to redraw once the studio's palette has new colours.
         void onRecoloured(std::function<void()> recoloured) { this->recoloured = std::move(recoloured); }
 

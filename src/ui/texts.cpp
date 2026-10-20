@@ -23,7 +23,7 @@ namespace ui {
             ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
             ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
             ->commence();
-        restyled(made);
+        restyled(made, CFontSize{CFontSize::HT_FONT_H1, 1.3F});
         return made;
     }
 
@@ -37,7 +37,7 @@ namespace ui {
             ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
             ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
             ->commence();
-        restyled(made);
+        restyled(made, CFontSize{faded ? CFontSize::HT_FONT_SMALL : CFontSize::HT_FONT_TEXT});
         return made;
     }
 

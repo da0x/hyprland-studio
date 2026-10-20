@@ -51,15 +51,21 @@ namespace ui {
     CSharedPointer<Hyprtoolkit::CTextElement> markupLine(const std::string& markup, const CSharedPointer<Hyprtoolkit::CPalette>& palette, CFontSize size, float alpha) {
         const auto made = Hyprtoolkit::CTextBuilder::begin()
             ->text(std::string{markup})
-            ->fontSize(std::move(size))
+            ->fontSize(CFontSize{size})
             ->color([palette] { return palette->m_colors.text; })
             ->a(alpha)
             ->noEllipsize(true)
             ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
             ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
             ->commence();
-        restyled(made);
+        restyled(made, size);
         return made;
+    }
+
+    double scaled(double pixels) {
+        // hyprtoolkit's own default text size, in points.
+        constexpr double designed = 11;
+        return pixels * std::max(1.0, static_cast<double>(CFontSize{CFontSize::HT_FONT_TEXT}.ptSize()) / designed);
     }
 
     CSharedPointer<Hyprtoolkit::IElement> space(double height) {
@@ -146,7 +152,7 @@ namespace ui {
             ->label(std::move(label))
             ->noBorder(true)
             ->accent(accent)
-            ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, 34.0}})
+            ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(width), scaled(34.0)}})
             ->onMainClick([clicked = std::move(clicked)](CSharedPointer<Hyprtoolkit::CButtonElement>) { clicked(); })
             ->commence();
         restyled(made);
@@ -155,8 +161,8 @@ namespace ui {
 
     CSharedPointer<Hyprtoolkit::IElement> letterButton(const std::string& letter, float points, const CSharedPointer<Hyprtoolkit::CPalette>& palette,
                                                        const std::function<void(std::function<void()>)>& defer, std::function<void()> clicked) {
-        constexpr double width  = 40;
-        constexpr double height = 34;
+        const double     width  = scaled(40);
+        const double     height = scaled(34);
         const auto       frame  = Hyprtoolkit::CRectangleBuilder::begin()
                                ->color([palette] { return palette->m_colors.alternateBase; })
                                ->rounding(palette->m_vars.smallRounding)
@@ -176,7 +182,7 @@ namespace ui {
         column->addChild(text);
         frame->addChild(column);
         restyled(frame);
-        restyled(text);
+        restyled(text, CFontSize{CFontSize::HT_FONT_ABSOLUTE, points});
         frame->setReceivesMouse(true);
         frame->setMouseButton([defer, clicked = std::move(clicked)](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
             if (button == Hyprtoolkit::Input::MOUSE_BUTTON_LEFT && pressed)
@@ -187,7 +193,7 @@ namespace ui {
 
     // A full-width row, so what is in it starts at the left edge rather than the column's middle.
     CSharedPointer<Hyprtoolkit::CRowLayoutElement> leftRow(double height) {
-        return Hyprtoolkit::CRowLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})->commence();
+        return Hyprtoolkit::CRowLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, scaled(height)}})->commence();
     }
 
     CSharedPointer<Hyprtoolkit::IElement> heading(const std::string& text, const CSharedPointer<Hyprtoolkit::CPalette>& palette) {

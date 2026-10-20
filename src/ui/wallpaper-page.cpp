@@ -36,7 +36,9 @@ namespace ui {
         constexpr double      cardShare    = 0.24;
         constexpr double      thumbHeight  = 110;
         // A card: the image, its name, and the margins and gap around them.
-        constexpr double      cardHeight   = thumbHeight + 2 * 8 + 6 + 20;
+        double cardHeight() {
+            return thumbHeight + 2 * 8 + 6 + scaled(20);
+        }
         constexpr double      previewWidth = 400;
         // A 16:9 screen.
         constexpr double      previewHeight = previewWidth * 9 / 16;
@@ -473,7 +475,7 @@ namespace ui {
         for (std::size_t start = first; start < last; start += perRow) {
             const auto line = leftRow(0);
             // A fixed height: sized to the cards, the row came out taller than they are.
-            line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight}})->gap(12)->commence();
+            line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight()}})->gap(12)->commence();
             for (std::size_t index = start; index < std::min(last, start + perRow); ++index)
                 line->addChild(thumbnail(wallpapers[index]));
             rows->addChild(line);
@@ -486,7 +488,7 @@ namespace ui {
                                   ->commence();
             area->addChild(rows);
             if (const auto at = std::ranges::find(wallpapers, selected ? selected->image : std::filesystem::path{}); at != wallpapers.end())
-                area->setScroll(Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - wallpapers.begin()) / perRow) * (cardHeight + 12)});
+                area->setScroll(Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - wallpapers.begin()) / perRow) * (cardHeight() + 12)});
             gridRows->addChild(area);
             gridTitle->rebuild()
                 ->text(std::format("<span weight=\"600\">Wallpapers</span>   {}{}", wallpapers.size(), wallpapers.size() > perRow ? " · scroll for more" : ""))
@@ -537,7 +539,7 @@ namespace ui {
                                ->onChanged([this](CSharedPointer<Hyprtoolkit::CComboboxElement>, std::size_t index) {
                                    defer([this, index] { choose(index == 1 ? desktop::WallpaperProgram::awww : desktop::WallpaperProgram::hyprpaper); });
                                })
-                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {180.0, 34.0}})
+                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(180.0), scaled(34.0)}})
                                ->commence());
         body->addChild(programs);
 

@@ -34,7 +34,9 @@ namespace ui {
         constexpr auto   studioKept  = "studio-settings";
         // A card: its picture, its name, and the margins and gap around them.
         constexpr double pictureHeight = 72;
-        constexpr double cardHeight    = pictureHeight + 2 * 6 + 4 + 18;
+        double cardHeight() {
+            return pictureHeight + 2 * 6 + 4 + scaled(18);
+        }
 
         CSharedPointer<Hyprtoolkit::CRectangleElement> surface(std::string_view colour, double height) {
             return Hyprtoolkit::CRectangleBuilder::begin()
@@ -181,8 +183,8 @@ namespace ui {
         const auto setting = [this](const CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column, const char* name, const std::string& about, std::vector<Option> choices) {
             column->addChild(markupLine(std::format("<span weight=\"600\">{}</span>  <span alpha=\"60%\" size=\"small\">{}</span>", name, escapeMarkup(about)), palette,
                                         CFontSize{CFontSize::HT_FONT_TEXT}, 1.0F));
-            const auto row   = leftRow(cardHeight);
-            row->rebuild()->gap(8)->commence();
+            const auto row   = leftRow(0);
+            row->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight()}})->gap(8)->commence();
             const auto count = static_cast<double>(choices.size());
             for (auto& option : choices) {
                 option.frame = Hyprtoolkit::CRectangleBuilder::begin()
@@ -190,7 +192,7 @@ namespace ui {
                                    ->rounding(palette->m_vars.bigRounding)
                                    ->borderColor([] { return Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })
                                    ->borderThickness(2)
-                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {(1.0 - 0.015 * (count - 1)) / count, cardHeight}})
+                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {(1.0 - 0.015 * (count - 1)) / count, cardHeight()}})
                                    ->commence();
                 const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
                 inside->setMargin(6);

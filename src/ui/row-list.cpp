@@ -74,7 +74,7 @@ namespace ui {
                                    ->commence();
                 if (spec.width <= 0)
                     heading->setGrow(true, false);
-                restyled(heading);
+                restyled(heading, CFontSize{CFontSize::HT_FONT_SMALL});
                 headings->addChild(heading);
             }
             root->addChild(headings);
@@ -87,7 +87,7 @@ namespace ui {
         }
 
         position = Hyprtoolkit::CTextBuilder::begin()->text(" ")->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})->color(text)->a(0.6F)->commence();
-        restyled(position);
+        restyled(position, CFontSize{CFontSize::HT_FONT_SMALL});
 
         root->addChild(viewport);
         root->addChild(position);
@@ -176,7 +176,7 @@ namespace ui {
             auto cell = builder->commence();
             if (spec.width <= 0)
                 cell->setGrow(true, false);
-            restyled(cell);
+            restyled(cell, CFontSize{spec.secondary ? CFontSize::HT_FONT_SMALL : CFontSize::HT_FONT_TEXT});
             row->addChild(cell);
             made.cells.push_back(std::move(cell));
         }
