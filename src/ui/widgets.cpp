@@ -176,4 +176,13 @@ namespace ui {
         return rows;
     }
 
+    void setFooter(const CSharedPointer<Hyprtoolkit::CRowLayoutElement>& footer, const std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>>& buttons) {
+        footer->clearChildren();
+        const auto spring = space(1);
+        spring->setGrow(true, false);
+        footer->addChild(spring);
+        for (const auto& made : buttons)
+            footer->addChild(made);
+    }
+
 }

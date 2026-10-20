@@ -70,6 +70,8 @@ namespace ui {
         body->setGrow(false, true);
         root->addChild(waybar.element());
         root->addChild(body);
+        footer = leftRow();
+        root->addChild(footer);
 
         const auto environment = foundation::currentEnvironment();
         settings               = application::loadSettings(application::studioFolder(environment));
@@ -194,19 +196,19 @@ namespace ui {
             return;
         styleStatusShown = shown;
         styleStatus->clearChildren();
-        const auto actions = leftRow();
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
+        if (undoable)
+            buttons.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         if (!planned) {
             styleStatus->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
-        } else if (std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); })) {
-            actions->addChild(markupLine(std::format("{}  Your Waybar uses {}, {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
-                                                     escapeMarkup(std::string{shapeInfo(selected.shape).name})),
-                                         palette));
+        } else if (same) {
+            styleStatus->addChild(markupLine(std::format("{}  Your Waybar uses {}, {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
+                                                         escapeMarkup(std::string{shapeInfo(selected.shape).name})),
+                                             palette));
         } else {
-            actions->addChild(button("Review changes", 160, true, [this] { defer([this] { showReview(selected); }); }));
+            buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(selected); }); }));
         }
-        if (undoable)
-            actions->addChild(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
-        styleStatus->addChild(actions);
+        setFooter(footer, buttons);
         if (!outcome.empty())
             styleStatus->addChild(paragraph(outcome, palette));
     }
@@ -275,10 +277,7 @@ namespace ui {
         body->addChild(paragraph(std::format("Applying writes these files. A copy of each file it replaces is kept first, so it can be undone. {}",
                                              off ? "Waybar is off, so it will not be restarted." : "Waybar then restarts to read them."),
                                  palette, true));
-        const auto actions = leftRow();
-        actions->addChild(button("Apply", 110, true, [this] { defer([this] { apply(); }); }));
-        actions->addChild(button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }));
-        body->addChild(actions);
+        setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
         diff.setRows(diffRows(changes, *palette));
         body->addChild(diff.element());
     }

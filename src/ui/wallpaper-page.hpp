@@ -77,6 +77,8 @@ namespace ui {
         application::EventLoop                                               loop;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
+        // The page's action buttons, at the bottom right.
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
         RowList                                                              diff;
         ProgramSwitch                                                        hyprpaper;
         ProgramSwitch                                                        awww;

@@ -116,6 +116,8 @@ namespace ui {
         switchArea = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         root->addChild(switchArea);
         root->addChild(body);
+        footer = leftRow();
+        root->addChild(footer);
 
         const auto environment = foundation::currentEnvironment();
         settings               = application::loadSettings(application::studioFolder(environment));
@@ -357,25 +359,28 @@ namespace ui {
             return;
         statusShown = shown;
         status->clearChildren();
-        const auto actions = leftRow();
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
+        if (undoable)
+            buttons.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
+        const auto check = [this](const std::string& text) {
+            status->addChild(markupLine(std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(text)), palette));
+        };
         if (awwwChosen) {
             // awww remembers what it shows, so keeping writes nothing.
             if (tried)
-                actions->addChild(button("Keep this wallpaper", 190, true, [this] { defer([this] { keepWithAwww(); }); }));
+                buttons.push_back(button("Keep this wallpaper", 190, true, [this] { defer([this] { keepWithAwww(); }); }));
             else if (awww.running() && selected == awwwShows)
-                actions->addChild(markupLine(std::format("{}  awww shows this wallpaper.", coloured("✓", hex(palette->m_colors.accent))), palette));
+                check("awww shows this wallpaper.");
             else if (awww.running())
-                actions->addChild(button("Show it", 120, true, [this] { defer([this] { tryOnDesktop(); updateSelection(); }); }));
+                buttons.push_back(button("Show it", 120, true, [this] { defer([this] { tryOnDesktop(); updateSelection(); }); }));
         } else if (!planned) {
             status->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
         } else if (!planned->changes()) {
-            actions->addChild(markupLine(std::format("{}  hyprpaper.conf sets this wallpaper.", coloured("✓", hex(palette->m_colors.accent))), palette));
+            check("hyprpaper.conf sets this wallpaper.");
         } else {
-            actions->addChild(button("Keep this wallpaper", 190, true, [this] { defer([this] { showReview(); }); }));
+            buttons.push_back(button("Keep this wallpaper", 190, true, [this] { defer([this] { showReview(); }); }));
         }
-        if (undoable)
-            actions->addChild(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
-        status->addChild(actions);
+        setFooter(footer, buttons);
         if (tried)
             status->addChild(paragraph("On your desktop now, to try. It goes back when you leave this page, unless you keep it.", palette, true));
 
@@ -549,6 +554,7 @@ namespace ui {
             body->addChild(paragraph("No images were found in ~/Pictures/Wallpapers, ~/Pictures, ~/.local/share/backgrounds, /usr/share/hypr or /usr/share/backgrounds. "
                                      "Put some in ~/Pictures/Wallpapers and press Check again.",
                                      palette));
+            setFooter(footer, {});
             return;
         }
         body->addChild(chooser());
@@ -573,12 +579,11 @@ namespace ui {
         body->addChild(paragraph(std::format("Applying writes this file. A copy of it is kept first, so it can be undone. {}",
                                              hyprpaper.running() ? "hyprpaper then restarts to read it." : "hyprpaper is off: it reads the file when it starts."),
                                  palette, true));
-        const auto actions = leftRow();
-        actions->addChild(button("Apply", 110, true, [this] { defer([this] { apply(false); }); }));
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons{button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); })};
         if (!hyprpaper.running())
-            actions->addChild(button("Apply and turn hyprpaper on", 250, false, [this] { defer([this] { apply(true); }); }));
-        actions->addChild(button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }));
-        body->addChild(actions);
+            buttons.push_back(button("Apply and turn hyprpaper on", 250, false, [this] { defer([this] { apply(true); }); }));
+        buttons.push_back(button("Apply", 110, true, [this] { defer([this] { apply(false); }); }));
+        setFooter(footer, buttons);
         diff.setRows(diffRows(changes, *palette));
         body->addChild(diff.element());
     }

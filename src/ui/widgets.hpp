@@ -49,6 +49,11 @@ namespace ui {
     // A full-width row, so what is in it starts at the left edge rather than the column's middle.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement> leftRow(double height = 34.0);
 
+    // Puts a page's action buttons in its footer, at the right, the main action last: the
+    // order GNOME and macOS use, and the place KDE and GTK dialogs put them.
+    void setFooter(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>&            footer,
+                   const std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>& buttons);
+
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> heading(const std::string& text, const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette);
 
     // A diff as list rows: a header per file, then its changes with a sign and a colour.
