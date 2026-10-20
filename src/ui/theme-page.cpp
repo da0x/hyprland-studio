@@ -119,6 +119,9 @@ namespace ui {
                                  this->palette));
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         body->setGrow(false, true);
+        // A page laid out taller than the window comes out wrong, so the large preview takes
+        // only the height the cards leave, measured after each layout pass.
+        body->setRepositioned([this] { this->defer([this] { fitPreview(); }); });
         root->addChild(body);
         footer = leftRow();
         root->addChild(footer);
@@ -141,8 +144,9 @@ namespace ui {
         auto& made = desktops[{shown, large}];
         if (made)
             return made;
-        const double scale  = large ? 1.0 : 0.42;
-        const double height = large ? 250 : 105;
+        // The large one is drawn smaller when the page has less height to give it.
+        const double scale  = large ? previewHeight / 250 : 0.42;
+        const double height = large ? previewHeight : 105;
         const auto   shape  = desktop::currentWaybarStyle(foundation::currentEnvironment()).value_or(desktop::WaybarStyle{desktop::Shape::islands, shown}).shape;
 
         const auto backdrop = Hyprtoolkit::CRectangleBuilder::begin()
@@ -176,6 +180,7 @@ namespace ui {
         body->addChild(largePreview);
 
         cards.clear();
+        cardRows.clear();
         const auto all = desktop::waybarPalettes();
         for (std::size_t first = 0; first < all.size(); first += 3) {
             const auto line = leftRow(0);
@@ -210,13 +215,15 @@ namespace ui {
                 cards.emplace_back(&all[index], std::move(made));
             }
             body->addChild(line);
+            cardRows.push_back(line);
         }
         updateSelection();
     }
 
     void ThemePage::updateSelection() {
         largePreview->clearChildren();
-        largePreview->addChild(desktopOf(selected, true));
+        if (previewHeight > 0)
+            largePreview->addChild(desktopOf(selected, true));
         fillStatus();
         for (auto& [shown, made] : cards) {
             const bool chosen = shown == selected;
@@ -384,6 +391,28 @@ namespace ui {
             waybar.restart();
         }
         showOverview();
+    }
+
+    void ThemePage::fitPreview() {
+        if (reviewing || cardRows.empty())
+            return;
+        constexpr double full    = 250;
+        // Less than this and the drawing's contents no longer fit in it.
+        constexpr double least   = 80;
+        constexpr double between = 10;
+        double           cards   = 0;
+        for (const auto& row : cardRows)
+            cards += row->size().y + between;
+        auto fitting = std::min(full, body->size().y - cards - between);
+        if (fitting < least)
+            fitting = 0;
+        // Small differences are left, so a pass that changes nothing ends the fitting.
+        if (std::abs(fitting - previewHeight) < 4)
+            return;
+        previewHeight = fitting;
+        for (auto at = desktops.begin(); at != desktops.end();)
+            at = at->first.second ? desktops.erase(at) : std::next(at);
+        updateSelection();
     }
 
     void ThemePage::restyle() {

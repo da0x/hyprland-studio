@@ -67,6 +67,13 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
+        // The rows of cards under the large preview, measured to size it.
+        std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>> cardRows;
+        // The large preview's height: what the cards leave of the page, up to its full
+        // height, or none when too little is left.
+        double                                                               previewHeight = 250;
+        // After a layout pass: sizes the large preview to the height left.
+        void                                                                 fitPreview();
         std::string                                                          statusShown;
         std::vector<std::pair<const desktop::Palette*, Card>>                cards;
         std::map<std::pair<const desktop::Palette*, bool>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> desktops;
