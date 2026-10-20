@@ -83,9 +83,12 @@ namespace {
 
     TEST(Terminal, BundlesDarkAndLightThemesReadFromTheirFiles) {
         const auto themes = desktop::terminalThemes();
-        ASSERT_EQ(themes.size(), 24U);
-        const auto dark = std::ranges::count_if(themes, &desktop::TerminalTheme::dark);
-        EXPECT_EQ(dark, 15);
+        ASSERT_EQ(themes.size(), 35U);
+        EXPECT_EQ(std::ranges::count_if(themes, &desktop::TerminalTheme::accessible), 5);
+        const auto vivendi = std::ranges::find(themes, std::string{"Modus Vivendi"}, &desktop::TerminalTheme::name);
+        ASSERT_NE(vivendi, themes.end());
+        EXPECT_EQ(vivendi->background, "#000000");
+        EXPECT_TRUE(vivendi->accessible);
         const auto dracula = std::ranges::find(themes, std::string{"Dracula"}, &desktop::TerminalTheme::name);
         ASSERT_NE(dracula, themes.end());
         EXPECT_EQ(dracula->background, "#282a36");
@@ -109,17 +112,44 @@ namespace {
         const auto&                   nord = *std::ranges::find(desktop::terminalThemes(), std::string{"Nord"}, &desktop::TerminalTheme::name);
 
         EXPECT_EQ(desktop::currentTerminal(environment), nullptr);
-        const auto planned = desktop::planTerminal(nord, environment);
+        const auto planned = desktop::planTerminal(nord, 11.0, environment);
         ASSERT_TRUE(planned.has_value()) << planned.error();
         ASSERT_EQ(planned->size(), 2U);
         EXPECT_EQ((*planned)[0].proposed, nord.file);
         EXPECT_EQ((*planned)[1].proposed, "include current-theme.conf\n");
         ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Terminal").has_value());
         EXPECT_EQ(desktop::currentTerminal(environment), &nord);
-        const auto again = desktop::planTerminal(nord, environment);
+        const auto again = desktop::planTerminal(nord, 11.0, environment);
         ASSERT_TRUE(again.has_value());
         EXPECT_TRUE(again->empty());
+
+        // A bigger font: only font_size is added to kitty.conf, and then read back.
+        EXPECT_EQ(desktop::kittyFontSize(environment), 11.0);
+        const auto bigger = desktop::planTerminal(nord, 13.0, environment);
+        ASSERT_TRUE(bigger.has_value());
+        ASSERT_EQ(bigger->size(), 1U);
+        EXPECT_EQ((*bigger)[0].proposed, "include current-theme.conf\nfont_size 13\n");
+        ASSERT_TRUE(configuration::applyChanges(*bigger, root / "backups", "Terminal").has_value());
+        EXPECT_EQ(desktop::kittyFontSize(environment), 13.0);
         std::filesystem::remove_all(root);
+    }
+
+    TEST(Terminal, BundledThemesSetColoursOnly) {
+        // A theme that set opacity or fonts would change kitty beyond its colours.
+        for (const auto& theme : desktop::terminalThemes()) {
+            std::size_t at = 0;
+            while (at < theme.file.size()) {
+                const auto end  = std::min(theme.file.find('\n', at), theme.file.size());
+                const auto line = std::string_view{theme.file}.substr(at, end - at);
+                at              = end + 1;
+                const auto key  = line.substr(0, line.find_first_of(" \t"));
+                if (key.empty() || key.front() == '#')
+                    continue;
+                const bool colour = key.starts_with("color") || key.ends_with("_color") || key.ends_with("_foreground") || key.ends_with("_background") ||
+                                    key == "foreground" || key == "background" || key == "cursor";
+                EXPECT_TRUE(colour) << theme.name << " sets " << key;
+            }
+        }
     }
 
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -15,6 +16,14 @@ namespace configuration {
 
     // Whether `config` has a line that is exactly `line`, apart from spacing around it.
     [[nodiscard]] bool hasLine(std::string_view config, std::string_view line);
+
+    // A kitty-style file (`key value` lines) with `key` set to `value`, every other byte as it
+    // was: the last line that sets the key keeps its indentation, and a missing key is added
+    // at the end.
+    [[nodiscard]] std::string withSpacedValue(std::string_view config, std::string_view key, std::string_view value);
+
+    // The value the last `key value` line gives, if any.
+    [[nodiscard]] std::optional<std::string> spacedValue(std::string_view config, std::string_view key);
 
     struct IniValue {
         std::string section;

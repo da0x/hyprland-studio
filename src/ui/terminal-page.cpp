@@ -10,6 +10,8 @@
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
 
+#include <hyprtoolkit/element/Null.hpp>
+
 #include <algorithm>
 #include <csignal>
 #include <format>
@@ -48,13 +50,15 @@ namespace ui {
         footer = leftRow();
         root->addChild(footer);
 
-        selected = desktop::currentTerminal(foundation::currentEnvironment());
+        const auto environment = foundation::currentEnvironment();
+        fontSize               = desktop::kittyFontSize(environment);
+        selected               = desktop::currentTerminal(environment);
         if (selected == nullptr)
             selected = &desktop::terminalThemes().front();
-        lightShown = !selected->dark;
+        kind = selected->dark ? Kind::dark : Kind::light;
         const auto shown = shownThemes();
         if (const auto at = std::ranges::find(shown, selected); at != shown.end())
-            pageStart = static_cast<std::size_t>(at - shown.begin()) / perPage * perPage;
+            pageStart = static_cast<std::size_t>(at - shown.begin()) / perRow * perRow;
         showOverview();
     }
 
@@ -66,13 +70,14 @@ namespace ui {
     std::vector<const desktop::TerminalTheme*> TerminalPage::shownThemes() const {
         std::vector<const desktop::TerminalTheme*> shown;
         for (const auto& theme : desktop::terminalThemes())
-            if (theme.dark != lightShown)
+            if (kind == Kind::accessible ? theme.accessible : theme.dark == (kind == Kind::dark))
                 shown.push_back(&theme);
         return shown;
     }
 
     CSharedPointer<Hyprtoolkit::IElement> TerminalPage::sessionOf(const desktop::TerminalTheme* theme, bool large) {
-        auto& made = sessions[{theme, large}];
+        // The large one is drawn at the font size chosen, so it shows what kitty will.
+        auto& made = sessions[{theme, large, large ? fontSize : 0.0}];
         if (made)
             return made;
         const auto& colour = theme->colours;
@@ -104,7 +109,7 @@ namespace ui {
                 continue;
             lines->addChild(Hyprtoolkit::CTextBuilder::begin()
                                 ->text(std::format("<span font_family=\"monospace\">{}</span>", session[index]))
-                                ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, large ? 11.F : 5.F})
+                                ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, large ? static_cast<float>(fontSize) : 5.F})
                                 ->color([c = paletteColour(theme->foreground)] { return c; })
                                 ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
                                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
@@ -132,23 +137,69 @@ namespace ui {
         const auto shown = shownThemes();
         const auto top   = leftRow();
         top->rebuild()->gap(4)->commence();
-        top->addChild(button("Dark", 90, !lightShown, [this] { defer([this] { lightShown = false; pageStart = 0; showOverview(); }); }));
-        top->addChild(button("Light", 90, lightShown, [this] { defer([this] { lightShown = true; pageStart = 0; showOverview(); }); }));
+        const auto filter = [this](std::string label, double width, Kind wanted) {
+            return button(std::move(label), width, kind == wanted, [this, wanted] {
+                defer([this, wanted] {
+                    kind      = wanted;
+                    pageStart = 0;
+                    showOverview();
+                });
+            });
+        };
+        top->addChild(filter("Dark", 80, Kind::dark));
+        top->addChild(filter("Light", 80, Kind::light));
+        top->addChild(filter("Accessible", 110, Kind::accessible));
         const auto rest = space(1);
         rest->setGrow(true, false);
         top->addChild(rest);
-        const auto count = markupLine(std::format("{}–{} of {}", pageStart + 1, std::min(shown.size(), pageStart + perPage), shown.size()), palette);
-        count->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-        top->addChild(count);
-        if (pageStart > 0)
-            top->addChild(button("‹ Previous", 110, false, [this] { defer([this] { pageStart -= std::min(pageStart, perPage); showOverview(); }); }));
-        if (pageStart + perPage < shown.size())
-            top->addChild(button("Next ›", 90, false, [this] { defer([this] { pageStart += perPage; showOverview(); }); }));
+
+        // The font size, applied with the theme.
+        const auto size = [this](double step) {
+            defer([this, step] {
+                fontSize = std::clamp(fontSize + step, 6.0, 32.0);
+                fontText->rebuild()->text(std::format("Font  {:g} pt", fontSize))->commence();
+                updateSelection();
+            });
+        };
+        fontText = markupLine(std::format("Font  {:g} pt", fontSize), palette);
+        fontText->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {90.0, 1.0}})->commence();
+        top->addChild(fontText);
+        top->addChild(button("−", 40, false, [size] { size(-1); }));
+        top->addChild(button("+", 40, false, [size] { size(1); }));
+        top->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {24.0, 1.0}})->commence());
         body->addChild(top);
 
         largePreview = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         body->addChild(largePreview);
 
+        // Two rows of cards at a time; the mouse wheel moves them a row up or down.
+        grid = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(12)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        body->addChild(grid);
+        position = markupLine(" ", palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F);
+        body->addChild(position);
+        fillGrid();
+        updateSelection();
+    }
+
+    void TerminalPage::scroll(Hyprtoolkit::Input::eAxisAxis axis, float delta) {
+        if (axis != Hyprtoolkit::Input::AXIS_AXIS_VERTICAL || delta == 0.F)
+            return;
+        const auto count = shownThemes().size();
+        const auto last  = count > perPage ? (count - perPage + perRow - 1) / perRow * perRow : 0;
+        const auto next  = delta > 0 ? std::min(last, pageStart + perRow) : pageStart - std::min(pageStart, perRow);
+        if (next == pageStart)
+            return;
+        pageStart = next;
+        // Not from inside the wheel's handler: the cards it came through are replaced.
+        defer([this] {
+            fillGrid();
+            updateSelection();
+        });
+    }
+
+    void TerminalPage::fillGrid() {
+        const auto shown = shownThemes();
+        grid->clearChildren();
         cards.clear();
         for (std::size_t first = pageStart; first < std::min(shown.size(), pageStart + perPage); first += perRow) {
             const auto line = leftRow(0);
@@ -172,6 +223,7 @@ namespace ui {
                 inside->addChild(made.name);
                 made.frame->addChild(inside);
                 made.frame->setReceivesMouse(true);
+                made.frame->setMouseAxis([this](Hyprtoolkit::Input::eAxisAxis axis, float delta) { scroll(axis, delta); });
                 made.frame->setMouseButton([this, theme](Hyprtoolkit::Input::eMouseButton pressedButton, bool pressed) {
                     if (pressedButton != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !pressed)
                         return;
@@ -183,9 +235,12 @@ namespace ui {
                 line->addChild(made.frame);
                 cards.emplace_back(theme, std::move(made));
             }
-            body->addChild(line);
+            grid->addChild(line);
         }
-        updateSelection();
+        const auto end = std::min(shown.size(), pageStart + perPage);
+        position->rebuild()
+            ->text(shown.size() > perPage ? std::format("{}–{} of {} · scroll for more", pageStart + 1, end, shown.size()) : std::format("{} themes", shown.size()))
+            ->commence();
     }
 
     void TerminalPage::updateSelection() {
@@ -206,10 +261,10 @@ namespace ui {
 
     void TerminalPage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
-        const auto planned     = desktop::planTerminal(*selected, environment);
+        const auto planned     = desktop::planTerminal(*selected, fontSize, environment);
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         inUse                  = desktop::currentTerminal(environment);
-        const auto shown = std::format("{}|{}|{}|{}|{}", selected->name, planned ? planned->empty() : false, planned ? "" : planned.error(), undoable, outcome);
+        const auto shown = std::format("{}|{}|{}|{}|{}|{}", selected->name, fontSize, planned ? planned->empty() : false, planned ? "" : planned.error(), undoable, outcome);
         if (shown == statusShown)
             return;
         statusShown = shown;
@@ -223,7 +278,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
         } else if (planned->empty()) {
-            note = std::format("{}  Your terminal uses {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name));
+            note = std::format("{}  Your terminal uses {}, at {:g} pt.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name), fontSize);
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);
@@ -238,7 +293,7 @@ namespace ui {
     }
 
     void TerminalPage::showReview() {
-        auto planned = desktop::planTerminal(*selected, foundation::currentEnvironment());
+        auto planned = desktop::planTerminal(*selected, fontSize, foundation::currentEnvironment());
         if (!planned) {
             outcome = planned.error();
             return showOverview();
@@ -248,10 +303,10 @@ namespace ui {
         outcome.clear();
         body->clearChildren();
         body->addChild(space(4));
-        body->addChild(heading(std::format("Review: {}, for the terminal", selected->name), palette));
+        body->addChild(heading(std::format("Review: {}, at {:g} pt, for the terminal", selected->name, fontSize), palette));
         body->addChild(paragraph("Applying will:", palette));
         body->addChild(paragraph("•  Write the changes below. A copy of each file is kept first, so it can be undone.", palette, true));
-        body->addChild(paragraph("•  Show the new colours in every open kitty window at once.", palette, true));
+        body->addChild(paragraph("•  Show the new colours and font size in every open kitty window at once.", palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
         diff.setRows(diffRows(changes, *palette));
         body->addChild(diff.element());

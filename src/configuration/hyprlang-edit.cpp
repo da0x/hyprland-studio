@@ -64,6 +64,48 @@ namespace configuration {
         return text;
     }
 
+    namespace {
+
+        // The lines of `config` that set `key`, as [begin, end) of each line.
+        std::vector<std::pair<std::size_t, std::size_t>> keyLines(std::string_view config, std::string_view key) {
+            std::vector<std::pair<std::size_t, std::size_t>> found;
+            std::size_t                                      at = 0;
+            while (at < config.size()) {
+                const auto end   = std::min(config.find('\n', at), config.size());
+                const auto inner = trim(config.substr(at, end - at));
+                if (!inner.starts_with('#') && inner.substr(0, inner.find_first_of(" \t")) == key)
+                    found.emplace_back(at, end);
+                at = end + 1;
+            }
+            return found;
+        }
+
+    }
+
+    std::string withSpacedValue(std::string_view config, std::string_view key, std::string_view value) {
+        std::string text{config};
+        const auto  lines = keyLines(config, key);
+        if (lines.empty()) {
+            if (!text.empty() && !text.ends_with('\n'))
+                text += '\n';
+            return text + std::format("{} {}\n", key, value);
+        }
+        const auto [begin, end] = lines.back();
+        const auto line         = config.substr(begin, end - begin);
+        const auto indent       = line.substr(0, line.find_first_not_of(" \t"));
+        text.replace(begin, end - begin, std::format("{}{} {}", indent, key, value));
+        return text;
+    }
+
+    std::optional<std::string> spacedValue(std::string_view config, std::string_view key) {
+        const auto lines = keyLines(config, key);
+        if (lines.empty())
+            return std::nullopt;
+        const auto [begin, end] = lines.back();
+        const auto inner        = trim(config.substr(begin, end - begin));
+        return std::string{trim(inner.substr(key.size()))};
+    }
+
     bool hasLine(std::string_view config, std::string_view line) {
         std::size_t at = 0;
         while (at <= config.size()) {

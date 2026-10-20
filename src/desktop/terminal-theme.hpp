@@ -24,21 +24,29 @@ namespace desktop {
         std::string                 foreground;
         std::string                 cursor;
         std::array<std::string, 16> colours;
-        bool                        dark = true;
+        bool                        dark       = true;
+        // Made for colour blindness or low vision.
+        bool                        accessible = false;
     };
 
     // Reads a kitty theme file.
     [[nodiscard]] TerminalTheme terminalTheme(std::string_view name, std::string_view file);
 
     // The bundled themes, dark and light, from kitty-themes; see terminal-themes/NOTICE.
+    // They set colours only, so applying one changes nothing else about kitty.
     [[nodiscard]] std::span<const TerminalTheme> terminalThemes();
 
     // kitty's folder: $XDG_CONFIG_HOME/kitty, or ~/.config/kitty.
     [[nodiscard]] std::filesystem::path kittyFolder(const foundation::Environment& environment);
 
-    // What gives kitty the theme: its file as current-theme.conf, and the line in kitty.conf
-    // that includes it. Empty when kitty is not installed or already uses the theme.
-    [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, const foundation::Environment& environment);
+    // kitty's font size in points: kitty.conf's font_size, or kitty's default, 11.
+    [[nodiscard]] double kittyFontSize(const foundation::Environment& environment);
+
+    // What gives kitty the theme and the font size: the theme's file as current-theme.conf,
+    // and in kitty.conf the line that includes it and font_size. Empty when kitty is not
+    // installed or already has both.
+    [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, double fontSize,
+                                                                                                  const foundation::Environment& environment);
 
     // The bundled theme kitty's current-theme.conf holds, if it holds one exactly.
     [[nodiscard]] const TerminalTheme* currentTerminal(const foundation::Environment& environment);

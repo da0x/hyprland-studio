@@ -416,6 +416,7 @@ namespace ui {
         card->addChild(inside);
         cards[image] = card;
         card->setReceivesMouse(true);
+        card->setMouseAxis([this](Hyprtoolkit::Input::eAxisAxis axis, float delta) { scroll(axis, delta); });
         card->setMouseButton([this, image](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
             if (button != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !pressed)
                 return;
@@ -430,34 +431,54 @@ namespace ui {
     }
 
     CSharedPointer<Hyprtoolkit::IElement> WallpaperPage::grid() {
-        cards.clear();
         const auto section = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         const auto top     = leftRow();
-        const auto title   = markupLine(std::format("<span weight=\"600\">Wallpapers</span>   {}–{} of {}", pageStart + 1, std::min(wallpapers.size(), pageStart + pageSize), wallpapers.size()),
-                                        palette);
+        gridTitle          = markupLine(" ", palette);
         // Sized to its words: a text that starts narrow and grows would wrap at every letter
         // first, and the row would take that height.
-        title->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->noEllipsize(false)->commence();
-        top->addChild(title);
+        gridTitle->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->noEllipsize(false)->commence();
+        top->addChild(gridTitle);
         const auto rest = space(1);
         rest->setGrow(true, false);
         top->addChild(rest);
         top->addChild(button("Add from files…", 160, false, [this] { defer([this] { addFromFiles(); }); }));
-        if (pageStart > 0)
-            top->addChild(button("‹ Previous", 110, false, [this] { defer([this] { pageStart -= std::min(pageStart, pageSize); showOverview(); }); }));
-        if (pageStart + pageSize < wallpapers.size())
-            top->addChild(button("Next ›", 110, false, [this] { defer([this] { pageStart += pageSize; showOverview(); }); }));
         section->addChild(top);
+        // A row of images at a time; the mouse wheel moves to the next or the previous.
+        gridRows = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(12)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        section->addChild(gridRows);
+        fillGrid();
+        return section;
+    }
 
+    void WallpaperPage::fillGrid() {
+        cards.clear();
+        gridRows->clearChildren();
         for (std::size_t first = pageStart; first < std::min(wallpapers.size(), pageStart + pageSize); first += perRow) {
             const auto line = leftRow(0);
             // A fixed height: sized to the cards, the row came out taller than they are.
             line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight}})->gap(12)->commence();
             for (std::size_t index = first; index < std::min({wallpapers.size(), first + perRow, pageStart + pageSize}); ++index)
                 line->addChild(thumbnail(wallpapers[index]));
-            section->addChild(line);
+            gridRows->addChild(line);
         }
-        return section;
+        const auto end  = std::min(wallpapers.size(), pageStart + pageSize);
+        const auto more = wallpapers.size() > pageSize ? " · scroll for more" : "";
+        gridTitle->rebuild()->text(std::format("<span weight=\"600\">Wallpapers</span>   {}–{} of {}{}", pageStart + 1, end, wallpapers.size(), more))->commence();
+    }
+
+    void WallpaperPage::scroll(Hyprtoolkit::Input::eAxisAxis axis, float delta) {
+        if (axis != Hyprtoolkit::Input::AXIS_AXIS_VERTICAL || delta == 0.F)
+            return;
+        const auto last = wallpapers.size() > pageSize ? (wallpapers.size() - pageSize + perRow - 1) / perRow * perRow : 0;
+        const auto next = delta > 0 ? std::min(last, pageStart + perRow) : pageStart - std::min(pageStart, perRow);
+        if (next == pageStart)
+            return;
+        pageStart = next;
+        // Not from inside the wheel's handler: the card it came through is replaced.
+        defer([this] {
+            fillGrid();
+            updateSelection();
+        });
     }
 
     void WallpaperPage::showOverview() {

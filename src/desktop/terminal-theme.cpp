@@ -5,6 +5,7 @@
 #include "desktop/system.hpp"
 
 #include <charconv>
+#include <format>
 #include <fstream>
 #include <sstream>
 
@@ -72,7 +73,19 @@ namespace desktop {
         return std::filesystem::path{foundation::variable(environment, "HOME").value_or("")} / ".config" / "kitty";
     }
 
-    std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, const foundation::Environment& environment) {
+    double kittyFontSize(const foundation::Environment& environment) {
+        std::ifstream     stream{kittyFolder(environment) / "kitty.conf"};
+        std::stringstream text;
+        text << stream.rdbuf();
+        if (const auto value = configuration::spacedValue(text.str(), "font_size")) {
+            double size = 0;
+            if (const auto [end, failed] = std::from_chars(value->data(), value->data() + value->size(), size); failed == std::errc{} && size > 0)
+                return size;
+        }
+        return 11.0;
+    }
+
+    std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, double fontSize, const foundation::Environment& environment) {
         std::vector<configuration::FileChange> changes;
         if (!findProgram("kitty", foundation::variable(environment, "PATH").value_or("")))
             return changes;
@@ -80,13 +93,17 @@ namespace desktop {
         // kitty's own convention, as `kitten themes` follows it: the colours in
         // current-theme.conf, which kitty.conf includes.
         for (auto planned : {configuration::planEdit(folder / "current-theme.conf", [&theme](std::string_view) { return theme.file; }),
-                             configuration::planEdit(folder / "kitty.conf", [](std::string_view text) {
+                             configuration::planEdit(folder / "kitty.conf", [fontSize, &environment](std::string_view text) {
                                  std::string result{text};
-                                 if (configuration::hasLine(result, "include current-theme.conf"))
-                                     return result;
-                                 if (!result.empty() && !result.ends_with('\n'))
-                                     result += '\n';
-                                 return result + "include current-theme.conf\n";
+                                 if (!configuration::hasLine(result, "include current-theme.conf")) {
+                                     if (!result.empty() && !result.ends_with('\n'))
+                                         result += '\n';
+                                     result += "include current-theme.conf\n";
+                                 }
+                                 // Written only when it changes, so a config without one keeps kitty's default.
+                                 if (fontSize != kittyFontSize(environment))
+                                     result = configuration::withSpacedValue(result, "font_size", std::format("{:g}", fontSize));
+                                 return result;
                              })}) {
             if (!planned)
                 return std::unexpected{planned.error()};

@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <functional>
 #include <map>
+#include <tuple>
 #include <string>
 #include <vector>
 
@@ -38,8 +39,12 @@ namespace ui {
         void apply();
         void undo();
         void updateSelection();
+        // Makes the cards for the rows shown.
+        void fillGrid();
+        void scroll(Hyprtoolkit::Input::eAxisAxis axis, float delta);
         void fillStatus();
-        // The themes shown: the dark ones or the light ones.
+        // The themes shown: the dark ones, the light ones, or those made for colour
+        // blindness and low vision.
         [[nodiscard]] std::vector<const desktop::TerminalTheme*>               shownThemes() const;
         // A short terminal session in a theme, made once and kept: large or for a card.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> sessionOf(const desktop::TerminalTheme* theme, bool large);
@@ -56,13 +61,23 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> grid;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         position;
         std::vector<std::pair<const desktop::TerminalTheme*, Card>>          cards;
-        std::map<std::pair<const desktop::TerminalTheme*, bool>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> sessions;
+        std::map<std::tuple<const desktop::TerminalTheme*, bool, double>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> sessions;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         fontText;
         RowList                                                              diff;
 
         const desktop::TerminalTheme*                                        selected = nullptr;
         const desktop::TerminalTheme*                                        inUse    = nullptr;
-        bool                                                                 lightShown = false;
+        enum class Kind {
+            dark,
+            light,
+            accessible,
+        };
+        Kind                                                                 kind = Kind::dark;
+        // The font size to give kitty, in points; kitty's own until changed.
+        double                                                               fontSize = 11;
         std::size_t                                                          pageStart  = 0;
         bool                                                                 reviewing  = false;
         std::vector<configuration::FileChange>                               changes;

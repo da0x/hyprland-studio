@@ -77,6 +77,9 @@ namespace ui {
         void                                                                   updateSelection();
         void                                                                   fillStatus();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> grid();
+        // Makes the cards for the row shown.
+        void                                                                   fillGrid();
+        void                                                                   scroll(Hyprtoolkit::Input::eAxisAxis axis, float delta);
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> thumbnail(const std::filesystem::path& image);
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
@@ -119,6 +122,8 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> status;
         // What the status shows now, so that it is made anew only when that changes.
         std::string                                                          statusShown;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         gridTitle;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> gridRows;
         std::map<std::filesystem::path, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>> cards;
         std::vector<configuration::FileChange>                               changes;
         std::string                                                          outcome;

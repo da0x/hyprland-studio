@@ -69,4 +69,12 @@ hl.config({ decoration = { rounding = 10 } })
                           "    frame_color = \"#313244\"\n\n\n[urgency_critical]\n    background = \"#f38ba8\"\n");
     }
 
+    TEST(SpacedEdit, SetsTheLastLineOrAddsOne) {
+        const auto config = "font_family JetBrains Mono\n  font_size 10\n# font_size 20\nfont_size 12.5\n";
+        EXPECT_EQ(configuration::spacedValue(config, "font_size"), std::optional<std::string>{"12.5"});
+        EXPECT_EQ(configuration::withSpacedValue(config, "font_size", "14"), "font_family JetBrains Mono\n  font_size 10\n# font_size 20\nfont_size 14\n");
+        EXPECT_EQ(configuration::withSpacedValue("include a.conf", "font_size", "14"), "include a.conf\nfont_size 14\n");
+        EXPECT_FALSE(configuration::spacedValue("# font_size 9\n", "font_size").has_value());
+    }
+
 }
