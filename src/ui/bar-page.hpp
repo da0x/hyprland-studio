@@ -3,6 +3,7 @@
 
 #include "application/outside-program.hpp"
 #include "application/session.hpp"
+#include "application/settings.hpp"
 #include "configuration/file-change.hpp"
 #include "desktop/waybar-style.hpp"
 #include "ui/row-list.hpp"
@@ -44,6 +45,9 @@ namespace ui {
         void updateSwitch();
         void programChanged();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> styleSection();
+        // A choice drawn as a preview with its name; the chosen one has the accent around it.
+        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> card(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>& preview, const std::string& name,
+                                                                                    bool chosen, std::function<void()> chosenNow);
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
         std::function<void(std::function<void()>)>                           defer;
@@ -59,6 +63,9 @@ namespace ui {
         std::optional<std::filesystem::path>                                 waybarProgram;
         std::optional<application::OutsideProgram>                           waybar;
 
+        application::Settings                                                settings;
+        // The style shown in the big preview: Waybar's own at first, if it is one of the studio's.
+        desktop::WaybarStyle                                                 selected;
         // The style under review and the files it would write.
         std::optional<desktop::WaybarStyle>                                  reviewing;
         std::vector<configuration::FileChange>                               changes;

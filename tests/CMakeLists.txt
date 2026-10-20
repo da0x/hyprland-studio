@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 find_package(GTest REQUIRED)
+find_package(nlohmann_json 3.11 REQUIRED)
 
 add_executable(hyprland-studio-tests bindings-test.cpp desktop-test.cpp events-test.cpp file-change-test.cpp launch-test.cpp main-config-test.cpp modifiers-test.cpp recording-test.cpp syntax-test.cpp)
-target_link_libraries(hyprland-studio-tests PRIVATE hyprland-studio-configuration hyprland-studio-desktop hyprland-studio-ipc hyprland-studio-syntax GTest::gtest_main)
+target_link_libraries(hyprland-studio-tests PRIVATE hyprland-studio-configuration hyprland-studio-desktop hyprland-studio-ipc nlohmann_json::nlohmann_json hyprland-studio-syntax GTest::gtest_main)
 target_compile_definitions(hyprland-studio-tests PRIVATE FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
 
 include(GoogleTest)

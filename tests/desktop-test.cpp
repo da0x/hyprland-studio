@@ -6,6 +6,7 @@
 #include "desktop/waybar.hpp"
 
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include <atomic>
 #include <filesystem>
@@ -169,7 +170,7 @@ namespace {
         const auto   system = folder.root / "etc";
         folder.add("etc/waybar/config.jsonc");
         const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};
-        const auto&                   style = desktop::waybarStyles().front();
+        const desktop::WaybarStyle     style{desktop::Shape::islands, &desktop::waybarPalettes().front()};
 
         // Only the system's example: the files go to ~/.config/waybar, both new.
         const auto fresh = desktop::planWaybarStyle(style, environment, system);
@@ -186,6 +187,33 @@ namespace {
         ASSERT_TRUE(kept.has_value());
         EXPECT_EQ((*kept)[0].file, mine);
         EXPECT_EQ((*kept)[0].current, std::optional<std::string>{"{}\n"});
+    }
+
+    TEST(Desktop, MakesAValidWaybarConfigForEveryStyle) {
+        for (const auto& shape : desktop::waybarShapes()) {
+            for (const auto& palette : desktop::waybarPalettes()) {
+                const desktop::WaybarStyle style{shape.shape, &palette};
+                const auto                 config = nlohmann::json::parse(desktop::waybarConfigText(style), nullptr, false);
+                ASSERT_FALSE(config.is_discarded()) << palette.name << ", " << shape.name;
+                EXPECT_EQ(config["modules-left"][0], "hyprland/workspaces");
+                const auto css = desktop::waybarStyleText(style);
+                EXPECT_TRUE(css.contains(std::string{"@define-color accent    "} + std::string{palette.accent})) << palette.name;
+                EXPECT_EQ(std::ranges::count(css, '{'), std::ranges::count(css, '}')) << palette.name << ", " << shape.name;
+            }
+        }
+    }
+
+    TEST(Desktop, RecognisesTheStyleWaybarUses) {
+        const Folder                  folder;
+        const auto                    system = folder.root / "etc";
+        const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};
+        EXPECT_FALSE(desktop::currentWaybarStyle(environment, system).has_value());
+
+        const desktop::WaybarStyle style{desktop::Shape::floating, &desktop::waybarPalettes()[3]};
+        const auto                 planned = desktop::planWaybarStyle(style, environment, system);
+        ASSERT_TRUE(planned.has_value());
+        ASSERT_TRUE(configuration::applyChanges(*planned, folder.root / "backups", "test").has_value());
+        EXPECT_EQ(desktop::currentWaybarStyle(environment, system), style);
     }
 
 }

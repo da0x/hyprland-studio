@@ -62,7 +62,7 @@ own.
 
 **Writes:** files you approved after reviewing the change line by line, such as Waybar's
 config and stylesheet, and its own folder, `~/.config/hyprland-studio/`: its settings
-(window size, last page, which areas you allowed), the effects you set up (plain Hyprland
+(window size, last page, which areas you allowed, whether you dismissed a page's checklist), the effects you set up (plain Hyprland
 Lua you can read and copy into your own config), a record in `backups/` of each change it
 wrote, with copies of the files it replaced, so any change can be undone, and, only while
 the desktop-theme area is active, a record of the theme values it changed so they can

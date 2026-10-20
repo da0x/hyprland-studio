@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/bar-page.hpp"
 
+#include "application/settings.hpp"
 #include "application/studio-folder.hpp"
 #include "configuration/diff.hpp"
 #include "application/studio-folder.hpp"
 #include "configuration/diff.hpp"
 #include "desktop/clipboard.hpp"
 #include "desktop/waybar.hpp"
+#include "ui/bar-preview.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
 
 #include <hyprtoolkit/element/Button.hpp>
 #include <hyprtoolkit/element/Null.hpp>
+#include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
 #include <hyprtoolkit/element/Text.hpp>
@@ -175,6 +178,17 @@ namespace ui {
             return rows;
         }
 
+        // Three cards to a row, with the gaps between them.
+        constexpr double cardsPerRow = 3;
+        constexpr double cardShare   = 0.32;
+
+        const desktop::ShapeInfo& shapeInfo(desktop::Shape shape) {
+            for (const auto& info : desktop::waybarShapes())
+                if (info.shape == shape)
+                    return info;
+            return desktop::waybarShapes().front();
+        }
+
         std::string recordName(const std::filesystem::path& record) {
             return shortPath(record);
         }
@@ -212,6 +226,10 @@ namespace ui {
         body->setGrow(false, true);
         root->addChild(switchArea);
         root->addChild(body);
+
+        const auto environment = foundation::currentEnvironment();
+        settings               = application::loadSettings(application::studioFolder(environment));
+        selected               = desktop::currentWaybarStyle(environment).value_or(desktop::WaybarStyle{desktop::Shape::islands, &desktop::waybarPalettes().front()});
         check();
     }
 
@@ -276,34 +294,80 @@ namespace ui {
             switchArea->addChild(paragraph(*waybar->error(), palette, true));
     }
 
+    CSharedPointer<Hyprtoolkit::IElement> BarPage::card(const CSharedPointer<Hyprtoolkit::IElement>& preview, const std::string& name, bool chosen,
+                                                       std::function<void()> chosenNow) {
+        const auto made = Hyprtoolkit::CRectangleBuilder::begin()
+                              ->color([palette = palette] { return palette->m_colors.alternateBase; })
+                              ->rounding(palette->m_vars.bigRounding)
+                              ->borderColor([palette = palette, chosen] { return chosen ? palette->m_colors.accent : Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })
+                              ->borderThickness(2)
+                              ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {cardShare, 1.0}})
+                              ->commence();
+        const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        inside->setMargin(10);
+        inside->addChild(preview);
+        inside->addChild(markupLine(chosen ? std::format("<span weight=\"600\">{}</span>", escapeMarkup(name)) : escapeMarkup(name), palette));
+        made->addChild(inside);
+        made->setReceivesMouse(true);
+        made->setMouseButton([this, chosenNow = std::move(chosenNow)](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
+            if (button == Hyprtoolkit::Input::MOUSE_BUTTON_LEFT && pressed)
+                defer(chosenNow);
+        });
+        return made;
+    }
+
     CSharedPointer<Hyprtoolkit::IElement> BarPage::styleSection() {
-        const auto section = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        const auto section = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         section->addChild(heading("Style", palette));
         const auto environment = foundation::currentEnvironment();
-        for (const auto& style : desktop::waybarStyles()) {
-            section->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", escapeMarkup(style.name)), palette));
-            section->addChild(paragraph(std::string{style.summary}, palette, true));
-            const auto planned = desktop::planWaybarStyle(style, environment);
-            if (!planned) {
-                section->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
-                continue;
-            }
-            if (std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); })) {
-                section->addChild(paragraph("Your Waybar uses this style.", palette));
-                continue;
-            }
-            const auto row = leftRow();
-            row->addChild(button("Review changes", 160, true, [this, style] { defer([this, style] { showReview(style); }); }));
-            section->addChild(row);
+
+        // The chosen style at Waybar's own size, then what applying it would do.
+        section->addChild(barPreview(selected, 1.0));
+        const auto actions = leftRow();
+        const auto planned = desktop::planWaybarStyle(selected, environment);
+        if (!planned) {
+            section->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
+        } else if (std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); })) {
+            actions->addChild(markupLine(std::format("{}  Your Waybar uses {}, {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
+                                                     escapeMarkup(std::string{shapeInfo(selected.shape).name})),
+                                         palette));
+        } else {
+            actions->addChild(button("Review changes", 160, true, [this] { defer([this] { showReview(selected); }); }));
         }
+        if (const auto latest = configuration::latestChange(application::backupsFolder(environment)))
+            actions->addChild(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
+        section->addChild(actions);
         if (!outcome.empty())
             section->addChild(paragraph(outcome, palette));
 
-        if (const auto latest = configuration::latestChange(application::backupsFolder(environment))) {
-            section->addChild(paragraph(std::format("The last change the studio wrote is recorded in {}, with copies of the files it replaced.", recordName(*latest)), palette, true));
-            const auto row = leftRow();
-            row->addChild(button("Undo it", 110, false, [this] { defer([this] { undo(); }); }));
-            section->addChild(row);
+        constexpr double cardScale = 0.42;
+        section->addChild(space(4));
+        section->addChild(markupLine("<span weight=\"600\">Shape</span>", palette));
+        const auto shapes = leftRow(0);
+        shapes->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
+        for (const auto& info : desktop::waybarShapes()) {
+            const desktop::WaybarStyle style{info.shape, selected.palette};
+            shapes->addChild(card(barPreview(style, cardScale), std::string{info.name}, info.shape == selected.shape, [this, style] {
+                selected = style;
+                showOverview();
+            }));
+        }
+        section->addChild(shapes);
+
+        section->addChild(markupLine("<span weight=\"600\">Colours</span>", palette));
+        const auto all     = desktop::waybarPalettes();
+        constexpr auto perRow = static_cast<std::size_t>(cardsPerRow);
+        for (std::size_t first = 0; first < all.size(); first += perRow) {
+            const auto colours = leftRow(0);
+            colours->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
+            for (std::size_t index = first; index < std::min(all.size(), first + perRow); ++index) {
+                const desktop::WaybarStyle style{selected.shape, &all[index]};
+                colours->addChild(card(barPreview(style, cardScale), std::string{all[index].name}, &all[index] == selected.palette, [this, style] {
+                    selected = style;
+                    showOverview();
+                }));
+            }
+            section->addChild(colours);
         }
         return section;
     }
@@ -316,27 +380,42 @@ namespace ui {
         const auto environment  = foundation::currentEnvironment();
         const auto distribution = desktop::currentDistribution();
         const auto copier       = desktop::clipboardProgram(foundation::variable(environment, "PATH").value_or(""));
+        const auto requirements = desktop::waybarRequirements(environment);
+        const bool allMet       = std::ranges::all_of(requirements, [](const auto& requirement) { return requirement.met(); });
 
-        const auto checks = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(18)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-        for (const auto& requirement : desktop::waybarRequirements(environment))
-            checks->addChild(requirementBlock(requirement, distribution, copier, palette, defer));
+        // Once everything is installed and the user dismissed the list, it stays hidden,
+        // until something goes missing again.
+        if (!allMet || !settings.barRequirementsDismissed) {
+            const auto checks = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(18)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            for (const auto& requirement : requirements)
+                checks->addChild(requirementBlock(requirement, distribution, copier, palette, defer));
 
-        const auto config = desktop::waybarConfig(environment);
-        std::string reads;
-        if (!config)
-            reads = "Waybar has no config to read, so it will not start.";
-        else if (config->string().starts_with("/etc/"))
-            reads = std::format("Waybar reads its example config, {}. It was written for Sway, so it shows none of Hyprland's workspaces.", config->string());
-        else
-            reads = std::format("Waybar reads {}.", shortPath(*config));
-        checks->addChild(paragraph(reads, palette));
+            const auto config = desktop::waybarConfig(environment);
+            std::string reads;
+            if (!config)
+                reads = "Waybar has no config to read, so it will not start.";
+            else if (config->string().starts_with("/etc/"))
+                reads = std::format("Waybar reads its example config, {}. It was written for Sway, so it shows none of Hyprland's workspaces.", config->string());
+            else
+                reads = std::format("Waybar reads {}.", shortPath(*config));
+            checks->addChild(paragraph(reads, palette));
 
-        body->addChild(space(4));
-        body->addChild(checks);
-        const auto actions = leftRow();
-        actions->addChild(button("Check again", 140, false, [this] { defer([this] { check(); }); }));
-        body->addChild(actions);
-        body->addChild(space(8));
+            body->addChild(space(4));
+            body->addChild(checks);
+            const auto actions = leftRow();
+            actions->addChild(button("Check again", 140, false, [this] { defer([this] { check(); }); }));
+            if (allMet)
+                actions->addChild(button("Dismiss", 110, false, [this] {
+                    defer([this] {
+                        settings.barRequirementsDismissed = true;
+                        if (const auto saved = application::saveSettings(settings, application::studioFolder(foundation::currentEnvironment())); !saved)
+                            outcome = std::format("The studio could not save its settings: {}.", saved.error());
+                        showOverview();
+                    });
+                }));
+            body->addChild(actions);
+            body->addChild(space(8));
+        }
         body->addChild(styleSection());
     }
 
@@ -352,7 +431,7 @@ namespace ui {
         body->clearChildren();
 
         body->addChild(space(4));
-        body->addChild(heading(std::format("Review: {}", style.name), palette));
+        body->addChild(heading(std::format("Review: {}, {}", style.palette->name, shapeInfo(style.shape).name), palette));
         const bool off = waybar && !waybar->running();
         body->addChild(paragraph(std::format("Applying writes these files. A copy of each file it replaces is kept first, so it can be undone. {}",
                                              off ? "Waybar is off, so it will not be restarted." : "Waybar then restarts to read them."),
@@ -368,7 +447,7 @@ namespace ui {
     void BarPage::apply() {
         if (!reviewing)
             return;
-        const auto record = configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()), std::format("Waybar style: {}", reviewing->name));
+        const auto record = configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()), std::format("Waybar style: {}, {}", reviewing->palette->name, shapeInfo(reviewing->shape).name));
         if (!record) {
             outcome = std::format("Nothing was written: {}.", record.error());
         } else if (waybar && waybar->running()) {
