@@ -46,6 +46,9 @@ namespace ui {
       private:
         void showOverview();
         void showReview(const desktop::WaybarStyle& style);
+        // Waybar's files for `style`, and the rules in the Hyprland config that float what
+        // the bar opens, each only where it changes something.
+        [[nodiscard]] static std::expected<std::vector<configuration::FileChange>, std::string> plan(const desktop::WaybarStyle& style);
         void apply();
         void undo();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> styleSection();

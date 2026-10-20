@@ -216,4 +216,16 @@ namespace {
         EXPECT_EQ(desktop::currentWaybarStyle(environment, system), style);
     }
 
+    TEST(Waybar, FloatsWhatTheBarOpensOnce) {
+        const auto config = std::string{"hl.config({})\n"};
+        const auto ruled  = desktop::withPopupRules(config);
+        EXPECT_TRUE(ruled.starts_with(config));
+        EXPECT_TRUE(ruled.contains("name  = \"waybar-volume\""));
+        EXPECT_TRUE(ruled.contains("match = { class = \"^(org.pulseaudio.pavucontrol)$\" }"));
+        EXPECT_TRUE(ruled.contains("name  = \"waybar-network\""));
+        EXPECT_TRUE(ruled.contains("    float = true,\n"));
+        // Rules already there are left alone.
+        EXPECT_EQ(desktop::withPopupRules(ruled), ruled);
+    }
+
 }

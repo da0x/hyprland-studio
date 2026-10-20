@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/bar-page.hpp"
 
+#include "application/config-check.hpp"
 #include "application/settings.hpp"
+#include "configuration/main-config.hpp"
 #include "application/studio-folder.hpp"
 #include "configuration/diff.hpp"
 #include "application/studio-folder.hpp"
@@ -190,9 +192,24 @@ namespace ui {
         fillStyleStatus();
     }
 
+    std::expected<std::vector<configuration::FileChange>, std::string> BarPage::plan(const desktop::WaybarStyle& style) {
+        auto planned = desktop::planWaybarStyle(style, foundation::currentEnvironment());
+        if (!planned)
+            return planned;
+        std::erase_if(*planned, [](const auto& change) { return !change.changes(); });
+        if (const auto config = configuration::mainConfig(configuration::studioLaunch())) {
+            auto rules = desktop::planPopupRules(*config);
+            if (!rules)
+                return std::unexpected{rules.error()};
+            if (*rules)
+                planned->push_back(std::move(**rules));
+        }
+        return planned;
+    }
+
     void BarPage::fillStyleStatus() {
         const auto environment = foundation::currentEnvironment();
-        const auto planned     = desktop::planWaybarStyle(selected, environment);
+        const auto planned     = plan(selected);
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), "Waybar").has_value();
         const bool same        = planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); });
         const auto shown       = std::format("{}|{}|{}|{}|{}", planned ? "" : planned.error(), same ? selected.palette->name : "", same ? shapeInfo(selected.shape).name : "", undoable,
@@ -267,7 +284,7 @@ namespace ui {
     }
 
     void BarPage::showReview(const desktop::WaybarStyle& style) {
-        auto planned = desktop::planWaybarStyle(style, foundation::currentEnvironment());
+        auto planned = plan(style);
         if (!planned) {
             outcome = planned.error();
             return showOverview();
@@ -280,8 +297,10 @@ namespace ui {
         body->addChild(space(4));
         body->addChild(heading(std::format("Review: {}, {}", style.palette->name, shapeInfo(style.shape).name), palette));
         const bool off = !waybar.running();
-        body->addChild(paragraph(std::format("Applying writes these files. A copy of each file it replaces is kept first, so it can be undone. {}",
-                                             off ? "Waybar is off, so it will not be restarted." : "Waybar then restarts to read them."),
+        const bool rules = std::ranges::any_of(changes, [](const auto& change) { return change.file.extension() == ".lua"; });
+        body->addChild(paragraph(std::format("Applying writes these files. A copy of each file it replaces is kept first, so it can be undone. {}{}",
+                                             off ? "Waybar is off, so it will not be restarted." : "Waybar then restarts to read them.",
+                                             rules ? " The Hyprland config gets rules that float the volume control and the network settings the bar opens, under its right end." : ""),
                                  palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
         diff.setRows(diffRows(changes, *palette));
@@ -301,6 +320,16 @@ namespace ui {
                 if (!reviewing)
                     showOverview();
             });
+            // Hyprland reads the rules by itself; a mistake in them is undone.
+            const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(foundation::currentEnvironment(), "PATH").value_or(""));
+            if (hyprctl && std::ranges::any_of(changes, [](const auto& change) { return change.file.extension() == ".lua"; }))
+                application::checkHyprlandConfig(loop, *hyprctl, *record, [this](std::optional<std::string> problem) {
+                    if (!problem)
+                        return;
+                    outcome = *problem;
+                    if (!reviewing)
+                        showOverview();
+                });
         }
         showOverview();
     }
