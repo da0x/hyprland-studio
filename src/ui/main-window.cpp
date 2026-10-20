@@ -6,6 +6,7 @@
 #include "ui/keybindings-page.hpp"
 #include "ui/restyle.hpp"
 #include "ui/terminal-page.hpp"
+#include "ui/accessibility-page.hpp"
 #include "ui/theme-page.hpp"
 #include "ui/wallpaper-page.hpp"
 #include "ui/texts.hpp"
@@ -143,6 +144,7 @@ namespace ui {
         WallpaperPage   wallpaper{palette, defer, loop};
         ThemePage       theme{palette, defer, loop};
         TerminalPage    terminal{palette, defer};
+        AccessibilityPage accessibility{palette, defer, loop};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
         opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
@@ -179,6 +181,7 @@ namespace ui {
         addPageButton("Wallpaper", wallpaper.element());
         addPageButton("Theme", theme.element());
         addPageButton("Terminal", terminal.element());
+        addPageButton("Accessibility", accessibility.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
         const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
@@ -210,12 +213,29 @@ namespace ui {
         window->m_events.closeRequest.listenStatic(quit);
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        theme.onRecoloured([&keybindings, &bar, &wallpaper, &terminal] {
+        const auto redraw = [&keybindings, &bar, &wallpaper, &terminal, &accessibility] {
             restyleAll();
             keybindings.restyle();
             terminal.restyle();
             bar.restyle();
             wallpaper.restyle();
+            accessibility.restyle();
+        };
+        theme.onRecoloured(redraw);
+        // The terminal's themes follow the contrast and colour vision; the studio's text, the size.
+        accessibility.onApplied([&terminal, palette, redraw, defer](const desktop::Accessibility& now) {
+            terminal.adjust(now.contrast, now.vision);
+            auto&      sizes  = palette->m_vars;
+            const auto scaled = desktop::toolkitTextSizes(now.textScale);
+            const auto size   = [&scaled](std::string_view key) { return std::stoi(std::ranges::find(scaled, key, &std::pair<std::string, std::string>::first)->second); };
+            const std::array current{sizes.h1Size, sizes.h2Size, sizes.h3Size, sizes.fontSize, sizes.smallFontSize};
+            sizes.h1Size        = size("h1_size");
+            sizes.h2Size        = size("h2_size");
+            sizes.h3Size        = size("h3_size");
+            sizes.fontSize      = size("font_size");
+            sizes.smallFontSize = size("small_font_size");
+            if (current != std::array{sizes.h1Size, sizes.h2Size, sizes.h3Size, sizes.fontSize, sizes.smallFontSize})
+                defer(redraw);
         });
 
 

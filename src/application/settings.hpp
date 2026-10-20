@@ -19,6 +19,11 @@ namespace application {
         // The fit of the wallpaper last kept with awww, which awww does not report back:
         // "cover", "contain" or "fill".
         std::string awwwFit = "cover";
+        // The contrast and colour vision chosen on the Accessibility page, which every
+        // terminal theme follows: "standard" or "high", and "typical", "red-green" or
+        // "blue-yellow". Empty before the user chose.
+        std::string contrast;
+        std::string vision;
     };
 
     // Missing or unreadable settings are the defaults.

@@ -35,6 +35,10 @@ namespace ui {
         // Draws the page again, after the studio's colours changed.
         void restyle();
 
+        // Shows every theme adjusted for this contrast and colour vision, set on the
+        // Accessibility page, keeping the same theme chosen.
+        void adjust(desktop::Contrast wanted, desktop::Vision vision);
+
       private:
         void showOverview();
         void showReview();
@@ -49,8 +53,6 @@ namespace ui {
         [[nodiscard]] std::span<const desktop::TerminalTheme>                  themes() const;
         // The themes shown: the dark ones or the light ones.
         [[nodiscard]] std::vector<const desktop::TerminalTheme*>               shownThemes() const;
-        // Chooses how every theme is adjusted, keeping the same theme chosen.
-        void                                                                   adjust(desktop::Contrast wanted, desktop::Vision vision);
         // A short terminal session in a theme, made once and kept: large or for a card.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> sessionOf(const desktop::TerminalTheme* theme, bool large);
 

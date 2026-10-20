@@ -3,6 +3,7 @@
 
 #include "configuration/file-change.hpp"
 #include "configuration/main-config.hpp"
+#include "desktop/gsettings.hpp"
 #include "desktop/waybar-style.hpp"
 #include "foundation/environment.hpp"
 
@@ -36,16 +37,9 @@ namespace desktop {
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTheme(const Palette& palette, Shape shape, const configuration::MainConfig& config,
                                                                                                const foundation::Environment& environment);
 
-    // A GTK setting in org.gnome.desktop.interface: what it is now and what the palette wants.
-    struct GtkSetting {
-        std::string key;
-        std::string current;
-        std::string wanted;
-    };
-
     // The GTK settings that differ from what `palette` wants: color-scheme, dark or light,
     // and accent-color. Empty when gsettings is not installed.
-    [[nodiscard]] std::vector<GtkSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment);
+    [[nodiscard]] std::vector<GSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment);
 
     // wofi's stylesheet for the palette.
     [[nodiscard]] std::string wofiStyle(const Palette& palette);

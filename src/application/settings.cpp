@@ -31,18 +31,24 @@ namespace application {
             settings.wallpaperProgram               = wallpaper->value("program", std::string{});
             settings.awwwFit                        = wallpaper->value("awwwFit", std::string{"cover"});
         }
+        if (const auto accessibility = json.find("accessibility"); accessibility != json.end() && accessibility->is_object()) {
+            settings.contrast = accessibility->value("contrast", std::string{});
+            settings.vision   = accessibility->value("vision", std::string{});
+        }
         return settings;
     }
 
     std::expected<void, std::string> saveSettings(const Settings& settings, const std::filesystem::path& studioFolder) {
         auto json = readFile(studioFolder);
-        for (const auto* page : {"bar", "wallpaper"})
+        for (const auto* page : {"bar", "wallpaper", "accessibility"})
             if (!json[page].is_object())
                 json[page] = nlohmann::json::object();
         json["bar"]["requirementsDismissed"]       = settings.barRequirementsDismissed;
         json["wallpaper"]["requirementsDismissed"] = settings.wallpaperRequirementsDismissed;
         json["wallpaper"]["program"]               = settings.wallpaperProgram;
         json["wallpaper"]["awwwFit"]               = settings.awwwFit;
+        json["accessibility"]["contrast"]          = settings.contrast;
+        json["accessibility"]["vision"]            = settings.vision;
         return configuration::writeWhole(studioFolder / "settings.json", json.dump(4) + "\n");
     }
 

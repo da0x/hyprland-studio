@@ -72,8 +72,13 @@ config that start the wallpaper program at login and turn off Hyprland's own wal
 `~/.config/hypr/hyprtoolkit.conf`, wofi's and dunst's colours (below), and
 from the Terminal page, kitty's `current-theme.conf` and the line in `kitty.conf` that
 includes it, wofi's `style.css`, dunst's `dunstrc` (a first one starts
-as a copy of the system's), and, outside any file, GTK's `color-scheme` and `accent-color`
-through `gsettings`, whose old values are kept with the change so Undo can restore them (if your config is a link, the file it
+as a copy of the system's); from the Accessibility page, `animations.enabled` and
+`decoration.screen_shader` in `hl.config` (added in a call of their own at the end when the
+config does not set them), the `XCURSOR_SIZE` and `HYPRCURSOR_SIZE` lines, a colour-correction
+shader in `~/.config/hypr/shaders/`, and the text sizes in `hyprtoolkit.conf`; and, outside
+any file, GTK's `color-scheme` and `accent-color`, and the desktop's `high-contrast`,
+`reduced-motion`, `enable-animations`, `text-scaling-factor` and `cursor-size`, through
+`gsettings`, whose old values are kept with the change so Undo can restore them (if your config is a link, the file it
 points at, which the review names); an image you add from files, copied into your
 wallpapers folder under a new random name (a UUID, with the image's own extension); and its own folder, `~/.config/hyprland-studio/`: its settings
 (window size, last page, which areas you allowed, whether you dismissed a page's checklist), the effects you set up (plain Hyprland

@@ -51,6 +51,23 @@ hl.config({ decoration = { rounding = 10 } })
         EXPECT_FALSE(configuration::withLuaConfigValue("local c = {}\nhl.config(c)\n", {"general"}, "{}").has_value());
     }
 
+    TEST(LuaEdit, AddsACallForAValueNotWrittenInPlace) {
+        const auto edited = configuration::withLuaConfigValueSet(config, {"decoration", "screen_shader"}, "\"/s.frag\"");
+        EXPECT_EQ(edited, std::string{config} + "\nhl.config({ decoration = { screen_shader = \"/s.frag\" } })\n");
+        // Then found in place, and changed there.
+        const auto again = configuration::withLuaConfigValueSet(edited, {"decoration", "screen_shader"}, "\"\"");
+        EXPECT_EQ(again, std::string{config} + "\nhl.config({ decoration = { screen_shader = \"\" } })\n");
+        EXPECT_EQ(configuration::withLuaConfigValueSet(config, {"decoration", "rounding"}, "4"), *configuration::withLuaConfigValue(config, {"decoration", "rounding"}, "4"));
+    }
+
+    TEST(LuaEdit, SetsAnEnvironmentVariable) {
+        const auto config = "-- hl.env(\"XCURSOR_SIZE\", \"16\")\nhl.env(\"XCURSOR_SIZE\", \"24\")\nhl.env(\"OTHER\", \"1\")\n";
+        EXPECT_EQ(configuration::luaEnv(config, "XCURSOR_SIZE"), std::optional<std::string>{"24"});
+        EXPECT_EQ(configuration::withLuaEnv(config, "XCURSOR_SIZE", "48"), "-- hl.env(\"XCURSOR_SIZE\", \"16\")\nhl.env(\"XCURSOR_SIZE\", \"48\")\nhl.env(\"OTHER\", \"1\")\n");
+        EXPECT_EQ(configuration::withLuaEnv("hl.config({})", "HYPRCURSOR_SIZE", "32"), "hl.config({})\nhl.env(\"HYPRCURSOR_SIZE\", \"32\")\n");
+        EXPECT_FALSE(configuration::luaEnv(config, "MISSING").has_value());
+    }
+
     TEST(HyprlangEdit, SetsKeysOutsideBlocksAndAddsMissingOnes) {
         const auto config = "# colours\naccent = 0xff00ffcc   # mine\nwallpaper {\n    accent = 1\n}\ntext=0xffdadada\n";
         const auto edited = configuration::withHyprlangValues(config, {{"accent", "0xffcba6f7"}, {"text", "0xffcdd6f4"}, {"base", "0xff313244"}});

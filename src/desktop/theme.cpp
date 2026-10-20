@@ -115,25 +115,10 @@ window {{
                            palette.name, palette.accent, palette.base, palette.text, palette.surface, palette.text, palette.accent, palette.onAccent);
     }
 
-    std::vector<GtkSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment) {
-        const auto gsettings = findProgram("gsettings", foundation::variable(environment, "PATH").value_or(""));
-        if (!gsettings)
-            return {};
-        std::vector<GtkSetting> changes;
-        const std::array<std::pair<std::string, std::string>, 2> wanted{{
-            {"color-scheme", palette.dark ? "'prefer-dark'" : "'prefer-light'"},
-            {"accent-color", std::format("'{}'", palette.gnomeAccent)},
-        }};
-        for (const auto& [key, value] : wanted) {
-            auto current = readCommand(*gsettings, {"get", "org.gnome.desktop.interface", key});
-            if (!current)
-                continue;
-            while (!current->empty() && (current->back() == '\n' || current->back() == ' '))
-                current->pop_back();
-            if (*current != value)
-                changes.push_back({key, *current, value});
-        }
-        return changes;
+    std::vector<GSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment) {
+        return gsettingChanges({{"org.gnome.desktop.interface", "color-scheme", "", palette.dark ? "'prefer-dark'" : "'prefer-light'"},
+                                {"org.gnome.desktop.interface", "accent-color", "", std::format("'{}'", palette.gnomeAccent)}},
+                               environment);
     }
 
     std::filesystem::path hyprtoolkitConfigFile(const foundation::Environment& environment) {

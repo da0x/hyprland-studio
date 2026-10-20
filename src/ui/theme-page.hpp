@@ -76,7 +76,7 @@ namespace ui {
         const desktop::Palette*                                              inUse    = nullptr;
         bool                                                                 reviewing = false;
         std::vector<configuration::FileChange>                               changes;
-        std::vector<desktop::GtkSetting>                                     gtk;
+        std::vector<desktop::GSetting>                                       gtk;
         std::string                                                          outcome;
         std::function<void()>                                                recoloured;
     };

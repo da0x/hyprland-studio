@@ -311,13 +311,7 @@ namespace ui {
         }
         // GTK's settings live in dconf, not in a file: their old values go beside the change's
         // record, for Undo, before they are set.
-        if (const auto gsettings = desktop::findProgram("gsettings", foundation::variable(environment, "PATH").value_or("")); gsettings && !gtk.empty()) {
-            std::ofstream kept{*record / "gsettings"};
-            for (const auto& setting : gtk) {
-                kept << setting.key << '\t' << setting.current << '\n';
-                (void)desktop::readCommand(*gsettings, {"set", "org.gnome.desktop.interface", setting.key, setting.wanted});
-            }
-        }
+        desktop::setGsettings(gtk, *record, environment);
         reloadApps();
 
         const auto changed = [this](auto test) { return std::ranges::any_of(changes, test); };
@@ -384,15 +378,7 @@ namespace ui {
             outcome = std::format("Nothing was undone: {}.", undone.error());
         } else {
             // GTK's settings as they were before the change.
-            if (const auto gsettings = desktop::findProgram("gsettings", foundation::variable(environment, "PATH").value_or(""))) {
-                std::ifstream kept{*latest / "gsettings"};
-                std::string   line;
-                while (std::getline(kept, line)) {
-                    const auto tab = line.find('\t');
-                    if (tab != std::string::npos)
-                        (void)desktop::readCommand(*gsettings, {"set", "org.gnome.desktop.interface", line.substr(0, tab), line.substr(tab + 1)});
-                }
-            }
+            desktop::restoreGsettings(*latest, environment);
             reloadApps();
             outcome = "Undone.";
             waybar.restart();

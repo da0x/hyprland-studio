@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/terminal-page.hpp"
 
+#include "application/settings.hpp"
 #include "application/studio-folder.hpp"
+#include "desktop/accessibility.hpp"
 #include "desktop/clipboard.hpp"
 #include "desktop/process.hpp"
 #include "desktop/system.hpp"
@@ -66,13 +68,20 @@ namespace ui {
         fontSize               = desktop::kittyFontSize(environment);
         fontFamily             = desktop::kittyFontFamily(environment);
         fonts                  = desktop::terminalFonts();
-        // The adjustments are those of the theme in use, so the page opens on what kitty shows.
+        // The adjustments are those chosen on the Accessibility page; before any were, those
+        // of the theme in use, so the page opens on what kitty shows.
         selected               = desktop::currentTerminal(environment);
         if (selected != nullptr) {
             contrast = selected->contrast;
             vision   = selected->vision;
-        } else {
-            selected = &themes().front();
+        }
+        const auto settings = application::loadSettings(application::studioFolder(environment));
+        contrast            = desktop::contrastNamed(settings.contrast).value_or(contrast);
+        vision              = desktop::visionNamed(settings.vision).value_or(vision);
+        if (selected == nullptr || selected->contrast != contrast || selected->vision != vision) {
+            const auto bundled = desktop::terminalThemes();
+            const auto found   = selected != nullptr ? std::ranges::find(bundled, selected->name, &desktop::TerminalTheme::name) : bundled.end();
+            selected           = &themes()[found != bundled.end() ? static_cast<std::size_t>(found - bundled.begin()) : 0];
         }
         kind = selected->dark ? Kind::dark : Kind::light;
         const auto shown = shownThemes();
@@ -139,7 +148,8 @@ namespace ui {
         contrast         = wantedContrast;
         vision           = wantedVision;
         selected         = &themes()[index];
-        showOverview();
+        if (!reviewing)
+            showOverview();
     }
 
     CSharedPointer<Hyprtoolkit::IElement> TerminalPage::sessionOf(const desktop::TerminalTheme* theme, bool large) {
@@ -201,32 +211,8 @@ namespace ui {
             return;
         }
 
-        // Accessibility first, since it applies to every theme below it.
-        const auto access = leftRow();
-        access->rebuild()->gap(4)->commence();
-        const auto label = [this](const char* text) {
-            const auto made = markupLine(text, palette);
-            made->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-            return made;
-        };
-        const auto choice = [this](std::string text, double width, desktop::Contrast wantedContrast, desktop::Vision wantedVision) {
-            return button(std::move(text), width, contrast == wantedContrast && vision == wantedVision,
-                          [this, wantedContrast, wantedVision] { defer([this, wantedContrast, wantedVision] { adjust(wantedContrast, wantedVision); }); });
-        };
-        const auto across = [](double width) { return Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, 1.0}})->commence(); };
-        access->addChild(label("Contrast"));
-        access->addChild(across(4));
-        access->addChild(choice("Standard", 100, desktop::Contrast::standard, vision));
-        access->addChild(choice("High", 80, desktop::Contrast::high, vision));
-        access->addChild(across(28));
-        access->addChild(label("Colour vision"));
-        access->addChild(across(4));
-        access->addChild(choice("Typical", 90, contrast, desktop::Vision::typical));
-        access->addChild(choice("Red-green", 110, contrast, desktop::Vision::redGreen));
-        access->addChild(choice("Blue-yellow", 120, contrast, desktop::Vision::blueYellow));
-        body->addChild(access);
-
-        // Dark or light, and which eight of them.
+        // Dark or light, and which eight of them. Contrast and colour vision are on the
+        // Accessibility page, and named in the footer.
         const auto shown = shownThemes();
         const auto top   = leftRow();
         top->rebuild()->gap(4)->commence();
