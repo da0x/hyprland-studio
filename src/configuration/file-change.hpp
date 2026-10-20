@@ -20,6 +20,10 @@ namespace configuration {
         [[nodiscard]] bool         changes() const { return current != proposed; }
     };
 
+    // Writes `text` to `file` whole, through a temporary file beside it and a rename, so the
+    // file is never half written. Keeps the permissions of a file that is already there.
+    [[nodiscard]] std::expected<void, std::string> writeWhole(const std::filesystem::path& file, std::string_view text);
+
     // Reads what `file` holds now. Refuses a symbolic link, which the studio never replaces
     // with a real file, and anything else that is not a regular file.
     [[nodiscard]] std::expected<FileChange, std::string> planFile(const std::filesystem::path& file, std::string proposed);

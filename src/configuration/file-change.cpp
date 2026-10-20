@@ -34,45 +34,6 @@ namespace configuration {
             return text.str();
         }
 
-        // Writes `text` to `file` through a temporary file beside it and a rename, keeping the
-        // permissions of a file that is already there.
-        std::expected<void, std::string> writeWhole(const std::filesystem::path& file, std::string_view text) {
-            std::error_code error;
-            std::filesystem::create_directories(file.parent_path(), error);
-            if (error)
-                return std::unexpected{std::format("cannot create {}: {}", file.parent_path().string(), error.message())};
-
-            mode_t mode = 0644;
-            if (struct stat existing{}; ::stat(file.c_str(), &existing) == 0)
-                mode = existing.st_mode & 07777;
-
-            const auto temporary  = file.parent_path() / std::format(".{}.hyprland-studio-{}", file.filename().string(), ::getpid());
-            const int  descriptor = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, mode); // NOLINT(cppcoreguidelines-pro-type-vararg): POSIX
-            if (descriptor < 0)
-                return std::unexpected{std::format("cannot write {}: {}", temporary.string(), errorText(errno))};
-            std::size_t written = 0;
-            bool        failed  = false;
-            while (written < text.size()) {
-                const auto count = ::write(descriptor, text.data() + written, text.size() - written);
-                if (count < 0 && errno == EINTR)
-                    continue;
-                if (count <= 0) {
-                    failed = true;
-                    break;
-                }
-                written += static_cast<std::size_t>(count);
-            }
-            failed = failed || ::fchmod(descriptor, mode) != 0 || ::fsync(descriptor) != 0;
-            const int saved = errno;
-            ::close(descriptor);
-            if (failed || ::rename(temporary.c_str(), file.c_str()) != 0) {
-                const auto reason = errorText(failed ? saved : errno);
-                std::filesystem::remove(temporary, error);
-                return std::unexpected{std::format("cannot write {}: {}", file.string(), reason)};
-            }
-            return {};
-        }
-
         std::filesystem::path newRecord(const std::filesystem::path& backups) {
             const auto now   = std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now())};
             const auto stamp = std::format("{:%Y-%m-%d-%H%M%S}", now);
@@ -107,6 +68,43 @@ namespace configuration {
             return record / std::format("{}.{}", index + 1, which);
         }
 
+    }
+
+    std::expected<void, std::string> writeWhole(const std::filesystem::path& file, std::string_view text) {
+        std::error_code error;
+        std::filesystem::create_directories(file.parent_path(), error);
+        if (error)
+            return std::unexpected{std::format("cannot create {}: {}", file.parent_path().string(), error.message())};
+
+        mode_t mode = 0644;
+        if (struct stat existing{}; ::stat(file.c_str(), &existing) == 0)
+            mode = existing.st_mode & 07777;
+
+        const auto temporary  = file.parent_path() / std::format(".{}.hyprland-studio-{}", file.filename().string(), ::getpid());
+        const int  descriptor = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, mode); // NOLINT(cppcoreguidelines-pro-type-vararg): POSIX
+        if (descriptor < 0)
+            return std::unexpected{std::format("cannot write {}: {}", temporary.string(), errorText(errno))};
+        std::size_t written = 0;
+        bool        failed  = false;
+        while (written < text.size()) {
+            const auto count = ::write(descriptor, text.data() + written, text.size() - written);
+            if (count < 0 && errno == EINTR)
+                continue;
+            if (count <= 0) {
+                failed = true;
+                break;
+            }
+            written += static_cast<std::size_t>(count);
+        }
+        failed = failed || ::fchmod(descriptor, mode) != 0 || ::fsync(descriptor) != 0;
+        const int saved = errno;
+        ::close(descriptor);
+        if (failed || ::rename(temporary.c_str(), file.c_str()) != 0) {
+            const auto reason = errorText(failed ? saved : errno);
+            std::filesystem::remove(temporary, error);
+            return std::unexpected{std::format("cannot write {}: {}", file.string(), reason)};
+        }
+        return {};
     }
 
     std::expected<FileChange, std::string> planFile(const std::filesystem::path& file, std::string proposed) {
