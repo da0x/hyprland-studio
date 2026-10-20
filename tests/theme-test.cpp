@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "configuration/file-change.hpp"
+#include "desktop/terminal-theme.hpp"
 #include "desktop/theme.hpp"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -73,27 +75,51 @@ namespace {
         ASSERT_NE(find("dunstrc"), nullptr);
         EXPECT_TRUE(find("dunstrc")->proposed.starts_with("[global]\n    frame_color = \"#88c0d0\"\n"));
         EXPECT_TRUE(find("dunstrc")->proposed.contains("[urgency_critical]\n    background = \"#2e3440\"\n"));
-        // The terminal is themed on its own.
+        // The terminal has themes of its own.
         EXPECT_EQ(find("current-theme.conf"), nullptr);
-        const auto terminal = desktop::planTerminal(nord, environment);
-        ASSERT_TRUE(terminal.has_value()) << terminal.error();
-        ASSERT_EQ(terminal->size(), 2U);
-        EXPECT_TRUE((*terminal)[0].proposed.contains("color14                 #8fbcbb\n"));
-        EXPECT_EQ((*terminal)[1].proposed, "font_size 12\ninclude current-theme.conf\n");
-        ASSERT_TRUE(configuration::applyChanges(*terminal, root / "backups", "Terminal").has_value());
-        EXPECT_EQ(desktop::currentTerminal(environment), &nord);
+        EXPECT_EQ(find("kitty.conf"), nullptr);
         std::filesystem::remove_all(root);
     }
 
-    TEST(Theme, SuggestsADarkTerminalForALightDesktop) {
-        const auto& latte = desktop::waybarPalettes()[1];
-        ASSERT_FALSE(latte.dark);
-        EXPECT_EQ(&desktop::terminalFor(latte), &desktop::waybarPalettes()[0]);
-        // Latte's own terminal colours stay available to choose.
-        EXPECT_TRUE(desktop::kittyTheme(latte).contains("background              #eff1f5\n"));
-        for (const auto& palette : desktop::waybarPalettes())
-            if (palette.dark)
-                EXPECT_EQ(&desktop::terminalFor(palette), &palette);
+    TEST(Terminal, BundlesDarkAndLightThemesReadFromTheirFiles) {
+        const auto themes = desktop::terminalThemes();
+        ASSERT_EQ(themes.size(), 24U);
+        const auto dark = std::ranges::count_if(themes, &desktop::TerminalTheme::dark);
+        EXPECT_EQ(dark, 15);
+        const auto dracula = std::ranges::find(themes, std::string{"Dracula"}, &desktop::TerminalTheme::name);
+        ASSERT_NE(dracula, themes.end());
+        EXPECT_EQ(dracula->background, "#282a36");
+        EXPECT_EQ(dracula->colours[1], "#ff5555");
+        EXPECT_TRUE(dracula->dark);
+        const auto latte = std::ranges::find(themes, std::string{"Catppuccin Latte"}, &desktop::TerminalTheme::name);
+        ASSERT_NE(latte, themes.end());
+        EXPECT_FALSE(latte->dark);
+        for (const auto& theme : themes)
+            for (const auto& colour : theme.colours)
+                EXPECT_EQ(colour.size(), 7U) << theme.name;
+    }
+
+    TEST(Terminal, WritesTheThemeFileAsKittyDoesAndRecognisesIt) {
+        static std::atomic<int> counter = 0;
+        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-terminal-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        std::filesystem::create_directories(root / "bin");
+        std::ofstream{root / "bin" / "kitty"} << "#!/bin/sh\n";
+        std::filesystem::permissions(root / "bin" / "kitty", std::filesystem::perms::owner_all);
+        const foundation::Environment environment{{"HOME", (root / "home").string()}, {"PATH", (root / "bin").string()}};
+        const auto&                   nord = *std::ranges::find(desktop::terminalThemes(), std::string{"Nord"}, &desktop::TerminalTheme::name);
+
+        EXPECT_EQ(desktop::currentTerminal(environment), nullptr);
+        const auto planned = desktop::planTerminal(nord, environment);
+        ASSERT_TRUE(planned.has_value()) << planned.error();
+        ASSERT_EQ(planned->size(), 2U);
+        EXPECT_EQ((*planned)[0].proposed, nord.file);
+        EXPECT_EQ((*planned)[1].proposed, "include current-theme.conf\n");
+        ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Terminal").has_value());
+        EXPECT_EQ(desktop::currentTerminal(environment), &nord);
+        const auto again = desktop::planTerminal(nord, environment);
+        ASSERT_TRUE(again.has_value());
+        EXPECT_TRUE(again->empty());
+        std::filesystem::remove_all(root);
     }
 
 }

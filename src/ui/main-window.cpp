@@ -5,6 +5,7 @@
 #include "ui/bar-page.hpp"
 #include "ui/keybindings-page.hpp"
 #include "ui/restyle.hpp"
+#include "ui/terminal-page.hpp"
 #include "ui/theme-page.hpp"
 #include "ui/wallpaper-page.hpp"
 #include "ui/texts.hpp"
@@ -141,6 +142,7 @@ namespace ui {
         BarPage         bar{palette, defer, loop};
         WallpaperPage   wallpaper{palette, defer, loop};
         ThemePage       theme{palette, defer, loop};
+        TerminalPage    terminal{palette, defer};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
         opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
@@ -176,6 +178,7 @@ namespace ui {
         addPageButton("Bar", bar.element());
         addPageButton("Wallpaper", wallpaper.element());
         addPageButton("Theme", theme.element());
+        addPageButton("Terminal", terminal.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
         const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
@@ -207,9 +210,10 @@ namespace ui {
         window->m_events.closeRequest.listenStatic(quit);
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        theme.onRecoloured([&keybindings, &bar, &wallpaper] {
+        theme.onRecoloured([&keybindings, &bar, &wallpaper, &terminal] {
             restyleAll();
             keybindings.restyle();
+            terminal.restyle();
             bar.restyle();
             wallpaper.restyle();
         });

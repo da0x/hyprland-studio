@@ -44,24 +44,7 @@ namespace desktop {
             return findProgram(program, foundation::variable(environment, "PATH").value_or("")).has_value();
         }
 
-        // The change to `file` that `edit` makes of what it holds now (or of `start` when it
-        // does not exist). A link is followed: the file it points at is the one changed.
-        std::expected<std::optional<configuration::FileChange>, std::string> planEdit(std::filesystem::path file, const std::function<std::string(std::string_view)>& edit,
-                                                                                       std::string_view start = {}) {
-            std::error_code error;
-            if (std::filesystem::is_symlink(file, error)) {
-                file = std::filesystem::canonical(file, error);
-                if (error)
-                    return std::unexpected{std::format("cannot follow {}: {}", file.string(), error.message())};
-            }
-            auto change = configuration::planFile(file, "");
-            if (!change)
-                return std::unexpected{change.error()};
-            change->proposed = edit(change->current ? std::string_view{*change->current} : start);
-            if (!change->changes())
-                return std::nullopt;
-            return std::optional{std::move(*change)};
-        }
+        using configuration::planEdit;
 
         const std::vector<std::string_view> activePath{"general", "col", "active_border"};
         const std::vector<std::string_view> inactivePath{"general", "col", "inactive_border"};
@@ -82,28 +65,6 @@ namespace desktop {
             {"text", argb(palette.text)},             {"bright_text", argb(palette.text)},     {"link_text", argb(palette.audio)},
             {"accent", argb(palette.accent)},         {"accent_secondary", argb(palette.network)},
         };
-    }
-
-    std::string kittyTheme(const Palette& palette) {
-        auto text = std::format("# {}\n\n"
-                                "foreground              {}\n"
-                                "background              {}\n"
-                                "selection_foreground    {}\n"
-                                "selection_background    {}\n"
-                                "cursor                  {}\n"
-                                "cursor_text_color       {}\n"
-                                "url_color               {}\n"
-                                "active_border_color     {}\n"
-                                "inactive_border_color   {}\n"
-                                "active_tab_foreground   {}\n"
-                                "active_tab_background   {}\n"
-                                "inactive_tab_foreground {}\n"
-                                "inactive_tab_background {}\n\n",
-                                palette.name, palette.text, palette.base, palette.text, palette.selection, palette.cursor, palette.base, palette.audio, palette.accent,
-                                palette.raised, palette.onAccent, palette.accent, palette.subtle, palette.surface);
-        for (std::size_t index = 0; index < palette.terminal.size(); ++index)
-            text += std::format("color{:<2}                 {}\n", index, palette.terminal[index]);
-        return text;
     }
 
     std::string wofiStyle(const Palette& palette) {
@@ -173,47 +134,6 @@ window {{
                 changes.push_back({key, *current, value});
         }
         return changes;
-    }
-
-    const Palette& terminalFor(const Palette& desktop) {
-        for (const auto& candidate : waybarPalettes())
-            if (!desktop.terminalFrom.empty() && candidate.name == desktop.terminalFrom)
-                return candidate;
-        return desktop;
-    }
-
-    std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const Palette& palette, const foundation::Environment& environment) {
-        std::vector<configuration::FileChange> changes;
-        if (!installed("kitty", environment))
-            return changes;
-        const auto home = configHome(environment);
-        std::vector<std::expected<std::optional<configuration::FileChange>, std::string>> more;
-        // kitty's own convention: the colours in current-theme.conf, included from kitty.conf.
-        more.push_back(planEdit(home / "kitty" / "current-theme.conf", [&palette](std::string_view) { return kittyTheme(palette); }));
-        more.push_back(planEdit(home / "kitty" / "kitty.conf", [](std::string_view text) {
-            std::string result{text};
-            if (configuration::hasLine(result, "include current-theme.conf"))
-                return result;
-            if (!result.empty() && !result.ends_with('\n'))
-                result += '\n';
-            return result + "include current-theme.conf\n";
-        }));
-        for (auto& planned : more) {
-            if (!planned)
-                return std::unexpected{planned.error()};
-            if (*planned)
-                changes.push_back(std::move(**planned));
-        }
-        return changes;
-    }
-
-    const Palette* currentTerminal(const foundation::Environment& environment) {
-        // current-theme.conf starts with its palette's name, as the studio writes it.
-        const auto text = readAll(configHome(environment) / "kitty" / "current-theme.conf");
-        for (const auto& palette : waybarPalettes())
-            if (text == kittyTheme(palette))
-                return &palette;
-        return nullptr;
     }
 
     std::filesystem::path hyprtoolkitConfigFile(const foundation::Environment& environment) {

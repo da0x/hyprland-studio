@@ -14,7 +14,6 @@
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
-#include <expected>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -46,20 +45,11 @@ namespace ui {
         void undo();
         // After a click on a palette: changes the preview, the borders and the footer in place.
         void updateSelection();
-        // Asks dunst and the open kitty windows to read their files again.
+        // Asks dunst to read its files again.
         void reloadApps();
         void fillStatus();
         // A drawing of the desktop in a palette, made once and kept: large or for a card.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> desktopOf(const desktop::Palette* shown, bool large);
-        // The same for a terminal session in a palette's terminal colours.
-        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> terminalOf(const desktop::Palette* shown, bool large);
-        // The drawing for the part shown: the desktop's or the terminal's.
-        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(const desktop::Palette* shown, bool large);
-        // The palette chosen for the part shown.
-        [[nodiscard]] const desktop::Palette*&                                chosen();
-        // The part's file changes for the palette chosen.
-        [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> plan();
-        void                                                                   showPart(bool terminal);
 
         struct Card {
             Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>    frame;
@@ -77,18 +67,11 @@ namespace ui {
         std::string                                                          statusShown;
         std::vector<std::pair<const desktop::Palette*, Card>>                cards;
         std::map<std::pair<const desktop::Palette*, bool>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> desktops;
-        std::map<std::pair<const desktop::Palette*, bool>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> terminals;
-        // The page has two parts, the desktop and the terminal, each with its own palette:
-        // terminal programs mostly print for a dark background, whatever the desktop's.
-        bool                                                                 terminalShown = false;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>       desktopButton;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>       terminalButton;
         RowList                                                              diff;
         // Waybar, to restart it after its files change. Its switch is on the Bar page.
         ProgramSwitch                                                        waybar;
 
         const desktop::Palette*                                              selected = nullptr;
-        const desktop::Palette*                                              selectedTerminal = nullptr;
         // The palette the desktop uses now, marked on its card.
         const desktop::Palette*                                              inUse    = nullptr;
         bool                                                                 reviewing = false;

@@ -122,6 +122,22 @@ namespace configuration {
         return FileChange{file, std::move(*current), std::move(proposed)};
     }
 
+    std::expected<std::optional<FileChange>, std::string> planEdit(std::filesystem::path file, const std::function<std::string(std::string_view)>& edit, std::string_view start) {
+        std::error_code error;
+        if (std::filesystem::is_symlink(file, error)) {
+            file = std::filesystem::canonical(file, error);
+            if (error)
+                return std::unexpected{std::format("cannot follow {}: {}", file.string(), error.message())};
+        }
+        auto change = planFile(file, "");
+        if (!change)
+            return std::unexpected{change.error()};
+        change->proposed = edit(change->current ? std::string_view{*change->current} : start);
+        if (!change->changes())
+            return std::nullopt;
+        return std::optional{std::move(*change)};
+    }
+
     std::expected<std::filesystem::path, std::string> applyChanges(const std::vector<FileChange>& changes, const std::filesystem::path& backups, std::string_view description) {
         // Nothing is written unless every file is still what the user reviewed.
         for (const auto& change : changes) {

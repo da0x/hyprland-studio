@@ -38,16 +38,8 @@ namespace desktop {
         std::string_view network;
         // Urgent workspaces, no network, and today in the calendar.
         std::string_view alert;
-        // The 16 terminal colours, color0 to color15, as the palette's authors publish
-        // them for terminals, and the cursor and selection.
-        std::array<std::string_view, 16> terminal{};
-        std::string_view                 cursor;
-        std::string_view                 selection;
         // The nearest of GNOME's accent colours, for GTK apps.
         std::string_view                 gnomeAccent;
-        // For a light palette, the dark one from the same family that terminals use:
-        // most terminal programs assume a dark background and print in white.
-        std::string_view                 terminalFrom;
     };
 
     // How the bar sits on the screen.

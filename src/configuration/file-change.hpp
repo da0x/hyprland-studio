@@ -3,6 +3,7 @@
 
 #include <expected>
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -27,6 +28,12 @@ namespace configuration {
     // Reads what `file` holds now. Refuses a symbolic link, which the studio never replaces
     // with a real file, and anything else that is not a regular file.
     [[nodiscard]] std::expected<FileChange, std::string> planFile(const std::filesystem::path& file, std::string proposed);
+
+    // The change to `file` that `edit` makes of what it holds now, or of `start` when it does
+    // not exist; nothing when the edit changes nothing. A symbolic link is followed: the
+    // file it points at is the one changed, and the link stays.
+    [[nodiscard]] std::expected<std::optional<FileChange>, std::string> planEdit(std::filesystem::path file, const std::function<std::string(std::string_view)>& edit,
+                                                                                 std::string_view start = {});
 
     // Writes the files the user reviewed. First it checks that each still holds what was
     // reviewed, and copies it into a new folder under `backups`, with a list of what is
