@@ -488,7 +488,7 @@ namespace ui {
                                   ->commence();
             area->addChild(rows);
             if (const auto at = std::ranges::find(wallpapers, selected ? selected->image : std::filesystem::path{}); at != wallpapers.end())
-                area->setScroll(Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - wallpapers.begin()) / perRow) * (cardHeight() + 12)});
+                scrollWhenLaidOut(area, Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - wallpapers.begin()) / perRow) * (cardHeight() + 12)}, defer);
             gridRows->addChild(area);
             gridTitle->rebuild()
                 ->text(std::format("<span weight=\"600\">Wallpapers</span>   {}{}", wallpapers.size(), wallpapers.size() > perRow ? " · scroll for more" : ""))

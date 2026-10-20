@@ -46,10 +46,6 @@ namespace ui {
             return desktop::waybarShapes().front();
         }
 
-        std::string recordName(const std::filesystem::path& record) {
-            return shortPath(record);
-        }
-
     }
 
     BarPage::BarPage(CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, application::EventLoop loop) :

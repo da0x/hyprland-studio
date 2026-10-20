@@ -362,7 +362,7 @@ namespace ui {
             area->addChild(rows);
             // Opens with the chosen theme's row in view.
             if (const auto at = std::ranges::find(shown, selected); at != shown.end())
-                area->setScroll(Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - shown.begin()) / perRow) * (cardHeight() + 12)});
+                scrollWhenLaidOut(area, Hyprutils::Math::Vector2D{0.0, static_cast<double>(static_cast<std::size_t>(at - shown.begin()) / perRow) * (cardHeight() + 12)}, defer);
             grid->addChild(area);
             position->rebuild()->text(std::format("{} themes{}", shown.size(), shown.size() > perPage ? " · scroll for more" : ""))->commence();
             return;

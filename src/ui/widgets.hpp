@@ -8,6 +8,7 @@
 
 #include <hyprtoolkit/element/Button.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
+#include <hyprtoolkit/element/ScrollArea.hpp>
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
@@ -29,6 +30,11 @@ namespace ui {
     // A size in pixels, given at the default text size, grown with the text size chosen on
     // the Accessibility page, so that a button or a row still fits its text.
     [[nodiscard]] double scaled(double pixels);
+
+    // Scrolls `area` to `offset` once it is first laid out: before that it has nothing to
+    // scroll, and hyprtoolkit clamps the offset to nothing.
+    void scrollWhenLaidOut(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CScrollAreaElement>& area, Hyprutils::Math::Vector2D offset,
+                           const std::function<void(std::function<void()>)>& defer);
 
     // Empty space of a height.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> space(double height);

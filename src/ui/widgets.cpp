@@ -68,6 +68,21 @@ namespace ui {
         return pixels * std::max(1.0, static_cast<double>(CFontSize{CFontSize::HT_FONT_TEXT}.ptSize()) / designed);
     }
 
+    void scrollWhenLaidOut(const CSharedPointer<Hyprtoolkit::CScrollAreaElement>& area, Hyprutils::Math::Vector2D offset, const std::function<void(std::function<void()>)>& defer) {
+        // Once: after the first pass the area keeps its scroll, and the user's.
+        auto pending = std::make_shared<bool>(true);
+        area->setRepositioned([weak = Hyprutils::Memory::CWeakPointer<Hyprtoolkit::CScrollAreaElement>{area}, offset, defer, pending] {
+            if (!*pending)
+                return;
+            *pending = false;
+            // Not from inside the layout pass that called this.
+            defer([weak, offset] {
+                if (const auto alive = weak.lock())
+                    alive->setScroll(offset);
+            });
+        });
+    }
+
     CSharedPointer<Hyprtoolkit::IElement> space(double height) {
         return Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})->commence();
     }
