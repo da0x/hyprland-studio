@@ -132,10 +132,26 @@ editor, and support for the older `hyprland.conf` format.
 
 ## Building
 
-Not yet available. Hyprland Studio will be written in modern C++ (C++26) on
-[hyprtoolkit](https://github.com/hyprwm/hyprtoolkit), Hyprland's own Wayland-native
-toolkit, built with CMake and Ninja, and target Linux on Wayland only. It depends only on
-libraries that distributions already package.
+Hyprland Studio is written in C++26 on [hyprtoolkit](https://github.com/hyprwm/hyprtoolkit),
+Hyprland's own Wayland-native toolkit, and builds with CMake. On Arch Linux, the packages it
+needs are:
+
+```
+sudo pacman -S --needed base-devel cmake ninja hyprtoolkit lua tree-sitter tree-sitter-lua nlohmann-json fontconfig systemd-libs gtest
+```
+
+Then, from the repository:
+
+```
+make                  # build into build/release
+make test             # run the tests
+sudo make install     # install under /usr/local
+sudo make uninstall   # remove what make install put there
+```
+
+`make install PREFIX=~/.local` installs for your user only, without `sudo`. `make install`
+builds nothing itself, so run `make` as yourself first. Packagers can use CMake directly:
+the build takes the usual `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX` and `DESTDIR`.
 
 ## Acknowledgements
 

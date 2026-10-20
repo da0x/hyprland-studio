@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Hyprland Studio
+GenericName=Hyprland settings
+Comment=Understand and configure Hyprland, and leave nothing behind
+Exec=hyprland-studio
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=hyprland;wayland;keybindings;wallpaper;theme;waybar;
