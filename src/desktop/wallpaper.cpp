@@ -9,7 +9,9 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <cstdint>
 #include <fstream>
+#include <random>
 #include <set>
 #include <sstream>
 #include <system_error>
@@ -113,6 +115,23 @@ namespace desktop {
             std::stringstream text;
             text << stream.rdbuf();
             return text.str();
+        }
+
+        // A version 4 UUID, as 8-4-4-4-12 lowercase hexadecimal digits.
+        std::string randomUuid() {
+            std::random_device        source;
+            std::array<std::uint8_t, 16> bytes{};
+            for (auto& byte : bytes)
+                byte = static_cast<std::uint8_t>(source());
+            bytes[6] = static_cast<std::uint8_t>((bytes[6] & 0x0FU) | 0x40U);
+            bytes[8] = static_cast<std::uint8_t>((bytes[8] & 0x3FU) | 0x80U);
+            std::string text;
+            for (std::size_t index = 0; index < bytes.size(); ++index) {
+                if (index == 4 || index == 6 || index == 8 || index == 10)
+                    text += '-';
+                text += std::format("{:02x}", bytes[index]);
+            }
+            return text;
         }
 
         bool isImage(const std::filesystem::path& file) {
@@ -405,12 +424,13 @@ namespace desktop {
         const auto source = readFile(image);
         if (!source)
             return std::unexpected{std::format("cannot read {}", image.string())};
-        auto target = folder / image.filename();
-        for (int number = 2; std::filesystem::exists(target, error); ++number) {
-            if (readFile(target) == source)
-                return target;
-            target = folder / std::format("{}-{}{}", image.stem().string(), number, image.extension().string());
-        }
+        for (const auto& entry : std::filesystem::directory_iterator{folder, error})
+            if (entry.is_regular_file(error) && entry.file_size(error) == source->size() && readFile(entry.path()) == source)
+                return entry.path();
+
+        auto target = folder / (randomUuid() + image.extension().string());
+        while (std::filesystem::exists(target, error))
+            target = folder / (randomUuid() + image.extension().string());
         std::filesystem::copy_file(image, target, error);
         if (error)
             return std::unexpected{std::format("cannot copy {} to {}: {}", image.string(), target.string(), error.message())};

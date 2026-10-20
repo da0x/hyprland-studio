@@ -3,7 +3,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -123,14 +125,26 @@ namespace {
         EXPECT_EQ(folder, root / "home/Bilder/Wallpapers");
 
         const auto first = write("downloads/sea.png", "sea");
-        EXPECT_EQ(desktop::addWallpaper(first, folder), folder / "sea.png");
-        // The same image again is not copied twice.
-        EXPECT_EQ(desktop::addWallpaper(first, folder), folder / "sea.png");
-        // A different image with the same name gets a number.
-        const auto other = write("elsewhere/sea.png", "another sea");
-        EXPECT_EQ(desktop::addWallpaper(other, folder), folder / "sea-2.png");
+        const auto added = desktop::addWallpaper(first, folder);
+        ASSERT_TRUE(added.has_value()) << added.error();
+        EXPECT_EQ(added->parent_path(), folder);
+        EXPECT_EQ(added->extension(), ".png");
+        // A random UUID: 8-4-4-4-12 hexadecimal digits, version 4.
+        const auto name = added->stem().string();
+        ASSERT_EQ(name.size(), 36U);
+        EXPECT_EQ(name[8], '-');
+        EXPECT_EQ(name[14], '4');
+        EXPECT_TRUE(std::ranges::all_of(name, [](char character) { return character == '-' || std::isxdigit(static_cast<unsigned char>(character)) != 0; }));
+
+        // The same image again is not copied twice, wherever it comes from.
+        EXPECT_EQ(desktop::addWallpaper(first, folder), *added);
+        EXPECT_EQ(desktop::addWallpaper(write("elsewhere/copy.png", "sea"), folder), *added);
+        // A different image with the same name gets a name of its own.
+        const auto other = desktop::addWallpaper(write("elsewhere/sea.png", "another sea"), folder);
+        ASSERT_TRUE(other.has_value());
+        EXPECT_NE(*other, *added);
         // One already in the folder stays where it is.
-        EXPECT_EQ(desktop::addWallpaper(folder / "sea.png", folder), folder / "sea.png");
+        EXPECT_EQ(desktop::addWallpaper(*added, folder), *added);
         std::filesystem::remove_all(root);
     }
 

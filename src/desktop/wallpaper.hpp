@@ -101,8 +101,9 @@ namespace desktop {
     // ~/.config/user-dirs.dirs may name (XDG_PICTURES_DIR), or ~/Pictures.
     [[nodiscard]] std::filesystem::path wallpaperFolder(const foundation::Environment& environment);
 
-    // Copies `image` into `folder`, unless it is already there, and returns the copy. A
-    // different image with the same name is not replaced: the copy gets a number.
+    // Copies `image` into `folder` under a new name, a random UUID with the image's own
+    // extension, and returns the copy. An image already in the folder, or one whose exact
+    // copy is there, is not copied again.
     [[nodiscard]] std::expected<std::filesystem::path, std::string> addWallpaper(const std::filesystem::path& image, const std::filesystem::path& folder);
 
     // Images in the folders wallpapers are usually kept in: ~/Pictures/Wallpapers,
