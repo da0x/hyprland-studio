@@ -18,6 +18,7 @@
 #include <hyprtoolkit/window/Window.hpp>
 #include <hyprutils/cli/Logger.hpp>
 
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <optional>
@@ -59,7 +60,7 @@ namespace ui {
 
     }
 
-    int run(const Options& options) {
+    Ending run(const Options& options) {
         // hyprtoolkit logs every step at debug level. Only warnings and errors, unless asked.
         Hyprutils::CLI::CLogger logger;
         logger.setLogLevel(options.verbose ? Hyprutils::CLI::LOG_DEBUG : Hyprutils::CLI::LOG_WARN);
@@ -68,7 +69,7 @@ namespace ui {
 
         const auto backend = Hyprtoolkit::IBackend::createWithData(creation);
         if (!backend)
-            return 1;
+            return Ending{.code = 1, .restart = false, .page = {}};
 
         const auto palette    = backend->getPalette();
         const auto background = [palette] { return palette->m_colors.background; };
@@ -109,6 +110,7 @@ namespace ui {
 
         // The sidebar's buttons, each with its page; the open page's button is in the accent.
         std::vector<std::pair<CSharedPointer<Hyprtoolkit::CButtonElement>, CSharedPointer<Hyprtoolkit::IElement>>> pages;
+        std::vector<std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>>                                titles;
         // Told which page opens, for a page that has to tidy up when it is left.
         std::function<void(const CSharedPointer<Hyprtoolkit::IElement>&)> opening;
         const auto show = [content, &pages, &opening](const CSharedPointer<Hyprtoolkit::IElement>& page) {
@@ -139,7 +141,8 @@ namespace ui {
                 wallpaper.leave();
         };
 
-        const auto addPageButton = [&sidebar, &show, &pages](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
+        const auto addPageButton = [&sidebar, &show, &pages, &titles](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
+            titles.emplace_back(std::string{title}, page);
             const auto button = Hyprtoolkit::CButtonBuilder::begin()
                                     ->label(std::string{title})
                                     ->noBorder(true)
@@ -166,7 +169,8 @@ namespace ui {
         addPageButton("Theme", theme.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
-        show(keybindings.element());
+        const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
+        show(first != titles.end() ? first->second : keybindings.element());
 
         body->addChild(sidebar);
         body->addChild(content);
@@ -182,7 +186,8 @@ namespace ui {
             });
 
         // The session and the setup pages go first: they unwatch descriptors, which needs a live event loop.
-        window->m_events.closeRequest.listenStatic([&session, &bar, &wallpaper, &theme, window, backend] {
+        Ending     ending;
+        const auto quit = [&session, &bar, &wallpaper, &theme, window, backend] {
             session.reset();
             bar.close();
             wallpaper.leave(true);
@@ -190,12 +195,18 @@ namespace ui {
             theme.close();
             window->close();
             backend->destroy();
+        };
+        window->m_events.closeRequest.listenStatic(quit);
+        theme.onRestart([&ending, &quit, defer] {
+            ending.restart = true;
+            ending.page    = "Theme";
+            defer(quit);
         });
 
         window->open();
         session->start();
         backend->enterLoop();
-        return 0;
+        return ending;
     }
 
 }

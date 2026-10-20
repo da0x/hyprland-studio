@@ -284,15 +284,44 @@ namespace ui {
             outcome = std::format("Nothing was written: {}.", record.error());
             return showOverview();
         }
-        outcome = std::format("Applied {}. Restart the studio to see it here.", selected->name);
-        if (const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or("")))
-            application::checkHyprlandConfig(loop, *hyprctl, *record, [this](std::string what) {
-                outcome = std::move(what);
+        const auto changed = [this](auto test) { return std::ranges::any_of(changes, test); };
+        const bool toolkit = changed([](const auto& change) { return change.file.filename() == "hyprtoolkit.conf"; });
+        const bool bar     = changed([](const auto& change) { return change.file.parent_path().filename() == "waybar"; });
+        const bool config  = changed([](const auto& change) { return change.file.extension() == ".lua"; });
+        const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or(""));
+
+        // The studio takes the new colours only by starting again, which waits for Waybar to
+        // come back and for Hyprland to say the config is fine: both need the studio running.
+        auto waiting  = std::make_shared<int>((bar ? 1 : 0) + (config && hyprctl ? 1 : 0));
+        auto problem  = std::make_shared<std::optional<std::string>>();
+        auto finished = [this, waiting, problem, toolkit] {
+            if (--*waiting > 0)
+                return;
+            if (*problem) {
+                outcome = **problem;
                 if (!reviewing)
                     showOverview();
+            } else if (toolkit && restart) {
+                restart();
+            }
+        };
+        outcome = std::format("Applied {}.", selected->name);
+        if (bar)
+            waybar.restartToRead(*record, [problem, finished](std::string what) {
+                if (what.contains("put back"))
+                    *problem = what;
+                finished();
             });
-        if (std::ranges::any_of(changes, [](const auto& change) { return change.file.parent_path().filename() == "waybar"; }))
-            waybar.restart();
+        if (config && hyprctl)
+            application::checkHyprlandConfig(loop, *hyprctl, *record, [problem, finished](std::optional<std::string> what) {
+                if (what)
+                    *problem = what;
+                finished();
+            });
+        if (*waiting == 0) {
+            ++*waiting;
+            finished();
+        }
         showOverview();
     }
 

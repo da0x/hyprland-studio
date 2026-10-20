@@ -637,8 +637,10 @@ namespace ui {
     void WallpaperPage::checkConfig(const std::filesystem::path& record) {
         if (!hyprctl)
             return;
-        application::checkHyprlandConfig(loop, *hyprctl, record, [this](std::string what) {
-            outcome = std::move(what);
+        application::checkHyprlandConfig(loop, *hyprctl, record, [this](std::optional<std::string> what) {
+            if (!what)
+                return;
+            outcome = std::move(*what);
             if (!reviewing)
                 showOverview();
         });

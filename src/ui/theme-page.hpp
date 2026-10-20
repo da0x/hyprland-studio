@@ -34,6 +34,9 @@ namespace ui {
         // Stops watching Waybar. Called before the event loop goes away.
         void close();
 
+        // How to start the studio again, so it takes the colours it just wrote.
+        void onRestart(std::function<void()> restart) { this->restart = std::move(restart); }
+
       private:
         void showOverview();
         void showReview();
@@ -70,6 +73,7 @@ namespace ui {
         bool                                                                 reviewing = false;
         std::vector<configuration::FileChange>                               changes;
         std::string                                                          outcome;
+        std::function<void()>                                                restart;
     };
 
 }
