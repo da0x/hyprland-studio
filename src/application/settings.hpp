@@ -10,7 +10,9 @@ namespace application {
     // The studio's own settings, kept in settings.json in its folder.
     struct Settings {
         // The user has seen that everything the bar needs is installed, and hid the list.
-        bool barRequirementsDismissed = false;
+        bool barRequirementsDismissed       = false;
+        // The same for the Wallpaper page.
+        bool wallpaperRequirementsDismissed = false;
     };
 
     // Missing or unreadable settings are the defaults.

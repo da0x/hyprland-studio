@@ -4,6 +4,7 @@
 #include "application/session.hpp"
 #include "ui/bar-page.hpp"
 #include "ui/keybindings-page.hpp"
+#include "ui/wallpaper-page.hpp"
 #include "ui/texts.hpp"
 
 #include <hyprtoolkit/core/Backend.hpp>
@@ -124,6 +125,7 @@ namespace ui {
         };
         KeybindingsPage keybindings{palette, defer};
         BarPage         bar{palette, defer, loop};
+        WallpaperPage   wallpaper{palette, defer, loop};
 
         const auto addPageButton = [&sidebar, &show, &pages](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
             const auto button = Hyprtoolkit::CButtonBuilder::begin()
@@ -148,6 +150,7 @@ namespace ui {
         sidebar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 12}})->commence());
         addPageButton("Keybindings", keybindings.element());
         addPageButton("Bar", bar.element());
+        addPageButton("Wallpaper", wallpaper.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
         show(keybindings.element());
@@ -165,10 +168,11 @@ namespace ui {
                 .keybindings = [&keybindings](const auto& result) { keybindings.showKeybindings(result); },
             });
 
-        // The session and the Bar page go first: they unwatch descriptors, which needs a live event loop.
-        window->m_events.closeRequest.listenStatic([&session, &bar, window, backend] {
+        // The session and the setup pages go first: they unwatch descriptors, which needs a live event loop.
+        window->m_events.closeRequest.listenStatic([&session, &bar, &wallpaper, window, backend] {
             session.reset();
             bar.close();
+            wallpaper.close();
             window->close();
             backend->destroy();
         });

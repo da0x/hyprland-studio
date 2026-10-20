@@ -26,14 +26,18 @@ namespace application {
         Settings   settings;
         if (const auto bar = json.find("bar"); bar != json.end() && bar->is_object())
             settings.barRequirementsDismissed = bar->value("requirementsDismissed", false);
+        if (const auto wallpaper = json.find("wallpaper"); wallpaper != json.end() && wallpaper->is_object())
+            settings.wallpaperRequirementsDismissed = wallpaper->value("requirementsDismissed", false);
         return settings;
     }
 
     std::expected<void, std::string> saveSettings(const Settings& settings, const std::filesystem::path& studioFolder) {
         auto json = readFile(studioFolder);
-        if (!json["bar"].is_object())
-            json["bar"] = nlohmann::json::object();
-        json["bar"]["requirementsDismissed"] = settings.barRequirementsDismissed;
+        for (const auto* page : {"bar", "wallpaper"})
+            if (!json[page].is_object())
+                json[page] = nlohmann::json::object();
+        json["bar"]["requirementsDismissed"]       = settings.barRequirementsDismissed;
+        json["wallpaper"]["requirementsDismissed"] = settings.wallpaperRequirementsDismissed;
         return configuration::writeWhole(studioFolder / "settings.json", json.dump(4) + "\n");
     }
 

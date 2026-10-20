@@ -56,12 +56,14 @@ If you ever wonder "what did this do to my system?", that is a bug.
 find which config it loaded), and, if present, Hyprland's API stubs in
 `/usr/share/hypr/stubs/`. For the Bar page it looks for Waybar on your `PATH`, asks
 fontconfig whether the icon font is installed, finds the config Waybar would read, and
-reads `/etc/os-release` to name the right install command. Its Copy button runs
+reads `/etc/os-release` to name the right install command. The Wallpaper page looks for images in `~/Pictures/Wallpapers`,
+`~/Pictures`, `~/.local/share/backgrounds`, `/usr/share/hypr` and `/usr/share/backgrounds`,
+and reads `~/.config/hypr/hyprpaper.conf`. Its Copy button runs
 `wl-copy`, from wl-clipboard, if you have it, since the toolkit offers no clipboard of its
 own.
 
 **Writes:** files you approved after reviewing the change line by line, such as Waybar's
-config and stylesheet, and its own folder, `~/.config/hyprland-studio/`: its settings
+config and stylesheet or the wallpaper in `hyprpaper.conf`, and its own folder, `~/.config/hyprland-studio/`: its settings
 (window size, last page, which areas you allowed, whether you dismissed a page's checklist), the effects you set up (plain Hyprland
 Lua you can read and copy into your own config), a record in `backups/` of each change it
 wrote, with copies of the files it replaced, so any change can be undone, and, only while
@@ -69,8 +71,10 @@ the desktop-theme area is active, a record of the theme values it changed so the
 always be put back, even after a crash. No caches, no exports: copying goes to the
 clipboard. A menu item removes that folder for you.
 
-**Starts and stops Waybar** only when you press its On or Off switch on the Bar page.
-While it is on, the studio restarts it after writing its files, so it reads them.
+**Starts and stops Waybar and hyprpaper** only when you press their On or Off switch, on
+the Bar and Wallpaper pages. While one is on, the studio restarts it after writing its
+files, so it reads them. It never adds them to what starts at login: it shows the line to
+add instead.
 
 **Changes while active, only in areas you allowed:** the running Hyprland's options, rules
 and keybindings (through IPC; a reload undoes them), the programs it started for you, and
