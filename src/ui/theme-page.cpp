@@ -241,8 +241,9 @@ namespace ui {
 
         // Everything said here sits in the footer, so that saying it moves nothing above.
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
         if (undoable)
-            buttons.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
+            away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         std::string note;
         if (!planned) {
             note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
@@ -258,7 +259,7 @@ namespace ui {
             made->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
             noteText = made;
         }
-        setFooter(footer, buttons, noteText);
+        setFooter(footer, buttons, noteText, away);
     }
 
     void ThemePage::showReview() {

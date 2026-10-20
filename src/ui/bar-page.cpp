@@ -202,8 +202,9 @@ namespace ui {
         styleStatusShown = shown;
         styleStatus->clearChildren();
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
         if (undoable)
-            buttons.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
+            away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         if (!planned) {
             styleStatus->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
         } else if (same) {
@@ -213,7 +214,7 @@ namespace ui {
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(selected); }); }));
         }
-        setFooter(footer, buttons);
+        setFooter(footer, buttons, nullptr, away);
         if (!outcome.empty())
             styleStatus->addChild(paragraph(outcome, palette));
     }

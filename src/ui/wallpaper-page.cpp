@@ -356,8 +356,9 @@ namespace ui {
         status->clearChildren();
 
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
         if (undoable)
-            buttons.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
+            away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         if (!planned)
             status->addChild(paragraph(std::format("The studio cannot set it up: {}.", planned.error()), palette));
         else if (applied)
@@ -366,7 +367,7 @@ namespace ui {
                                         palette));
         else
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
-        setFooter(footer, buttons);
+        setFooter(footer, buttons, nullptr, away);
 
         if (tried)
             status->addChild(paragraph("On your desktop now, to try. It goes back when you leave this page, unless you apply it.", palette, true));
