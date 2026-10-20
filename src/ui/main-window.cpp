@@ -137,7 +137,9 @@ namespace ui {
         std::function<void(const CSharedPointer<Hyprtoolkit::IElement>&)> opening;
         // The page shown, whose button is the one in the accent.
         CSharedPointer<Hyprtoolkit::IElement> current;
-        const auto show = [content, &pages, &opening, &current](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+        // Takes the page by value: it is called from a sidebar button's click, and rebuilding
+        // that button below replaces the handler that holds the page it was given.
+        const auto show = [content, &pages, &opening, &current](CSharedPointer<Hyprtoolkit::IElement> page) {
             if (opening)
                 opening(page);
             content->clearChildren();
@@ -173,7 +175,7 @@ namespace ui {
                 wallpaper.leave();
         };
 
-        const auto addPageButton = [&sidebar, &show, &pages, &titles](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
+        const auto addPageButton = [&sidebar, &show, &pages, &titles, defer](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
             titles.emplace_back(std::string{title}, page);
             const auto button = Hyprtoolkit::CButtonBuilder::begin()
                                     ->label(std::string{title})
@@ -181,7 +183,7 @@ namespace ui {
                                     ->noBg(true)
                                     ->alignText(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, scaled(34)}})
-                                    ->onMainClick([&show, page](CSharedPointer<Hyprtoolkit::CButtonElement>) { show(page); })
+                                    ->onMainClick([&show, page, defer](CSharedPointer<Hyprtoolkit::CButtonElement>) { defer([&show, page] { show(page); }); })
                                     ->commence();
             restyled(button);
             sidebar->addChild(button);
