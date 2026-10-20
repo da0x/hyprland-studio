@@ -82,7 +82,9 @@ any file, GTK's `color-scheme` and `accent-color`, and the desktop's `high-contr
 points at, which the review names); an image you add from files, copied into your
 wallpapers folder under a new random name (a UUID, with the image's own extension); and its own folder, `~/.config/hyprland-studio/`: its settings
 (window size, last page, which areas you allowed, whether you dismissed a page's checklist), the effects you set up (plain Hyprland
-Lua you can read and copy into your own config), a record in `backups/` of each change it
+Lua you can read and copy into your own config, in `effects.lua`), while anything is active a
+record of what is (`activation.json`), so Deactivate can take it back even after the studio
+was closed, a record in `backups/` of each change it
 wrote, with copies of the files it replaced, so any change can be undone, and, only while
 the desktop-theme area is active, a record of the theme values it changed so they can
 always be put back, even after a crash. No caches, no exports: copying goes to the

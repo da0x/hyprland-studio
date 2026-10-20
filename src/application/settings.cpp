@@ -35,12 +35,17 @@ namespace application {
             settings.contrast = accessibility->value("contrast", std::string{});
             settings.vision   = accessibility->value("vision", std::string{});
         }
+        if (const auto activation = json.find("activation"); activation != json.end() && activation->is_object())
+            if (const auto allowed = activation->find("allowed"); allowed != activation->end() && allowed->is_array())
+                for (const auto& name : *allowed)
+                    if (name.is_string())
+                        settings.activationAllowed.push_back(name.get<std::string>());
         return settings;
     }
 
     std::expected<void, std::string> saveSettings(const Settings& settings, const std::filesystem::path& studioFolder) {
         auto json = readFile(studioFolder);
-        for (const auto* page : {"bar", "wallpaper", "accessibility"})
+        for (const auto* page : {"bar", "wallpaper", "accessibility", "activation"})
             if (!json[page].is_object())
                 json[page] = nlohmann::json::object();
         json["bar"]["requirementsDismissed"]       = settings.barRequirementsDismissed;
@@ -49,6 +54,7 @@ namespace application {
         json["wallpaper"]["awwwFit"]               = settings.awwwFit;
         json["accessibility"]["contrast"]          = settings.contrast;
         json["accessibility"]["vision"]            = settings.vision;
+        json["activation"]["allowed"]              = settings.activationAllowed;
         return configuration::writeWhole(studioFolder / "settings.json", json.dump(4) + "\n");
     }
 

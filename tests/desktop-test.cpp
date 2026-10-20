@@ -228,4 +228,17 @@ namespace {
         EXPECT_EQ(desktop::withPopupRules(ruled), ruled);
     }
 
+    TEST(Process, StartsACommandAndSaysWhichProcessItBecame) {
+        const auto started = desktop::startCommand("sleep 30");
+        ASSERT_TRUE(started.has_value()) << started.error();
+        // The shell has become the program, so the process is sleep itself.
+        std::optional<std::string> name;
+        for (int tries = 0; tries < 100 && name != "sleep"; ++tries) {
+            name = desktop::processName(*started);
+            ::usleep(10000);
+        }
+        EXPECT_EQ(name, std::optional<std::string>{"sleep"});
+        EXPECT_TRUE(desktop::stopProcess(*started).has_value());
+    }
+
 }

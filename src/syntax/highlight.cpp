@@ -167,6 +167,45 @@ namespace syntax {
         return std::nullopt;
     }
 
+    std::vector<Statement> luaStatements(std::string_view source) {
+        if (source.size() > UINT32_MAX)
+            return {};
+        const std::unique_ptr<TSParser, DeleteParser> parser{ts_parser_new()};
+        ts_parser_set_language(parser.get(), tree_sitter_lua());
+        const std::unique_ptr<TSTree, DeleteTree> tree{ts_parser_parse_string(parser.get(), nullptr, source.data(), static_cast<std::uint32_t>(source.size()))};
+        if (!tree)
+            return {};
+        const auto text = [source](TSNode node) { return std::string{source.substr(ts_node_start_byte(node), ts_node_end_byte(node) - ts_node_start_byte(node))}; };
+
+        std::vector<Statement> statements;
+        const auto             root = ts_tree_root_node(tree.get());
+        for (std::uint32_t index = 0; index < ts_node_named_child_count(root); ++index) {
+            const auto             node = ts_node_named_child(root, index);
+            const std::string_view type{ts_node_type(node)};
+            if (type == "comment")
+                continue;
+            Statement statement{.range  = Range{.begin = ts_node_start_byte(node), .end = ts_node_end_byte(node)},
+                                .line        = static_cast<int>(ts_node_start_point(node).row) + 1,
+                                .call        = {},
+                                .firstString = std::nullopt,
+                                .broken      = type == "ERROR" || ts_node_has_error(node)};
+            if (type == "function_call") {
+                if (const auto name = ts_node_child_by_field_name(node, "name", 4); !ts_node_is_null(name))
+                    statement.call = text(name);
+                if (const auto arguments = ts_node_child_by_field_name(node, "arguments", 9); !ts_node_is_null(arguments) && ts_node_named_child_count(arguments) > 0) {
+                    const auto first = ts_node_named_child(arguments, 0);
+                    if (std::string_view{ts_node_type(first)} == "string")
+                        if (const auto content = ts_node_child_by_field_name(first, "content", 7); !ts_node_is_null(content))
+                            statement.firstString = text(content);
+                    if (std::string_view{ts_node_type(first)} == "string" && !statement.firstString)
+                        statement.firstString = std::string{};
+                }
+            }
+            statements.push_back(std::move(statement));
+        }
+        return statements;
+    }
+
     std::vector<Span> highlightLua(std::string_view source) {
         const auto* compiled = query();
         if (compiled == nullptr || source.size() > UINT32_MAX)

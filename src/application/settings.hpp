@@ -4,6 +4,7 @@
 #include <expected>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace application {
 
@@ -24,6 +25,9 @@ namespace application {
         // "blue-yellow". Empty before the user chose.
         std::string contrast;
         std::string vision;
+        // The areas the user allowed on the Activate page, by name: "options",
+        // "keybindings", "programs", "theme". None until the user allows one.
+        std::vector<std::string> activationAllowed;
     };
 
     // Missing or unreadable settings are the defaults.

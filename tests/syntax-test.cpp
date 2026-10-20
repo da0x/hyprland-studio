@@ -90,3 +90,18 @@ TEST(Syntax, FindsANamedFunctionWhole) {
     ASSERT_TRUE(found);
     EXPECT_EQ(std::string_view{source}.substr(found->begin, found->end - found->begin), "local function toggle(name)\n    return name\nend");
 }
+
+TEST(Syntax, ListsTopLevelStatementsWithTheirCalls) {
+    const auto source     = std::string{"-- effects\nhl.config({ decoration = { rounding = 16 } })\n\nhl.bind(\"SUPER + K\", hl.dsp.exec_cmd(\"kitty\"))\nhl.exec_cmd('waybar')\nlocal x = 1\n"};
+    const auto statements = syntax::luaStatements(source);
+    ASSERT_EQ(statements.size(), 4U);
+    EXPECT_EQ(statements[0].call, "hl.config");
+    EXPECT_EQ(statements[0].line, 2);
+    EXPECT_FALSE(statements[0].firstString.has_value());
+    EXPECT_EQ(statements[1].call, "hl.bind");
+    EXPECT_EQ(statements[1].firstString, std::optional<std::string>{"SUPER + K"});
+    EXPECT_EQ(statements[2].firstString, std::optional<std::string>{"waybar"});
+    EXPECT_EQ(source.substr(statements[2].range.begin, statements[2].range.end - statements[2].range.begin), "hl.exec_cmd('waybar')");
+    EXPECT_TRUE(statements[3].call.empty());
+    EXPECT_FALSE(statements[3].broken);
+}

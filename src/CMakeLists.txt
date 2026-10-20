@@ -6,6 +6,7 @@ add_subdirectory(configuration)
 add_subdirectory(desktop)
 add_subdirectory(ipc)
 add_subdirectory(application)
+add_subdirectory(activation)
 add_subdirectory(ui)
 
 add_executable(hyprland-studio main.cpp)

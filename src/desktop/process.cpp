@@ -97,6 +97,55 @@ namespace desktop {
         return {};
     }
 
+    std::expected<pid_t, std::string> startCommand(const std::string& command) {
+        // The shell becomes the program with exec, so the process started is the program.
+        std::string           shell = "/bin/sh";
+        std::string           flag  = "-c";
+        std::string           line  = "exec " + command;
+        std::array<char*, 4>  arguments{shell.data(), flag.data(), line.data(), nullptr};
+        std::array<int, 2>    pipe{};
+        if (::pipe2(pipe.data(), O_CLOEXEC) != 0)
+            return std::unexpected{std::format("cannot start {}: {}", command, errorText(errno))};
+        const pid_t child = ::fork();
+        if (child < 0)
+            return std::unexpected{std::format("cannot start {}: {}", command, errorText(errno))};
+        if (child == 0) {
+            // As startDetached, but the middle process says which process the program is.
+            ::setsid();
+            const pid_t program = ::fork();
+            if (program != 0) {
+                (void)::write(pipe[1], &program, sizeof program);
+                ::_exit(0);
+            }
+            const int nothing = ::open("/dev/null", O_RDWR); // NOLINT(cppcoreguidelines-pro-type-vararg): POSIX
+            if (nothing >= 0) {
+                ::dup2(nothing, STDIN_FILENO);
+                ::dup2(nothing, STDOUT_FILENO);
+                ::dup2(nothing, STDERR_FILENO);
+            }
+            ::execve(shell.c_str(), arguments.data(), environ);
+            ::_exit(127);
+        }
+        ::close(pipe[1]);
+        pid_t   program = -1;
+        ssize_t got     = 0;
+        while ((got = ::read(pipe[0], &program, sizeof program)) < 0 && errno == EINTR) {}
+        ::close(pipe[0]);
+        int status = 0;
+        while (::waitpid(child, &status, 0) < 0 && errno == EINTR) {}
+        if (got != sizeof program || program <= 0)
+            return std::unexpected{std::format("cannot start {}", command)};
+        return program;
+    }
+
+    std::optional<std::string> processName(pid_t process, const std::filesystem::path& processRoot) {
+        std::ifstream stream{processRoot / std::to_string(process) / "comm"};
+        std::string   name;
+        if (!std::getline(stream, name))
+            return std::nullopt;
+        return name;
+    }
+
     std::expected<std::string, std::string> readCommand(const std::filesystem::path& program, const std::vector<std::string>& arguments) {
         std::array<int, 2> pipe{};
         if (::pipe2(pipe.data(), O_CLOEXEC) != 0)

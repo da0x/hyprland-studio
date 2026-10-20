@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -51,5 +52,21 @@ namespace syntax {
     // hl.config({ general = { col = { active_border = ... } } }). Each step but the last
     // must be a table written in place.
     [[nodiscard]] std::optional<Range> luaCallField(std::string_view source, std::string_view call, const std::vector<std::string_view>& path);
+
+    // A statement at the top of a Lua source, outside any function or block.
+    struct Statement {
+        Range                      range;
+        // Its first line, counting from 1.
+        int                        line = 0;
+        // The function it calls, as written ("hl.bind"), when the statement is a call.
+        std::string                call;
+        // Its first argument, when that is a string literal, without the quotes.
+        std::optional<std::string> firstString;
+        // The parser could not make sense of it.
+        bool                       broken = false;
+    };
+
+    // The top-level statements of a Lua source, in order; comments are not statements.
+    [[nodiscard]] std::vector<Statement> luaStatements(std::string_view source);
 
 }

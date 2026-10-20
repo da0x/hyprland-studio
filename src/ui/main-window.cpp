@@ -7,6 +7,7 @@
 #include "ui/restyle.hpp"
 #include "ui/terminal-page.hpp"
 #include "ui/accessibility-page.hpp"
+#include "ui/activate-page.hpp"
 #include "ui/windows-page.hpp"
 #include "ui/widgets.hpp"
 #include "ui/theme-page.hpp"
@@ -48,7 +49,6 @@ namespace ui {
         // The pages planned for 0.1 that are not built yet. Each says what it will do until it does it.
         constexpr std::array plannedPages{
             Page{"Options", "Every option with its description, default and current value."},
-            Page{"Activate", "Try the studio's effects on the running session, and put everything back."},
             Page{"Live tree", "Monitors, workspaces and windows as they change, from Hyprland's event socket."},
             Page{"Event log", "What Hyprland reports as it happens."},
             Page{"Console", "Read-only requests to Hyprland, and their replies."},
@@ -160,6 +160,7 @@ namespace ui {
         TerminalPage    terminal{palette, defer};
         AccessibilityPage accessibility{palette, defer, loop};
         WindowsPage     windows{palette, defer, loop};
+        ActivatePage    activate{palette, defer};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
         opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
@@ -206,6 +207,7 @@ namespace ui {
         addPageButton("Terminal", terminal.element());
         addPageButton("Accessibility", accessibility.element());
         addPageButton("Keyboard shortcuts", keybindings.element());
+        addPageButton("Activate", activate.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
         const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
@@ -237,7 +239,7 @@ namespace ui {
         window->m_events.closeRequest.listenStatic(quit);
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows](bool resized) {
+        const auto redraw = [&keybindings, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows, &activate](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -250,6 +252,7 @@ namespace ui {
             wallpaper.restyle();
             accessibility.restyle();
             windows.restyle();
+            activate.restyle();
             restyleAll(resized, before);
         };
         theme.onRecoloured([redraw] { redraw(false); });

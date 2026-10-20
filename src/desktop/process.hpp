@@ -4,6 +4,7 @@
 #include "foundation/file-descriptor.hpp"
 
 #include <expected>
+#include <optional>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -22,6 +23,14 @@ namespace desktop {
 
     // Asks the process to exit, as closing it would.
     [[nodiscard]] std::expected<void, std::string> stopProcess(pid_t process);
+
+    // Starts a command line through /bin/sh, detached as startDetached does, and says the
+    // process it became, so that exactly that process can be stopped later.
+    [[nodiscard]] std::expected<pid_t, std::string> startCommand(const std::string& command);
+
+    // A running process's name, as the system keeps it (at most 15 characters), or nothing
+    // when it has gone.
+    [[nodiscard]] std::optional<std::string> processName(pid_t process, const std::filesystem::path& processRoot = "/proc");
 
     // Runs `program` with `arguments`, waits for it, and returns what it printed. For quick
     // reads such as gsettings get; anything slow belongs in application::runCommand.
