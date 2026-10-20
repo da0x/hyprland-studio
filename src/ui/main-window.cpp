@@ -113,9 +113,17 @@ namespace ui {
                 button->rebuild()->accent(shown == page)->commence();
         };
 
-        const auto      defer = [backend](std::function<void()> function) { backend->addIdle(function); };
+        const auto defer = [backend](std::function<void()> function) { backend->addIdle(function); };
+        const application::EventLoop loop{
+            .watch   = [backend](int descriptor, std::function<void()> readable) { backend->addFd(descriptor, std::move(readable)); },
+            .unwatch = [backend](int descriptor) { backend->removeFd(descriptor); },
+            .after =
+                [backend](std::chrono::milliseconds delay, std::function<void()> callback) {
+                    backend->addTimer(delay, [callback = std::move(callback)](auto, void*) { callback(); }, nullptr);
+                },
+        };
         KeybindingsPage keybindings{palette, defer};
-        BarPage         bar{palette, defer};
+        BarPage         bar{palette, defer, loop};
 
         const auto addPageButton = [&sidebar, &show, &pages](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
             const auto button = Hyprtoolkit::CButtonBuilder::begin()
@@ -151,22 +159,16 @@ namespace ui {
 
         std::optional<application::Session> session;
         session.emplace(
-            application::EventLoop{
-                .watch   = [backend](int descriptor, std::function<void()> readable) { backend->addFd(descriptor, std::move(readable)); },
-                .unwatch = [backend](int descriptor) { backend->removeFd(descriptor); },
-                .after =
-                    [backend](std::chrono::milliseconds delay, std::function<void()> callback) {
-                        backend->addTimer(delay, [callback = std::move(callback)](auto, void*) { callback(); }, nullptr);
-                    },
-            },
+            loop,
             application::Listeners{
                 .connection = [&keybindings](application::Connection connection, const std::string& reason) { keybindings.showConnection(connection, reason); },
                 .keybindings = [&keybindings](const auto& result) { keybindings.showKeybindings(result); },
             });
 
-        // The session goes first: it unwatches its sockets, which needs a live event loop.
-        window->m_events.closeRequest.listenStatic([&session, window, backend] {
+        // The session and the Bar page go first: they unwatch descriptors, which needs a live event loop.
+        window->m_events.closeRequest.listenStatic([&session, &bar, window, backend] {
             session.reset();
+            bar.close();
             window->close();
             backend->destroy();
         });

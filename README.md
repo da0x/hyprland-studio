@@ -60,12 +60,17 @@ reads `/etc/os-release` to name the right install command. Its Copy button runs
 `wl-copy`, from wl-clipboard, if you have it, since the toolkit offers no clipboard of its
 own.
 
-**Writes:** only into `~/.config/hyprland-studio/`: its settings (window size, last page,
-which areas you allowed), the effects you set up (plain Hyprland Lua you can read and copy
-into your own config), and, only while the desktop-theme area is active, a record of
-the theme values it changed so they can always be put back, even after a crash. No logs,
-no caches, no exports: copying goes to the clipboard. A menu item removes that folder for
-you.
+**Writes:** files you approved after reviewing the change line by line, such as Waybar's
+config and stylesheet, and its own folder, `~/.config/hyprland-studio/`: its settings
+(window size, last page, which areas you allowed), the effects you set up (plain Hyprland
+Lua you can read and copy into your own config), a record in `backups/` of each change it
+wrote, with copies of the files it replaced, so any change can be undone, and, only while
+the desktop-theme area is active, a record of the theme values it changed so they can
+always be put back, even after a crash. No caches, no exports: copying goes to the
+clipboard. A menu item removes that folder for you.
+
+**Starts and stops Waybar** only when you press its On or Off switch on the Bar page.
+While it is on, the studio restarts it after writing its files, so it reads them.
 
 **Changes while active, only in areas you allowed:** the running Hyprland's options, rules
 and keybindings (through IPC; a reload undoes them), the programs it started for you, and

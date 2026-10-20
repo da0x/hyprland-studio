@@ -32,9 +32,11 @@ system?":
 
 **The user's config file is the source of truth.** The studio never stores Hyprland
 settings anywhere else, never keeps a private copy of the config, and never asks the user
-to migrate to anything. It keeps two things in `~/.config/hyprland-studio/`: its own UI
-settings (window size, last page, which areas the user allowed), and, only while the
-desktop-theme area is active, a restore record of the theme values it changed. Anything
+to migrate to anything. It keeps three things in `~/.config/hyprland-studio/`: its own UI
+settings (window size, last page, which areas the user allowed), a record in `backups/` of
+each change it wrote, with copies of the files it replaced, so the change can be undone,
+and, only while the desktop-theme area is active, a restore record of the theme values it
+changed. Anything
 else it would write needs an entry in the README's *What it reads and writes* first.
 Someone who uninstalls it must be left with a config that works and reads the way they
 wrote it.
@@ -49,6 +51,11 @@ it on. Nothing is activated automatically, at startup or otherwise.
   is again exactly what the user's files say.
 - Outside programs are only ones the user installed; activating starts them, deactivating
   stops exactly the processes the studio started.
+- The one exception is a program's own On and Off switch, on its page, which the user
+  presses: Off stops every running copy of it, whoever started it, and On starts it the way
+  Hyprland would, detached from the studio. Neither changes what starts at login. After the
+  studio writes that program's files, it restarts the program so it reads them, but only
+  while it is on, and if it then does not start, the files are put back.
 - The desktop theme lives in dconf, which is on disk, so before changing a value the
   studio writes its previous value to the restore record. Deactivating, or the next start
   after a crash, puts every value back and deletes the record.

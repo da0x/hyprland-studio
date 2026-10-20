@@ -1,0 +1,67 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 38,
+    "margin-top": 10,
+    "margin-left": 20,
+    "margin-right": 20,
+    "spacing": 8,
+    "reload_style_on_change": true,
+    "modules-left": [
+        "hyprland/workspaces"
+    ],
+    "modules-center": [
+        "clock"
+    ],
+    "modules-right": [
+        "pulseaudio",
+        "network",
+        "tray"
+    ],
+    "hyprland/workspaces": {
+        "format": "{name}",
+        "on-click": "activate",
+        "sort-by-number": true,
+        "persistent-workspaces": {
+            "*": 5
+        }
+    },
+    "clock": {
+        "format": "{:%a %d %b   %H:%M}",
+        "tooltip-format": "<tt>{calendar}</tt>",
+        "calendar": {
+            "mode": "month",
+            "format": {
+                "months": "<span color='#cba6f7'><b>{}</b></span>",
+                "weekdays": "<span color='#a6adc8'>{}</span>",
+                "today": "<span color='#f38ba8'><b><u>{}</u></b></span>"
+            }
+        }
+    },
+    "pulseaudio": {
+        "format": "{icon}  {volume}%",
+        "format-muted": "󰝟  muted",
+        "format-icons": {
+            "headphone": "󰋋",
+            "default": [
+                "󰕿",
+                "󰖀",
+                "󰕾"
+            ]
+        },
+        "scroll-step": 5,
+        "on-click": "pavucontrol",
+        "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+    },
+    "network": {
+        "format-wifi": "󰤨  {essid}",
+        "format-ethernet": "󰈀  wired",
+        "format-disconnected": "󰤭  offline",
+        "tooltip-format": "{ifname}  {ipaddr}/{cidr}",
+        "on-click": "nm-connection-editor"
+    },
+    "tray": {
+        "icon-size": 18,
+        "spacing": 10
+    }
+}

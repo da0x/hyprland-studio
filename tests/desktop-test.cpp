@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "desktop/clipboard.hpp"
+#include "desktop/process.hpp"
 #include "desktop/system.hpp"
+#include "desktop/waybar-style.hpp"
 #include "desktop/waybar.hpp"
 
 #include <gtest/gtest.h>
@@ -127,6 +129,63 @@ namespace {
         std::ofstream{program} << "#!/bin/sh\nexit 1\n";
         std::filesystem::permissions(program, std::filesystem::perms::owner_all, std::filesystem::perm_options::add);
         EXPECT_FALSE(desktop::copyText(program, "text").has_value());
+    }
+
+    TEST(Desktop, FindsTheUsersLiveProcessesByName) {
+        const Folder folder;
+        const auto   process = [&folder](const std::string& id, const std::string& name, char state) {
+            std::filesystem::create_directories(folder.root / id);
+            std::ofstream{folder.root / id / "comm"} << name << "\n";
+            std::ofstream{folder.root / id / "stat"} << id << " (" << name << ") " << state << " 1 2 3\n";
+        };
+        process("120", "waybar", 'S');
+        process("7", "waybar", 'R');
+        process("300", "waybar", 'Z');
+        process("44", "kitty", 'S');
+        std::filesystem::create_directories(folder.root / "self");
+
+        EXPECT_EQ(desktop::findProcesses("waybar", folder.root), (std::vector<pid_t>{7, 120}));
+    }
+
+    TEST(Desktop, StartsAProgramDetached) {
+        const Folder folder;
+        const auto   started = folder.root / "started";
+        const auto   program = folder.root / "program";
+        std::ofstream{program} << "#!/bin/sh\necho $PPID > '" << started.string() << "'\n";
+        std::filesystem::permissions(program, std::filesystem::perms::owner_all, std::filesystem::perm_options::add);
+
+        ASSERT_TRUE(desktop::startDetached(program).has_value());
+        for (int wait = 0; wait < 100 && !std::filesystem::exists(started); ++wait)
+            ::usleep(20'000);
+        ASSERT_TRUE(std::filesystem::exists(started));
+        // Not the studio's child.
+        std::string parent;
+        std::ifstream{started} >> parent;
+        EXPECT_NE(parent, std::to_string(::getpid()));
+    }
+
+    TEST(Desktop, PlansTheWaybarStyleBesideTheConfigWaybarReads) {
+        const Folder folder;
+        const auto   system = folder.root / "etc";
+        folder.add("etc/waybar/config.jsonc");
+        const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};
+        const auto&                   style = desktop::waybarStyles().front();
+
+        // Only the system's example: the files go to ~/.config/waybar, both new.
+        const auto fresh = desktop::planWaybarStyle(style, environment, system);
+        ASSERT_TRUE(fresh.has_value()) << fresh.error();
+        ASSERT_EQ(fresh->size(), 2U);
+        EXPECT_EQ((*fresh)[0].file, folder.root / "home/.config/waybar/config.jsonc");
+        EXPECT_FALSE((*fresh)[0].current.has_value());
+        EXPECT_EQ((*fresh)[1].file, folder.root / "home/.config/waybar/style.css");
+        EXPECT_TRUE((*fresh)[0].proposed.contains("hyprland/workspaces"));
+
+        // A config called config in ~/waybar is kept under its own name.
+        const auto mine = folder.add("home/waybar/config");
+        const auto kept = desktop::planWaybarStyle(style, environment, system);
+        ASSERT_TRUE(kept.has_value());
+        EXPECT_EQ((*kept)[0].file, mine);
+        EXPECT_EQ((*kept)[0].current, std::optional<std::string>{"{}\n"});
     }
 
 }
