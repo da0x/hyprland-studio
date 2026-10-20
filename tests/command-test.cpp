@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "application/command.hpp"
+#include "application/file-chooser.hpp"
 
 #include <gtest/gtest.h>
 
@@ -53,6 +54,11 @@ namespace {
         ASSERT_TRUE(application::runCommand(polling.loop(), "/bin/sh", {"-c", "exit 3"}, [&](bool ok, std::string) { failed = !ok; }));
         polling.run();
         EXPECT_TRUE(failed);
+    }
+
+    TEST(FileChooser, ReadsThePathInAFileUri) {
+        EXPECT_EQ(application::pathOfUri("file:///home/me/My%20Pictures/sea%2B.png"), std::filesystem::path{"/home/me/My Pictures/sea+.png"});
+        EXPECT_FALSE(application::pathOfUri("https://example.org/a.png").has_value());
     }
 
 }

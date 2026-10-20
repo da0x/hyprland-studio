@@ -16,8 +16,12 @@ system?":
   program, links its upstream, explains why, and shows the exact install command for the
   user to run themselves.
 - It writes only files the user approved in a reviewed diff. It never replaces a symbolic
-  link with a real file, never moves or deletes the user's files, and never adds
-  autostart entries, shell startup lines or theme settings on its own.
+  link with a real file: it edits the file the link points at, and the review names that
+  file. It never moves or deletes the user's files, and never adds autostart entries,
+  shell startup lines or theme settings on its own: only as part of a change the user
+  reviewed and applied, such as the Wallpaper page starting the chosen program at login.
+  Copying an image the user picked into their wallpapers folder is the one write without
+  a diff, because picking it is the request.
 - Every change it makes goes into a readable log, with a way to undo it.
 - It does not ship its own replacements for programs the Linux desktop already has.
 - It never makes the final decision. It reports, explains the options and what each
@@ -112,7 +116,7 @@ because a dead connection otherwise looks exactly like a quiet compositor.
   needed). Releases are signed git tags that are never moved. The app ships a desktop
   file, AppStream metainfo and hicolor icons.
 - **Mainstream libraries only.** hyprtoolkit (Hyprland's own Wayland-native toolkit,
-  already present wherever Hyprland's own apps are), tree-sitter, Lua 5.5, nlohmann-json, fontconfig,
+  already present wherever Hyprland's own apps are), tree-sitter, Lua 5.5, nlohmann-json, fontconfig, sd-bus (libsystemd, for the desktop portal),
   and the C++ standard library: things distributions package. No personal or niche libraries, so the studio builds from distribution
   packages alone and stays easy to package.
 - **The latest C++ standard the shipping compilers support**, currently C++26. Modern

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "configuration/file-change.hpp"
+#include "configuration/main-config.hpp"
 #include "desktop/waybar.hpp"
 #include "foundation/environment.hpp"
 
@@ -81,8 +82,28 @@ namespace desktop {
     // which hyprctl would split.
     [[nodiscard]] std::expected<std::vector<std::string>, std::string> showWallpaperArguments(const Wallpaper& wallpaper);
 
+    // The command that starts the program at login.
+    [[nodiscard]] std::string_view loginCommand(WallpaperProgram program);
+
+    // Every file change that makes `program` the one wallpaper program, started at login,
+    // with `wallpaper`: the Hyprland config starts it and no longer starts the other one,
+    // and with hyprpaper, hyprpaper.conf sets the wallpaper. A config that is a link is
+    // followed, and the file it points at is the one changed; the link stays. Empty when
+    // nothing needs to change.
+    [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planWallpaperSetup(WallpaperProgram program, const Wallpaper& wallpaper,
+                                                                                                       const configuration::MainConfig& config,
+                                                                                                       const foundation::Environment&   environment);
+
     // The fallback wallpaper hyprpaper.conf sets now.
     [[nodiscard]] std::optional<Wallpaper> currentWallpaper(const foundation::Environment& environment);
+
+    // Where the user's wallpapers are kept: Wallpapers in the pictures folder, which
+    // ~/.config/user-dirs.dirs may name (XDG_PICTURES_DIR), or ~/Pictures.
+    [[nodiscard]] std::filesystem::path wallpaperFolder(const foundation::Environment& environment);
+
+    // Copies `image` into `folder`, unless it is already there, and returns the copy. A
+    // different image with the same name is not replaced: the copy gets a number.
+    [[nodiscard]] std::expected<std::filesystem::path, std::string> addWallpaper(const std::filesystem::path& image, const std::filesystem::path& folder);
 
     // Images in the folders wallpapers are usually kept in: ~/Pictures/Wallpapers,
     // ~/Pictures, ~/.local/share/backgrounds, and then `systemFolders` and the folders in

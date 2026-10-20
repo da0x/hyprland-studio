@@ -109,4 +109,54 @@ namespace {
         EXPECT_FALSE(desktop::awwwImage("not json").has_value());
     }
 
+    TEST(Wallpaper, KeepsAddedImagesInThePicturesFolder) {
+        static std::atomic<int> counter = 0;
+        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-add-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto write = [&root](const std::string& relative, const std::string& text) {
+            std::filesystem::create_directories((root / relative).parent_path());
+            std::ofstream{root / relative} << text;
+            return root / relative;
+        };
+        write("home/.config/user-dirs.dirs", "# from xdg-user-dirs\nXDG_PICTURES_DIR=\"$HOME/Bilder\"\n");
+        const foundation::Environment environment{{"HOME", (root / "home").string()}};
+        const auto folder = desktop::wallpaperFolder(environment);
+        EXPECT_EQ(folder, root / "home/Bilder/Wallpapers");
+
+        const auto first = write("downloads/sea.png", "sea");
+        EXPECT_EQ(desktop::addWallpaper(first, folder), folder / "sea.png");
+        // The same image again is not copied twice.
+        EXPECT_EQ(desktop::addWallpaper(first, folder), folder / "sea.png");
+        // A different image with the same name gets a number.
+        const auto other = write("elsewhere/sea.png", "another sea");
+        EXPECT_EQ(desktop::addWallpaper(other, folder), folder / "sea-2.png");
+        // One already in the folder stays where it is.
+        EXPECT_EQ(desktop::addWallpaper(folder / "sea.png", folder), folder / "sea.png");
+        std::filesystem::remove_all(root);
+    }
+
+    TEST(Wallpaper, PlansTheWholeSetupThroughALinkedConfig) {
+        static std::atomic<int> counter = 0;
+        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-setup-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        std::filesystem::create_directories(root / "dotfiles");
+        std::filesystem::create_directories(root / "home/.config/hypr");
+        std::ofstream{root / "dotfiles/hyprland.lua"} << "hl.on(\"hyprland.start\", function ()\n    hl.exec_cmd(\"awww-daemon\")\nend)\n";
+        std::filesystem::create_symlink(root / "dotfiles/hyprland.lua", root / "home/.config/hypr/hyprland.lua");
+        const foundation::Environment     environment{{"HOME", (root / "home").string()}};
+        const configuration::MainConfig    config{.file = root / "home/.config/hypr/hyprland.lua", .choice = configuration::Choice::search, .safeMode = false};
+
+        const auto planned = desktop::planWallpaperSetup(desktop::WallpaperProgram::hyprpaper, Wallpaper{"/usr/share/hypr/wall2.png", FitMode::cover}, config, environment);
+        ASSERT_TRUE(planned.has_value()) << planned.error();
+        ASSERT_EQ(planned->size(), 2U);
+        EXPECT_EQ((*planned)[0].file, root / "home/.config/hypr/hyprpaper.conf");
+        // The link's target is changed, and the link itself is left alone.
+        EXPECT_EQ((*planned)[1].file, std::filesystem::canonical(root / "dotfiles/hyprland.lua"));
+        EXPECT_EQ((*planned)[1].proposed, "hl.on(\"hyprland.start\", function ()\n    hl.exec_cmd(\"hyprpaper\")\nend)\n");
+
+        // awww needs only the config, and with it already started, nothing at all.
+        const auto withAwww = desktop::planWallpaperSetup(desktop::WallpaperProgram::awww, Wallpaper{"/a.png", FitMode::cover}, config, environment);
+        ASSERT_TRUE(withAwww.has_value());
+        EXPECT_TRUE(withAwww->empty());
+        std::filesystem::remove_all(root);
+    }
+
 }

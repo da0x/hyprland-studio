@@ -10,6 +10,7 @@
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
 
+#include <hyprtoolkit/element/Combobox.hpp>
 #include <hyprtoolkit/element/Image.hpp>
 #include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
@@ -31,6 +32,8 @@ namespace ui {
         constexpr std::size_t perRow       = 4;
         constexpr double      cardShare    = 0.24;
         constexpr double      thumbHeight  = 110;
+        // A card: the image, its name, and the margins and gap around them.
+        constexpr double      cardHeight   = thumbHeight + 2 * 8 + 6 + 20;
         constexpr double      previewWidth = 400;
         // A 16:9 screen.
         constexpr double      previewHeight = previewWidth * 9 / 16;
@@ -53,20 +56,6 @@ namespace ui {
                 if (info.mode == fit)
                     return std::string{info.name};
             return {};
-        }
-
-        // The config Hyprland reads, when it does not start `name` at login, judged by
-        // whether it names it at all.
-        std::optional<configuration::MainConfig> configWithout(std::string_view name) {
-            const auto config = configuration::mainConfig(configuration::studioLaunch());
-            if (!config)
-                return std::nullopt;
-            std::ifstream     stream{config->file};
-            std::stringstream text;
-            text << stream.rdbuf();
-            if (text.str().contains(name))
-                return std::nullopt;
-            return *config;
         }
 
         desktop::FitMode fitFromWord(std::string_view word) {
@@ -99,11 +88,19 @@ namespace ui {
                       if (!reviewing)
                           showOverview();
                   }},
-        awww{this->palette, this->defer, this->loop, "awww-daemon", "awww", [this] {
+        awww{this->palette, this->defer, this->loop, "awww-daemon", "awww",
+             [this] {
+                 // Apply started the daemon: now it can be given the image.
+                 if (awwwAfterStart && awww.running() && awwwCommand) {
+                     if (const auto arguments = desktop::awwwArguments(*awwwAfterStart))
+                         (void)application::runCommand(this->loop, *awwwCommand, *arguments, [this](bool, std::string) { askAwww(); });
+                     awwwAfterStart.reset();
+                 }
                  askAwww();
                  if (!reviewing)
                      showOverview();
-             }} {
+             }},
+        files{this->loop} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
         root->addChild(pageTitle("Wallpaper", this->palette));
@@ -177,17 +174,6 @@ namespace ui {
             if (!reviewing)
                 showOverview();
         });
-    }
-
-    void WallpaperPage::keepWithAwww() {
-        tried            = false;
-        awwwShows        = selected;
-        settings.awwwFit = std::string{wordOf(selected->fit)};
-        if (const auto saved = application::saveSettings(settings, application::studioFolder(foundation::currentEnvironment())); !saved)
-            outcome = std::format("The studio could not save its settings: {}.", saved.error());
-        else
-            outcome = "Kept. awww shows it, and shows it again whenever it starts.";
-        updateSelection();
     }
 
     void WallpaperPage::leave(bool closing) {
@@ -349,43 +335,37 @@ namespace ui {
     void WallpaperPage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
         const bool awwwChosen  = program == desktop::WallpaperProgram::awww;
-        const auto planned     = awwwChosen ? std::expected<configuration::FileChange, std::string>{std::unexpect, ""} : desktop::planWallpaper(*selected, environment);
-        const bool undoable    = !awwwChosen && configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
+        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto planned     = config ? desktop::planWallpaperSetup(program, *selected, *config, environment)
+                                        : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
+        const auto& other      = awwwChosen ? hyprpaper : awww;
+        const bool shows       = awwwChosen ? awww.running() && selected == awwwShows : hyprpaper.running();
+        const bool applied     = planned && planned->empty() && !other.running() && shows && !tried;
+        const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         const bool off         = desktop::wallpaperRequirement(program, environment).met() && !current().running();
-        const auto shown       = std::format("{}|{}|{}|{}|{}|{}|{}|{}|{}", awwwChosen, tried, awww.running() && selected == awwwShows, awww.running(),
-                                             planned ? std::string{planned->changes() ? "changes" : "same"} : planned.error(), planned && planned->current ? *planned->current : "",
-                                             undoable, off, outcome);
+        const auto shown = std::format("{}|{}|{}|{}|{}|{}|{}", awwwChosen, tried, applied, planned ? "" : planned.error(), undoable, off, outcome);
         if (shown == statusShown)
             return;
         statusShown = shown;
         status->clearChildren();
+
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
         if (undoable)
             buttons.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
-        const auto check = [this](const std::string& text) {
-            status->addChild(markupLine(std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(text)), palette));
-        };
-        if (awwwChosen) {
-            // awww remembers what it shows, so keeping writes nothing.
-            if (tried)
-                buttons.push_back(button("Keep this wallpaper", 190, true, [this] { defer([this] { keepWithAwww(); }); }));
-            else if (awww.running() && selected == awwwShows)
-                check("awww shows this wallpaper.");
-            else if (awww.running())
-                buttons.push_back(button("Show it", 120, true, [this] { defer([this] { tryOnDesktop(); updateSelection(); }); }));
-        } else if (!planned) {
-            status->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
-        } else if (!planned->changes()) {
-            check("hyprpaper.conf sets this wallpaper.");
-        } else {
-            buttons.push_back(button("Keep this wallpaper", 190, true, [this] { defer([this] { showReview(); }); }));
-        }
+        if (!planned)
+            status->addChild(paragraph(std::format("The studio cannot set it up: {}.", planned.error()), palette));
+        else if (applied)
+            status->addChild(markupLine(std::format("{}  Applied: {} shows it, and starts when you log in.", coloured("✓", hex(palette->m_colors.accent)),
+                                                    awwwChosen ? "awww" : "hyprpaper"),
+                                        palette));
+        else
+            buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
         setFooter(footer, buttons);
-        if (tried)
-            status->addChild(paragraph("On your desktop now, to try. It goes back when you leave this page, unless you keep it.", palette, true));
 
-        const auto name = awwwChosen ? std::string{"awww"} : std::string{"hyprpaper"};
+        if (tried)
+            status->addChild(paragraph("On your desktop now, to try. It goes back when you leave this page, unless you apply it.", palette, true));
         if (off) {
+            const auto name = awwwChosen ? std::string{"awww"} : std::string{"hyprpaper"};
             status->addChild(paragraph(std::format("{} is off. Turn it on to try wallpapers on the desktop as you pick them.", name), palette, true));
             const auto on = leftRow();
             on->addChild(button(std::format("Turn {} on", name), 190, false, [this] { defer([this] { current().turnOn(); }); }));
@@ -393,13 +373,14 @@ namespace ui {
         }
         if (!outcome.empty())
             status->addChild(paragraph(outcome, palette));
-
-        if (planned && planned->current) {
-            if (const auto own = desktop::monitorsWithOwnWallpaper(*planned->current); !own.empty()) {
-                std::string names;
-                for (const auto& monitor : own)
-                    names += (names.empty() ? "" : ", ") + monitor;
-                status->addChild(paragraph(std::format("hyprpaper.conf gives {} a wallpaper of its own, which this does not change.", names), palette, true));
+        if (!awwwChosen) {
+            if (const auto text = desktop::planWallpaper(*selected, environment); text && text->current) {
+                if (const auto own = desktop::monitorsWithOwnWallpaper(*text->current); !own.empty()) {
+                    std::string names;
+                    for (const auto& monitor : own)
+                        names += (names.empty() ? "" : ", ") + monitor;
+                    status->addChild(paragraph(std::format("hyprpaper.conf gives {} a wallpaper of its own, which this does not change.", names), palette, true));
+                }
             }
         }
     }
@@ -454,6 +435,7 @@ namespace ui {
         const auto rest = space(1);
         rest->setGrow(true, false);
         top->addChild(rest);
+        top->addChild(button("Add from files…", 160, false, [this] { defer([this] { addFromFiles(); }); }));
         if (pageStart > 0)
             top->addChild(button("‹ Previous", 110, false, [this] { defer([this] { pageStart -= std::min(pageStart, pageSize); showOverview(); }); }));
         if (pageStart + pageSize < wallpapers.size())
@@ -462,7 +444,8 @@ namespace ui {
 
         for (std::size_t first = pageStart; first < std::min(wallpapers.size(), pageStart + pageSize); first += perRow) {
             const auto line = leftRow(0);
-            line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
+            // A fixed height: sized to the cards, the row came out taller than they are.
+            line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, cardHeight}})->gap(12)->commence();
             for (std::size_t index = first; index < std::min({wallpapers.size(), first + perRow, pageStart + pageSize}); ++index)
                 line->addChild(thumbnail(wallpapers[index]));
             section->addChild(line);
@@ -487,8 +470,14 @@ namespace ui {
         const auto label    = markupLine("<span weight=\"600\">Program</span>", palette);
         label->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {90.0, 1.0}})->commence();
         programs->addChild(label);
-        programs->addChild(button("hyprpaper", 120, !awwwChosen, [this] { defer([this] { choose(desktop::WallpaperProgram::hyprpaper); }); }));
-        programs->addChild(button("awww", 120, awwwChosen, [this] { defer([this] { choose(desktop::WallpaperProgram::awww); }); }));
+        programs->addChild(Hyprtoolkit::CComboboxBuilder::begin()
+                               ->items({"hyprpaper", "awww"})
+                               ->currentItem(awwwChosen ? 1 : 0)
+                               ->onChanged([this](CSharedPointer<Hyprtoolkit::CComboboxElement>, std::size_t index) {
+                                   defer([this, index] { choose(index == 1 ? desktop::WallpaperProgram::awww : desktop::WallpaperProgram::hyprpaper); });
+                               })
+                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {180.0, 34.0}})
+                               ->commence());
         body->addChild(programs);
 
         // Two wallpaper programs at once draw over each other.
@@ -504,7 +493,9 @@ namespace ui {
         }
 
         const bool checklist = !allMet || !settings.wallpaperRequirementsDismissed;
-        pageSize             = checklist ? perRow : 2 * perRow;
+        // One row: with the footer, a second would not fit, and hyprtoolkit 0.6.0 lays out a
+        // column taller than the window badly rather than cutting it off.
+        pageSize             = perRow;
         pageStart            = pageStart / pageSize * pageSize;
         // One line each, so the images still fit below: hyprtoolkit 0.6.0 lays out a column
         // taller than the window badly rather than cutting it off.
@@ -540,16 +531,6 @@ namespace ui {
             body->addChild(actions);
         }
 
-        // The program runs only if something starts it; the studio adds nothing to start at
-        // login on its own, so it shows the line to add.
-        if (allMet) {
-            const auto daemon = awwwChosen ? std::string{"awww-daemon"} : std::string{"hyprpaper"};
-            if (const auto config = configWithout(daemon)) {
-                body->addChild(commandRow(config->lua() ? std::format("hl.exec_cmd(\"{}\")", daemon) : std::format("exec-once = {}", daemon), copier, palette, defer,
-                                          escapeMarkup(std::format("Nothing starts {} when you log in. Add to {}:", daemon, shortPath(config->file)))));
-            }
-        }
-
         if (!selected) {
             body->addChild(paragraph("No images were found in ~/Pictures/Wallpapers, ~/Pictures, ~/.local/share/backgrounds, /usr/share/hypr or /usr/share/backgrounds. "
                                      "Put some in ~/Pictures/Wallpapers and press Check again.",
@@ -564,51 +545,136 @@ namespace ui {
     }
 
     void WallpaperPage::showReview() {
-        auto planned = desktop::planWallpaper(*selected, foundation::currentEnvironment());
+        const auto environment = foundation::currentEnvironment();
+        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        auto       planned     = config ? desktop::planWallpaperSetup(program, *selected, *config, environment)
+                                        : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         if (!planned) {
             outcome = planned.error();
             return showOverview();
         }
         reviewing = true;
-        changes   = {std::move(*planned)};
+        changes   = std::move(*planned);
         outcome.clear();
         body->clearChildren();
 
+        const bool  awwwChosen = program == desktop::WallpaperProgram::awww;
+        const auto  name       = awwwChosen ? std::string{"awww"} : std::string{"hyprpaper"};
+        const auto& other      = awwwChosen ? hyprpaper : awww;
+        std::vector<std::string> steps;
+        if (!changes.empty())
+            steps.emplace_back("Write the changes below. A copy of each file is kept first, so it can be undone.");
+        if (other.running())
+            steps.push_back(std::format("Turn {} off, so that only {} draws the wallpaper.", awwwChosen ? "hyprpaper" : "awww", name));
+        if (!current().running())
+            steps.push_back(std::format("Start {}.", name));
+        else if (!awwwChosen && !changes.empty())
+            steps.emplace_back("Restart hyprpaper, so it reads hyprpaper.conf.");
+        if (awwwChosen)
+            steps.emplace_back("Give awww the image. awww shows it again whenever it starts.");
+
         body->addChild(space(4));
-        body->addChild(heading(std::format("Review: {}, {}", selected->image.filename().string(), fitName(selected->fit)), palette));
-        body->addChild(paragraph(std::format("Applying writes this file. A copy of it is kept first, so it can be undone. {}",
-                                             hyprpaper.running() ? "hyprpaper then restarts to read it." : "hyprpaper is off: it reads the file when it starts."),
-                                 palette, true));
-        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons{button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); })};
-        if (!hyprpaper.running())
-            buttons.push_back(button("Apply and turn hyprpaper on", 250, false, [this] { defer([this] { apply(true); }); }));
-        buttons.push_back(button("Apply", 110, true, [this] { defer([this] { apply(false); }); }));
-        setFooter(footer, buttons);
-        diff.setRows(diffRows(changes, *palette));
-        body->addChild(diff.element());
+        body->addChild(heading(std::format("Review: {}, {}, with {}", selected->image.filename().string(), fitName(selected->fit), name), palette));
+        body->addChild(paragraph("Applying will:", palette));
+        for (const auto& step : steps)
+            body->addChild(paragraph(std::format("•  {}", step), palette, true));
+        if (changes.empty())
+            body->addChild(paragraph("No files change.", palette, true));
+        setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
+        if (!changes.empty()) {
+            diff.setRows(diffRows(changes, *palette));
+            body->addChild(diff.element());
+        }
     }
 
-    void WallpaperPage::apply(bool turnOn) {
+    void WallpaperPage::apply() {
         if (!reviewing)
             return;
-        const auto record = configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()),
-                                                        std::format("{}: {}, {}", changeName, selected->image.string(), fitName(selected->fit)));
-        if (!record) {
-            outcome = std::format("Nothing was written: {}.", record.error());
-        } else if (turnOn) {
-            tried   = false;
-            outcome = "Written, and hyprpaper is starting with it.";
+        const bool  awwwChosen = program == desktop::WallpaperProgram::awww;
+        auto&       other      = awwwChosen ? hyprpaper : awww;
+        std::optional<std::filesystem::path> record;
+        if (!changes.empty()) {
+            auto written = configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()),
+                                                       std::format("{}: {}, {}, with {}", changeName, selected->image.string(), fitName(selected->fit),
+                                                                   awwwChosen ? "awww" : "hyprpaper"));
+            if (!written) {
+                outcome = std::format("Nothing was changed: {}.", written.error());
+                return showOverview();
+            }
+            record = *written;
+        }
+        tried = false;
+        other.turnOff();
+
+        if (awwwChosen) {
+            settings.awwwFit = std::string{wordOf(selected->fit)};
+            (void)application::saveSettings(settings, application::studioFolder(foundation::currentEnvironment()));
+            if (awww.running() && awwwCommand) {
+                if (const auto arguments = desktop::awwwArguments(*selected))
+                    (void)application::runCommand(loop, *awwwCommand, *arguments, [this](bool, std::string) { askAwww(); });
+            } else {
+                awwwAfterStart = selected;
+                awww.turnOn();
+            }
+            outcome = "Applied. awww shows it, and starts when you log in.";
+        } else if (!hyprpaper.running()) {
             hyprpaper.turnOn();
-        } else {
-            tried   = false;
-            outcome = "Written. hyprpaper is restarting…";
+            outcome = "Applied. hyprpaper is starting with it, and starts when you log in.";
+        } else if (record) {
+            outcome = "Applied. hyprpaper is restarting…";
             hyprpaper.restartToRead(*record, [this](std::string what) {
                 outcome = std::move(what);
                 if (!reviewing)
                     showOverview();
             });
         }
+        if (record)
+            checkConfig(*record);
         showOverview();
+    }
+
+    void WallpaperPage::checkConfig(const std::filesystem::path& record) {
+        // Hyprland reads its config again when the file changes; give it a moment.
+        loop.after(std::chrono::milliseconds{1500}, [this, record] {
+            if (!hyprctl)
+                return;
+            (void)application::runCommand(loop, *hyprctl, {"configerrors"}, [this, record](bool, std::string output) {
+                const auto first = output.find_first_not_of(" \n\t");
+                if (first == std::string::npos)
+                    return;
+                const auto line = output.substr(first, output.find('\n', first) - first);
+                if (const auto undone = configuration::undoChange(record); undone)
+                    outcome = std::format("Hyprland found errors in the changed config, so the files were put back: {}", line);
+                else
+                    outcome = std::format("Hyprland found errors in the changed config, and the files could not be put back: {}", undone.error());
+                if (!reviewing)
+                    showOverview();
+            });
+        });
+    }
+
+    void WallpaperPage::addFromFiles() {
+        const auto opened = files.chooseImage("Choose a wallpaper", [this](std::optional<std::filesystem::path> chosen) {
+            if (!chosen)
+                return;
+            const auto environment = foundation::currentEnvironment();
+            const auto added       = desktop::addWallpaper(*chosen, desktop::wallpaperFolder(environment));
+            if (!added) {
+                outcome = std::format("The image was not added: {}.", added.error());
+                return showOverview();
+            }
+            selected = desktop::Wallpaper{*added, selected ? selected->fit : desktop::FitMode::cover};
+            outcome  = std::format("Added to {}.", shortPath(added->parent_path()));
+            check();
+            if (const auto at = std::ranges::find(wallpapers, *added); at != wallpapers.end())
+                pageStart = static_cast<std::size_t>(at - wallpapers.begin()) / pageSize * pageSize;
+            tryOnDesktop();
+            showOverview();
+        });
+        if (!opened) {
+            outcome = std::format("The file chooser did not open: {}.", opened.error());
+            showOverview();
+        }
     }
 
     void WallpaperPage::undo() {

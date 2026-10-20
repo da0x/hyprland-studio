@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "desktop/wallpaper.hpp"
 
+#include "configuration/autostart.hpp"
 #include "desktop/system.hpp"
 
 #include <nlohmann/json.hpp>
@@ -288,6 +289,36 @@ namespace desktop {
         return std::vector<std::string>{"hyprpaper", "wallpaper", std::format(", {}, {}", path, fit)};
     }
 
+    std::string_view loginCommand(WallpaperProgram program) {
+        return program == WallpaperProgram::awww ? "awww-daemon" : "hyprpaper";
+    }
+
+    std::expected<std::vector<configuration::FileChange>, std::string> planWallpaperSetup(WallpaperProgram program, const Wallpaper& wallpaper,
+                                                                                         const configuration::MainConfig& config, const foundation::Environment& environment) {
+        std::vector<configuration::FileChange> changes;
+        if (program == WallpaperProgram::hyprpaper) {
+            auto change = planWallpaper(wallpaper, environment);
+            if (!change)
+                return std::unexpected{change.error()};
+            if (change->changes())
+                changes.push_back(std::move(*change));
+        }
+
+        std::error_code error;
+        const auto      file = std::filesystem::canonical(config.file, error);
+        if (error)
+            return std::unexpected{std::format("cannot read {}: {}", config.file.string(), error.message())};
+        auto current = configuration::planFile(file, "");
+        if (!current)
+            return std::unexpected{current.error()};
+        const auto other = loginCommand(program == WallpaperProgram::awww ? WallpaperProgram::hyprpaper : WallpaperProgram::awww);
+        const std::array<std::string_view, 1> instead{other};
+        current->proposed = configuration::withAutostart(current->current.value_or(""), config.lua(), loginCommand(program), instead);
+        if (current->changes())
+            changes.push_back(std::move(*current));
+        return changes;
+    }
+
     std::optional<Wallpaper> currentWallpaper(const foundation::Environment& environment) {
         const auto text = readFile(hyprpaperConfigFile(environment));
         return text ? fallbackWallpaper(*text, homeOf(environment)) : std::nullopt;
@@ -330,13 +361,60 @@ namespace desktop {
             }
         };
         if (!home.empty()) {
-            look(home / "Pictures" / "Wallpapers", true);
-            look(home / "Pictures", false);
+            const auto folder = wallpaperFolder(environment);
+            look(folder, true);
+            look(folder.parent_path(), false);
             look(home / ".local" / "share" / "backgrounds", true);
         }
         for (const auto& folder : systemFolders)
             look(folder, true);
         return found;
+    }
+
+    std::filesystem::path wallpaperFolder(const foundation::Environment& environment) {
+        const auto home = homeOf(environment);
+        auto       pictures = home / "Pictures";
+        const auto dirs     = foundation::variable(environment, "XDG_CONFIG_HOME").value_or((home / ".config").string());
+        if (const auto text = readFile(std::filesystem::path{dirs} / "user-dirs.dirs")) {
+            std::string_view rest = *text;
+            while (!rest.empty()) {
+                const auto end  = rest.find('\n');
+                const auto line = trim(rest.substr(0, end));
+                rest            = end == std::string_view::npos ? std::string_view{} : rest.substr(end + 1);
+                if (!line.starts_with("XDG_PICTURES_DIR="))
+                    continue;
+                auto value = line.substr(std::string_view{"XDG_PICTURES_DIR="}.size());
+                if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+                    value = value.substr(1, value.size() - 2);
+                if (value.starts_with("$HOME/"))
+                    pictures = home / std::string{value.substr(6)};
+                else if (value.starts_with("/"))
+                    pictures = std::string{value};
+            }
+        }
+        return pictures / "Wallpapers";
+    }
+
+    std::expected<std::filesystem::path, std::string> addWallpaper(const std::filesystem::path& image, const std::filesystem::path& folder) {
+        std::error_code error;
+        if (image.parent_path() == folder)
+            return image;
+        std::filesystem::create_directories(folder, error);
+        if (error)
+            return std::unexpected{std::format("cannot create {}: {}", folder.string(), error.message())};
+        const auto source = readFile(image);
+        if (!source)
+            return std::unexpected{std::format("cannot read {}", image.string())};
+        auto target = folder / image.filename();
+        for (int number = 2; std::filesystem::exists(target, error); ++number) {
+            if (readFile(target) == source)
+                return target;
+            target = folder / std::format("{}-{}{}", image.stem().string(), number, image.extension().string());
+        }
+        std::filesystem::copy_file(image, target, error);
+        if (error)
+            return std::unexpected{std::format("cannot copy {} to {}: {}", image.string(), target.string(), error.message())};
+        return target;
     }
 
 }

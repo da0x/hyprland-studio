@@ -2,6 +2,7 @@
 #pragma once
 
 #include "application/session.hpp"
+#include "application/file-chooser.hpp"
 #include "application/settings.hpp"
 #include "configuration/file-change.hpp"
 #include "desktop/wallpaper.hpp"
@@ -50,10 +51,13 @@ namespace ui {
       private:
         void                                                                   showOverview();
         void                                                                   showReview();
-        void                                                                   apply(bool turnOn);
+        void                                                                   apply();
+        // Asks Hyprland, once it has read the changed config, whether it found errors, and
+        // puts the files of `record` back if it did.
+        void                                                                   checkConfig(const std::filesystem::path& record);
+        // Opens the desktop's file chooser, and copies the image chosen into the wallpapers folder.
+        void                                                                   addFromFiles();
         void                                                                   choose(desktop::WallpaperProgram chosen);
-        // Ends a trial with awww: it already shows the image and remembers it.
-        void                                                                   keepWithAwww();
         // Asks awww which image it shows.
         void                                                                   askAwww();
         void                                                                   showSwitch();
@@ -82,6 +86,9 @@ namespace ui {
         RowList                                                              diff;
         ProgramSwitch                                                        hyprpaper;
         ProgramSwitch                                                        awww;
+        application::FileChooser                                             files;
+        // An image to give awww once its daemon, just started by Apply, is running.
+        std::optional<desktop::Wallpaper>                                    awwwAfterStart;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> switchArea;
         desktop::WallpaperProgram                                            program = desktop::WallpaperProgram::hyprpaper;
         // awww's command, and the image it shows with the fit last kept.
@@ -90,8 +97,7 @@ namespace ui {
         application::Settings                                                settings;
 
         std::vector<std::filesystem::path>                                   wallpapers;
-        // The first image on the grid's page, and how many a page shows: one row while the
-        // checklist takes room, two after.
+        // The first image on the grid's page, and how many a page shows.
         std::size_t                                                          pageStart = 0;
         std::size_t                                                          pageSize  = 8;
         std::optional<desktop::Wallpaper>                                    selected;
