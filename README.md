@@ -59,7 +59,8 @@ Each page does one thing:
 - **Windows:** corners, gaps, border thickness, and whether dragging a border resizes,
   with a preview of your screen. The bar's corners and gaps follow the windows'.
 - **Displays:** each display's resolution, refresh rate, scale, rotation, variable
-  refresh rate and place beside the others. A change is put back after 15 seconds unless
+  refresh rate and place beside the others, and whether apps made for X11 stay sharp
+  when a display is scaled. A change is put back after 15 seconds unless
   you keep it, so a display that goes dark fixes itself.
 - **Bar:** a Waybar style that matches the theme, with a border like your windows', the
   widgets you choose on the left, centre or right, such as the weather, media and
@@ -142,7 +143,8 @@ writes the file it points to, and the review says which one.
 - **Displays:** the `hl.monitor` call for each display you change in your Hyprland
   config, only the values that changed. A display your config sets only through a rule
   for every display gets a call of its own, by its make, model and serial number, so it
-  keeps its settings on another port.
+  keeps its settings on another port. Keeping X11 apps sharp sets XWayland's
+  `force_zero_scaling` and, at a scale of 2 or more, `GDK_SCALE`.
 - **Bar:** Waybar's `config.jsonc` and `style.css`, and rules in your Hyprland config that
   float the volume control and network settings the bar opens. The weather widget, when
   you turn it on, has Waybar ask the website wttr.in for the temperature every half hour,
