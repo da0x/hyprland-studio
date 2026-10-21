@@ -55,4 +55,26 @@ namespace application {
         return result;
     }
 
+    std::vector<std::vector<std::size_t>> clashes(const std::vector<KeybindingRow>& rows) {
+        const auto same = [](const ipc::Binding& one, const ipc::Binding& other) {
+            return one.modifiers == other.modifiers && sameKey(one.key, other.key) && one.submap == other.submap && one.mouse == other.mouse &&
+                one.release == other.release && one.longPress == other.longPress;
+        };
+        std::vector<std::vector<std::size_t>> groups;
+        std::vector<bool>                     grouped(rows.size(), false);
+        for (std::size_t first = 0; first < rows.size(); ++first) {
+            if (grouped[first])
+                continue;
+            std::vector<std::size_t> group{first};
+            for (std::size_t other = first + 1; other < rows.size(); ++other)
+                if (!grouped[other] && same(rows[first].live, rows[other].live)) {
+                    group.push_back(other);
+                    grouped[other] = true;
+                }
+            if (group.size() > 1)
+                groups.push_back(std::move(group));
+        }
+        return groups;
+    }
+
 }

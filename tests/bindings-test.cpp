@@ -54,3 +54,27 @@ TEST(Bindings, RejectsWhatIsNotAListOfObjects) {
     EXPECT_FALSE(ipc::parseBindings(R"([1, 2])"));
     EXPECT_TRUE(ipc::parseBindings("[]"));
 }
+
+#include "application/keybindings.hpp"
+
+TEST(Clashes, GroupsKeysBoundMoreThanOnceTheSameWay) {
+    const auto row = [](std::uint32_t modifiers, std::string key, std::string submap = {}, bool release = false) {
+        ipc::Binding live;
+        live.modifiers = foundation::Modifiers{modifiers};
+        live.key       = std::move(key);
+        live.submap    = std::move(submap);
+        live.release   = release;
+        return application::KeybindingRow{.live = std::move(live), .recorded = std::nullopt};
+    };
+    const std::vector rows{
+        row(64, "Q"),           // SUPER + Q
+        row(64, "Return"),      //
+        row(64, "q"),           // SUPER + Q again, in another case
+        row(65, "Q"),           // SUPER + SHIFT + Q: other modifiers
+        row(64, "Q", "resize"), // another submap
+        row(64, "Q", {}, true), // on release
+        row(64, "return"),      // SUPER + Return again
+        row(64, "Q"),           // a third SUPER + Q
+    };
+    EXPECT_EQ(application::clashes(rows), (std::vector<std::vector<std::size_t>>{{0, 2, 7}, {1, 6}}));
+}

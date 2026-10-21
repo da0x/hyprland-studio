@@ -39,6 +39,11 @@ namespace application {
         std::vector<SourceFile>             sources;
     };
 
+    // The active bindings that share their keys with another in the same submap, triggered
+    // the same way: on press, on release or on a long press. Each group holds indexes into
+    // `rows`, in order. Keys bound once are in no group.
+    [[nodiscard]] std::vector<std::vector<std::size_t>> clashes(const std::vector<KeybindingRow>& rows);
+
     // Pairs each active binding with the first binding the config made for the same keys
     // and submap that is not already taken, so duplicates pair up in order.
     [[nodiscard]] Keybindings joinKeybindings(std::vector<ipc::Binding> live, const std::expected<configuration::Recording, std::string>& recording);

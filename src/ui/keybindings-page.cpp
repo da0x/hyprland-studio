@@ -7,8 +7,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdlib>
 #include <format>
+#include <sstream>
 #include <string_view>
 #include <utility>
 
@@ -24,6 +26,13 @@ namespace ui {
         constexpr double keysWidth    = 300;
         constexpr double notesWidth   = 240;
         constexpr double buttonHeight = 30;
+        constexpr double searchWidth  = 280;
+
+        std::string lower(std::string_view text) {
+            std::string made{text};
+            std::ranges::transform(made, made.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            return made;
+        }
 
         // Hyprland names mouse buttons by their Linux input codes.
         std::string keyName(const std::string& key) {
@@ -138,8 +147,32 @@ namespace ui {
         });
         fileButtons = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, buttonHeight}})->commence();
         fileButtons->setGrow(true, false);
+        search = Hyprtoolkit::CTextboxBuilder::begin()
+                     ->placeholder("Search keys, actions and files")
+                     ->onTextEdited([this](CSharedPointer<Hyprtoolkit::CTextboxElement>, const std::string& text) {
+                         query = text;
+                         this->defer([this] {
+                             if (openFile)
+                                 showList();
+                             showEntries();
+                         });
+                     })
+                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {searchWidth, buttonHeight}})
+                     ->commence();
+        clashButton = button("Clashes", 150, [this] {
+            this->defer([this] {
+                onlyClashes = !onlyClashes;
+                if (openFile)
+                    showList();
+                updateClashButton();
+                showEntries();
+            });
+        });
         toolbar->addChild(listButton);
         toolbar->addChild(sourceButton);
+        toolbar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {20.0, 1.0}})->commence());
+        toolbar->addChild(search);
+        toolbar->addChild(clashButton);
         toolbar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {20.0, 1.0}})->commence());
         toolbar->addChild(fileButtons);
         root->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 8.0}})->commence());
@@ -168,6 +201,10 @@ namespace ui {
         });
         list.setRows({RowList::Row{.cells = {{}, escapeMarkup("Reading your keybindings."), {}}, .marked = false}});
         showList();
+    }
+
+    void KeybindingsPage::updateClashButton() {
+        clashButton->rebuild()->label(clashing == 0 ? std::string{"Clashes"} : std::format("Clashes ({})", clashing))->accent(onlyClashes)->commence();
     }
 
     void KeybindingsPage::updateSwitch() {
@@ -258,17 +295,46 @@ namespace ui {
         // The sources first: a function's lines come from them.
         sources = keybindings->sources;
 
+        // Which other bindings share each one's keys: where they were set, when known.
+        const auto                            groups = application::clashes(keybindings->rows);
+        std::vector<std::vector<std::size_t>> sharing(keybindings->rows.size());
+        for (const auto& group : groups)
+            for (const auto index : group)
+                for (const auto other : group)
+                    if (other != index)
+                        sharing[index].push_back(other);
+        clashing = groups.size();
+
         entries.clear();
-        for (const auto& row : keybindings->rows) {
+        for (std::size_t index = 0; index < keybindings->rows.size(); ++index) {
+            const auto& row      = keybindings->rows[index];
             const auto& live     = row.live;
             const auto  location = row.recorded ? std::optional{row.recorded->location} : std::nullopt;
-            entries.push_back(entry(keyCaps(live.modifiers.with(keyName(live.key)), *palette), row.recorded ? row.recorded->action : configuration::Value{}, described(row), location,
-                                    notes(location,
-                                          Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming},
-                                          *palette)));
+            const auto  keys     = live.modifiers.with(keyName(live.key));
+            std::string clash;
+            if (!sharing[index].empty()) {
+                std::vector<std::string> places;
+                for (const auto other : sharing[index])
+                    if (keybindings->rows[other].recorded)
+                        places.push_back(keybindings->rows[other].recorded->location.brief());
+                clash = places.size() == sharing[index].size() ? std::format("same keys as {}", places.front()) : std::format("bound {} times", sharing[index].size() + 1);
+                if (places.size() == sharing[index].size())
+                    for (std::size_t more = 1; more < places.size(); ++more)
+                        clash += std::format(", {}", places[more]);
+            }
+            auto noted = notes(location,
+                               Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming},
+                               *palette);
+            if (!clash.empty())
+                noted = coloured(clash, hex(palette->m_colors.accent)) + (noted.empty() ? "" : "  ·  ") + noted;
+            auto made    = entry(keyCaps(keys, *palette), row.recorded ? row.recorded->action : configuration::Value{}, described(row), location, noted,
+                                 std::format("{} {} {} {} {}", keys, described(row), location ? location->brief() : std::string{}, live.submap, clash));
+            made.clashes = !clash.empty();
+            entries.push_back(std::move(made));
         }
         for (const auto& binding : keybindings->inactive) {
-            entries.push_back(entry(keyCaps(binding.modifiers.with(keyName(binding.key)), *palette), binding.action, binding.description, binding.location,
+            const auto keys = binding.modifiers.with(keyName(binding.key));
+            entries.push_back(entry(keyCaps(keys, *palette), binding.action, binding.description, binding.location,
                                     notes(binding.location,
                                           Flags{.submap       = binding.submap,
                                                 .release      = binding.release,
@@ -277,8 +343,10 @@ namespace ui {
                                                 .locked       = binding.locked,
                                                 .nonConsuming = binding.nonConsuming,
                                                 .inactive     = true},
-                                          *palette)));
+                                          *palette),
+                                    std::format("{} {} {} {} not active", keys, binding.description, binding.location.brief(), binding.submap)));
         }
+        updateClashButton();
         showEntries();
 
         // The source view follows the files on disk, staying where it was.
@@ -292,8 +360,16 @@ namespace ui {
     }
 
     KeybindingsPage::Entry KeybindingsPage::entry(std::string keys, const configuration::Value& action, std::string described,
-                                                  const std::optional<configuration::Location>& location, std::string notes) const {
-        Entry made{.identity = keys + (location ? location->brief() : std::string{}), .keys = std::move(keys), .action = {}, .notes = std::move(notes), .location = location, .body = {}, .expandedAction = {}};
+                                                  const std::optional<configuration::Location>& location, std::string notes, std::string searchable) const {
+        Entry made{.identity       = keys + (location ? location->brief() : std::string{}),
+                   .keys           = std::move(keys),
+                   .action         = {},
+                   .notes          = std::move(notes),
+                   .location       = location,
+                   .body           = {},
+                   .expandedAction = {},
+                   .searchable     = lower(searchable),
+                   .clashes        = false};
         if (!described.empty()) {
             made.action = escapeMarkup(described);
             return made;
@@ -305,10 +381,13 @@ namespace ui {
         const auto                      range    = file != nullptr ? syntax::luaFunctionAt(file->text, function->definition.line) : std::nullopt;
         if (!range) {
             made.action = action.data.index() == 0 ? std::string{} : luaMarkup(action.lua(), *palette);
+            if (action.data.index() != 0)
+                made.searchable += " " + lower(action.lua());
             return made;
         }
 
         const std::string_view text = file->text;
+        made.searchable += " " + lower(text.substr(range->begin, range->end - range->begin));
         auto                   span = file->spans.cbegin();
         std::size_t            begin = range->begin;
         int                    line  = function->definition.line;
@@ -329,12 +408,20 @@ namespace ui {
     }
 
     void KeybindingsPage::showEntries() {
+        std::vector<std::string> words;
+        std::istringstream       split{lower(query)};
+        for (std::string word; split >> word;)
+            words.push_back(word);
         std::vector<RowList::Row> rows;
         targets.clear();
         for (std::size_t index = 0; index < entries.size(); ++index) {
             const auto& shown = entries[index];
-            const bool  open  = !shown.body.empty() && expanded.contains(shown.identity);
-            rows.push_back(RowList::Row{.cells = {shown.keys, open ? shown.expandedAction : shown.action, shown.notes}, .marked = false});
+            if (onlyClashes && !shown.clashes)
+                continue;
+            if (!std::ranges::all_of(words, [&shown](const std::string& word) { return shown.searchable.contains(word); }))
+                continue;
+            const bool open = !shown.body.empty() && expanded.contains(shown.identity);
+            rows.push_back(RowList::Row{.cells = {shown.keys, open ? shown.expandedAction : shown.action, shown.notes}, .marked = shown.clashes});
             targets.push_back(shown.body.empty() ? Target{.toggles = std::nullopt, .opens = shown.location} : Target{.toggles = index, .opens = std::nullopt});
             if (!open)
                 continue;
@@ -343,6 +430,8 @@ namespace ui {
                 targets.push_back(Target{.toggles = std::nullopt, .opens = location});
             }
         }
+        if (rows.empty() && !entries.empty())
+            rows.push_back(RowList::Row{.cells = {{}, escapeMarkup(onlyClashes && clashing == 0 ? "No keys are bound twice." : "No binding matches."), {}}, .marked = false});
         list.setRows(std::move(rows));
     }
 
@@ -357,6 +446,8 @@ namespace ui {
         }
         if (inactive != 0)
             text += std::format(" {} more in your config are not active.", inactive);
+        if (clashing != 0)
+            text += std::format(" {} {} bound more than once, marked in the accent.", clashing, clashing == 1 ? "key is" : "keys are");
         if (!configurationProblem.empty())
             text += std::format(" Your config: {}.", configurationProblem);
         for (const auto& doubt : configurationDoubts)

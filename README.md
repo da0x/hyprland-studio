@@ -46,8 +46,8 @@ Each page does one thing:
 - **Bar:** a Waybar style that matches the theme, and a switch to start or stop it.
 - **Terminal:** a colour scheme and font for kitty, wofi's and dunst's colours to match.
 - **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
-- **Keyboard shortcuts:** every binding, what it does, and where in your config it is
-  set.
+- **Keyboard shortcuts:** every binding, what it does, where in your config it is set,
+  and which keys are bound more than once, with a search.
 - **Options:** every Hyprland option with its value, default and description, and which
   ones your config sets or changes.
 - **Live tree:** a map of your monitors and their windows, and the tree of monitors,
@@ -140,9 +140,9 @@ where commands, file writes and startup programs are recorded but never carried 
 
 ## Status
 
-Nearly 0.1: every page above works. Left for 0.1: searching the keybindings and telling
-which ones clash, and the desktop theme area of Activate, which has nothing to activate
-yet, since the Theme page writes the theme to its files after you review the change.
+Nearly 0.1: every page above works. Left for 0.1 is the desktop theme area of Activate,
+which has nothing to activate yet, since the Theme page writes the theme to its files
+after you review the change.
 
 Research is in [`docs/research.md`](docs/research.md), the design in
 [`docs/architecture.md`](docs/architecture.md), the gaps in Hyprland's IPC in
@@ -152,10 +152,9 @@ Research is in [`docs/research.md`](docs/research.md), the design in
 ## Roadmap
 
 1. **0.1, see everything, and activate or deactivate in one click.**
-   - Done: a keybinding browser, an option browser with documentation and "changed from
-     default" highlighting, a live tree of monitors, workspaces and windows, an event
-     log, and a read-only console. Still to come: search and conflict detection in the
-     keybinding browser.
+   - Done: a keybinding browser with search and conflict detection, an option browser
+     with documentation and "changed from default" highlighting, a live tree of
+     monitors, workspaces and windows, an event log, and a read-only console.
    - **Activate** applies the studio's effects to your running desktop: Hyprland options
      and rules, keybindings, outside programs you installed (a bar, a dock), and the
      desktop theme. **Deactivate** puts everything back exactly as it was. Each of these
