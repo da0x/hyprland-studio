@@ -52,14 +52,18 @@ If you ever wonder "what did this do to my system?", that is a bug.
 Each page does one thing:
 
 - **Theme:** one palette for the whole desktop: window borders, the bar, the app
-  launcher, notifications, GTK apps and Lantern itself.
+  launcher, notifications, GTK apps and Lantern itself, shown on a picture of your
+  desktop as it would look.
 - **Wallpaper:** pick a picture, see it on the desktop at once, and keep it with
   hyprpaper or awww.
 - **Windows:** corners, gaps, border thickness, and whether dragging a border resizes,
   with a preview of your screen. The bar's corners and gaps follow the windows'.
-- **Bar:** a Waybar style that matches the theme, widgets such as the weather, media and
+- **Bar:** a Waybar style that matches the theme, with a border like your windows', the
+  widgets you choose on the left, centre or right, such as the weather, media and
   processor, and a switch to start or stop it.
 - **Terminal:** a colour scheme, font, text size and background opacity for kitty.
+- **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
+  distribution's with the command that installs one.
 - **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
 - **Keyboard shortcuts:** every binding, what it does, where in your config it is set,
   and which keys are bound more than once, with a search.
@@ -106,7 +110,10 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Wallpaper page:** the pictures in your Wallpapers and Pictures folders,
   `~/.local/share/backgrounds`, `/usr/share/hypr` and `/usr/share/backgrounds`, and
   `hyprpaper.conf`, or which picture awww shows.
-- **Terminal page and Console:** kitty's `kitty.conf` and `current-theme.conf`.
+- **Terminal page and Console:** kitty's `kitty.conf` and `current-theme.conf`. For the
+  preview of a see-through terminal, the Terminal page asks awww which picture it shows.
+- **Cursors page:** the cursor themes in your icon folders and the system's, and their
+  cursor files, to draw them.
 - **Its own colours:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
 
 Reading your config never runs it. Lantern reads it in a sandbox of its own, where
@@ -131,8 +138,11 @@ writes the file it points to, and the review says which one.
   float the volume control and network settings the bar opens. The weather widget, when
   you turn it on, has Waybar ask the website wttr.in for the temperature every half hour,
   which lets that site see roughly where you are.
-- **Terminal:** kitty's `current-theme.conf`, and the font, text size and theme lines in
-  `kitty.conf`.
+- **Terminal:** kitty's `current-theme.conf`, and the font, text size, opacity and theme
+  lines in `kitty.conf`.
+- **Cursors:** `XCURSOR_THEME` in your Hyprland config, `~/.icons/default/index.theme`,
+  which X11 apps read, and GTK's cursor theme in GNOME's settings. Hyprland shows the new
+  cursor at once.
 - **Accessibility:** animations, the cursor size and the colour-correction shader in your
   Hyprland config, the shader itself in `~/.config/hypr/shaders/`, the text sizes in
   `hyprtoolkit.conf`, and the desktop's contrast, motion, text size and cursor size
@@ -203,8 +213,10 @@ Research is in [`docs/research.md`](docs/research.md), the design in
      switch, off until you turn it on.
 2. **0.2, make it yours.**
    - Themes you author yourself, next to the built-in ones.
-   - Widgets for the bar: the window title, weather, media, privacy, processor, memory,
-     temperature, keep awake, Bluetooth and battery.
+   - Widgets for the bar, each on the side you choose: the window title, weather, media,
+     privacy, processor, memory, temperature, keep awake, Bluetooth and battery, as well
+     as the workspaces, clock, sound, network and tray.
+   - A cursor theme page, a see-through terminal, and GTK apps in the theme's colours.
 
 After that: changing any option from the Options page and saving it to your config,
 keeping an activation across restarts (opt-in), an editable monitor layout, keybinding and
