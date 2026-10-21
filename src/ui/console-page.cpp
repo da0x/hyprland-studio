@@ -8,6 +8,7 @@
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
+#include "ui/typing.hpp"
 
 #include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
@@ -106,6 +107,7 @@ namespace ui {
                     ->placeholder("monitors, or getoption general:gaps_in")
                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(typedWidth), scaled(34)}})
                     ->commence();
+        registerTextbox(typed);
         toolbar->addChild(typed);
         toolbar->addChild(space(1));
         toolbar->addChild(button("Send", 100, true, [this] { this->defer([this] { send(std::string{typed->currentText()}); }); }));

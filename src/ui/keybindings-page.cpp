@@ -4,6 +4,7 @@
 #include "ui/markup.hpp"
 #include "ui/restyle.hpp"
 #include "ui/texts.hpp"
+#include "ui/typing.hpp"
 
 #include <algorithm>
 #include <array>
@@ -159,6 +160,7 @@ namespace ui {
                      })
                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {searchWidth, buttonHeight}})
                      ->commence();
+        registerTextbox(search);
         clashButton = button("Clashes", 150, [this] {
             this->defer([this] {
                 onlyClashes = !onlyClashes;

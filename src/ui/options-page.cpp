@@ -5,6 +5,7 @@
 #include "ui/restyle.hpp"
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
+#include "ui/typing.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -99,6 +100,7 @@ namespace ui {
                      })
                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(searchWidth), scaled(34)}})
                      ->commence();
+        registerTextbox(search);
         toolbar->addChild(search);
         toolbar->addChild(space(1));
         // Wide enough for their counts, which come later: a button's width is fixed.

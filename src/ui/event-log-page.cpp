@@ -6,6 +6,7 @@
 #include "ui/restyle.hpp"
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
+#include "ui/typing.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -62,6 +63,7 @@ namespace ui {
                      })
                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(searchWidth), scaled(34)}})
                      ->commence();
+        registerTextbox(search);
         toolbar->addChild(search);
         toolbar->addChild(space(1));
         pauseButton = button("Pause", 110, false, [this] {

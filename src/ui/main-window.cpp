@@ -18,6 +18,7 @@
 #include "ui/theme-page.hpp"
 #include "ui/wallpaper-page.hpp"
 #include "ui/texts.hpp"
+#include "ui/typing.hpp"
 
 #include <hyprtoolkit/core/Backend.hpp>
 #include <hyprtoolkit/element/Button.hpp>
@@ -182,7 +183,7 @@ namespace ui {
                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1, 1}})
                               ->commence();
         restyled(appName, CFontSize{CFontSize::HT_FONT_H2});
-        // The sidebar and its buttons grow with the text, so the pages' names still fit.
+        // The sidebar and its buttons grow and shrink with the text, so the pages' names still fit.
         const auto resizeSidebar = [sidebar, &pages] {
             sidebar->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {sidebarWidth(), 1.0}})->commence();
             for (const auto& [button, page] : pages)
@@ -248,6 +249,17 @@ namespace ui {
             backend->destroy();
         };
         window->m_events.closeRequest.listenStatic(quit);
+        // Q quits too, unless it was typed into a text box: that box takes the key after the
+        // window, so whether one did shows in its text once the key is handled.
+        window->m_events.keyboardKey.listenStatic([quit, defer](const Hyprtoolkit::Input::SKeyboardKeyEvent& key) {
+            constexpr std::uint32_t held = Hyprtoolkit::Input::HT_MODIFIER_CTRL | Hyprtoolkit::Input::HT_MODIFIER_ALT | Hyprtoolkit::Input::HT_MODIFIER_META;
+            if (!key.down || key.repeat || key.utf8 != "q" || (key.modMask & held) != 0)
+                return;
+            defer([quit, before = textboxTexts()] {
+                if (textboxTexts() == before)
+                    quit();
+            });
+        });
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
         const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows, &activate, &console](bool resized) {
@@ -289,8 +301,7 @@ namespace ui {
             // than its window comes out wrong. It grows first, with the sidebar, whose new
             // width is laid out with the window's new size, and the text follows once the
             // compositor has had time to apply it; the compositor has the last word. With
-            // smaller text the window keeps its size, and the sidebar its width until the
-            // window is next resized.
+            // smaller text the window keeps its size.
             if (sizes.fontSize > current[3]) {
                 resizeSidebar();
                 if (const auto scale = window->scale(); scale > 0)

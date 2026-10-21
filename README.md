@@ -226,10 +226,12 @@ sudo make uninstall   # remove what make install put there
 
 `make install PREFIX=~/.local` installs for your user only, without `sudo`.
 
-hyprtoolkit 0.6.0 has two bugs Lantern runs into. Its scroll area crashes the app, so
+hyprtoolkit 0.6.0 has three bugs Lantern runs into. Its scroll area crashes the app, so
 with 0.6.0 the theme and wallpaper cards move a row at a time with the mouse wheel instead
-of scrolling smoothly. And text that gets narrower can leave a piece of its old self past
-its edge, which flickers as the mouse moves. Both are fixed in
+of scrolling smoothly. Text that gets narrower can leave a piece of its old self past its
+edge, which flickers as the mouse moves. And a change of layout can wait until the window
+is resized, so after you make the text smaller, the sidebar keeps its width. All three are
+fixed in
 [da0x/hyprtoolkit](https://github.com/da0x/hyprtoolkit)'s `main` until a hyprtoolkit
 release has them. Build that, install it somewhere of its own, and point Lantern at it:
 `make HYPRTOOLKIT_PREFIX=/where/it/is/installed`.
