@@ -11,6 +11,7 @@
 #include <format>
 #include <ranges>
 #include <sstream>
+#include <tuple>
 
 namespace ui {
 
@@ -89,19 +90,21 @@ namespace ui {
         status = paragraph("Connecting to Hyprland.", this->palette);
         root->addChild(status);
 
-        const auto toolbar = leftRow(scaled(32));
+        const auto toolbar = leftRow();
         search             = Hyprtoolkit::CTextboxBuilder::begin()
                      ->placeholder("Search options")
                      ->onTextEdited([this](CSharedPointer<Hyprtoolkit::CTextboxElement>, const std::string& text) {
                          query = text;
                          this->defer([this] { showRows(); });
                      })
-                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(searchWidth), scaled(32)}})
+                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(searchWidth), scaled(34)}})
                      ->commence();
         toolbar->addChild(search);
         toolbar->addChild(space(1));
-        for (const auto& [which, label] : {std::pair{Filter::everything, "Everything"}, std::pair{Filter::set, "Set in your config"}, std::pair{Filter::changed, "Changed from default"}}) {
-            filterButtons.emplace_back(which, button(label, 0, which == filter, [this, which] {
+        // Wide enough for their counts, which come later: a button's width is fixed.
+        for (const auto& [which, label, width] : {std::tuple{Filter::everything, "Everything", 150.0}, std::tuple{Filter::set, "Set in your config", 210.0},
+                                                  std::tuple{Filter::changed, "Changed from default", 230.0}}) {
+            filterButtons.emplace_back(which, button(label, width, which == filter, [this, which] {
                                            this->defer([this, which] {
                                                filter = which;
                                                updateFilters();
