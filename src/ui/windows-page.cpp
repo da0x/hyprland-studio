@@ -292,12 +292,11 @@ namespace ui {
 
         const auto edge    = wanted.gapsOut * scale;
 
-        // The screen: Waybar at the top, half the outer gap from it and the whole gap from
-        // the sides, with its corners following the windows', as the bar is set to; then
+        // The screen: Waybar at the top, the outer gap from it and from the sides, with its corners following the windows', as the bar is set to; then
         // windows the outer gap from the bar and the screen's edges.
         const auto screen = block(colours.backdrop, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, previewHeight}}, 8);
         const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
-        inside->addChild(space(edge / 2));
+        inside->addChild(space(edge));
         const auto barLine = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, barHeight}})->commence();
         barLine->addChild(across(edge));
         const auto bar = block(colours.window, CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}}, std::min(radius, barHeight / 2));

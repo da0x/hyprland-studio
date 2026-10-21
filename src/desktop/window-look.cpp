@@ -73,7 +73,7 @@ namespace desktop {
     BarGeometry barGeometry(const std::optional<WindowLook>& look) {
         if (!look)
             return {};
-        return {.rounding = look->rounding, .edgeGap = look->gapsOut};
+        return {.rounding = look->rounding, .edgeGap = look->gapsOut, .topGap = look->gapsOut};
     }
 
     BarGeometry barGeometry(const configuration::MainConfig& config) {
@@ -86,8 +86,11 @@ namespace desktop {
     }
 
     std::optional<WaybarStyle> currentBarStyle(const foundation::Environment& environment, const BarGeometry& geometry) {
-        // Files written before the bar followed the windows have the old fixed geometry.
+        // Files written before have half the gap at the top, or, before the bar followed
+        // the windows, the old fixed geometry.
         auto style = currentWaybarStyle(environment, geometry);
+        if (!style)
+            style = currentWaybarStyle(environment, BarGeometry{.rounding = geometry.rounding, .edgeGap = geometry.edgeGap, .topGap = geometry.edgeGap / 2});
         if (!style)
             style = currentWaybarStyle(environment, BarGeometry{});
         if (style)

@@ -252,7 +252,7 @@ window#waybar {
     }}
 }}
 )",
-                           floating ? 38 : 34, floating ? style.geometry.edgeGap / 2 : 0, floating ? style.geometry.edgeGap : 0, floating ? style.geometry.edgeGap : 0, palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928", "\U000F0200", "\U000F092D");
+                           floating ? 38 : 34, floating ? style.geometry.topGap : 0, floating ? style.geometry.edgeGap : 0, floating ? style.geometry.edgeGap : 0, palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928", "\U000F0200", "\U000F092D");
     }
 
     std::string waybarStyleText(const WaybarStyle& style) {

@@ -67,8 +67,11 @@ namespace desktop {
     struct BarGeometry {
         // The corners of the bar, or of its islands; the workspace buttons' follow.
         int rounding = 10;
-        // From the sides; the top gets half, since windows keep the same gap below the bar.
+        // From the sides, and from the top.
         int edgeGap  = 20;
+        // From the top: the edge gap when the bar follows the windows; half of it in
+        // files the studio wrote before.
+        int topGap   = 10;
 
         friend bool operator==(const BarGeometry&, const BarGeometry&) = default;
     };
