@@ -292,14 +292,15 @@ window#waybar {
         };
         replaced("border-radius: 10px;", style.geometry.rounding);
         replaced("border-radius: 7px;", static_cast<int>(std::lround(style.geometry.rounding * 0.7)));
-        if (style.windowBorder) {
+        if (style.border != Border::thin) {
             const std::string_view from = "1px solid @surface;";
-            const auto             to   = std::format("{}px solid alpha(@accent, 0.93);", style.geometry.border);
+            const auto             to   = std::format("{}px solid alpha(@{}, {});", style.geometry.border, style.border == Border::active ? "accent" : "raised",
+                                                      style.border == Border::active ? "0.93" : "0.67");
             for (auto at = text.find(from); at != std::string::npos; at = text.find(from, at + to.size()))
                 text.replace(at, from.size(), to);
             // GTK draws a border image with square corners, so only a square bar takes the
             // gradient.
-            if (style.geometry.rounding == 0)
+            if (style.border == Border::active && style.geometry.rounding == 0)
                 text += std::format(R"(
 {} {{
     border-image: linear-gradient(45deg, alpha(@accent, 0.93), alpha(@audio, 0.93)) 1;
@@ -339,8 +340,8 @@ window#waybar {
     std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry, const std::filesystem::path& systemFolder) {
         for (const auto& info : shapes) {
             for (const auto& palette : palettes) {
-                for (const bool windowBorder : {false, true}) {
-                    const WaybarStyle style{info.shape, &palette, geometry, windowBorder};
+                for (const auto border : {Border::thin, Border::inactive, Border::active}) {
+                    const WaybarStyle style{info.shape, &palette, geometry, border};
                     const auto        planned = planWaybarStyle(style, environment, systemFolder);
                     if (planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); }))
                         return style;

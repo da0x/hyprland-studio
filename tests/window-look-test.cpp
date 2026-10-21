@@ -86,17 +86,19 @@ namespace {
         std::filesystem::remove_all(root);
     }
 
-    TEST(WindowLook, TheBarCanTakeTheWindowsBorder) {
+    TEST(WindowLook, TheBarTakesAnActiveOrInactiveWindowsBorder) {
         static std::atomic<int> counter = 0;
         const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-bar-border-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "home/.config/waybar");
         const foundation::Environment environment{{"HOME", (root / "home").string()}};
         const desktop::WindowLook     square{.rounding = 0, .gapsIn = 2, .gapsOut = 10, .borderSize = 3, .resizeOnBorder = true};
-        const desktop::WaybarStyle    bordered{desktop::Shape::floating, &desktop::waybarPalettes()[0], desktop::barGeometry(square), true};
+        const desktop::WaybarStyle    bordered{desktop::Shape::floating, &desktop::waybarPalettes()[0], desktop::barGeometry(square), desktop::Border::active};
         const auto                    css = desktop::waybarStyleText(bordered);
         EXPECT_TRUE(css.contains("border: 3px solid alpha(@accent, 0.93);"));
         EXPECT_TRUE(css.contains("window#waybar {\n    border-image: linear-gradient(45deg, alpha(@accent, 0.93), alpha(@audio, 0.93)) 1;"));
-        EXPECT_FALSE(desktop::waybarStyleText({bordered.shape, bordered.palette, bordered.geometry, false}).contains("border-image"));
+        const auto inactive = desktop::waybarStyleText({bordered.shape, bordered.palette, bordered.geometry, desktop::Border::inactive});
+        EXPECT_TRUE(inactive.contains("border: 3px solid alpha(@raised, 0.67);"));
+        EXPECT_FALSE(inactive.contains("border-image"));
 
         // The choice is read back, and kept when the windows change.
         const auto written = desktop::planWaybarStyle(bordered, environment);

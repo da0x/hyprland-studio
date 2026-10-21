@@ -151,11 +151,16 @@ namespace ui {
 
         // How a style's border is drawn at `scale`: its colour, and at least a pixel wide.
         Hyprtoolkit::CHyprColor borderColour(const desktop::WaybarStyle& style) {
-            return style.windowBorder ? colour(style.palette->accent, 0.93F) : colour(style.palette->surface);
+            switch (style.border) {
+                case desktop::Border::thin: return colour(style.palette->surface);
+                case desktop::Border::inactive: return colour(style.palette->raised, 0.67F);
+                case desktop::Border::active: return colour(style.palette->accent, 0.93F);
+            }
+            return {};
         }
 
         int borderWidth(const desktop::WaybarStyle& style, double scale) {
-            return std::max(1, static_cast<int>(std::lround((style.windowBorder ? style.geometry.border : 1) * scale)));
+            return std::max(1, static_cast<int>(std::lround((style.border == desktop::Border::thin ? 1 : style.geometry.border) * scale)));
         }
 
         // A bar or an island, with `bordered`'s border when there is one.

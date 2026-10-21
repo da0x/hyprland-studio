@@ -157,7 +157,7 @@ namespace ui {
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
                                   ->commence();
         const auto stack = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
-        stack->addChild(barPreview(desktop::WaybarStyle{shape, shown, desktop::runningBarGeometry(), bar.windowBorder}, scale * 0.8));
+        stack->addChild(barPreview(desktop::WaybarStyle{shape, shown, desktop::runningBarGeometry(), bar.border}, scale * 0.8));
         const auto windows = Hyprtoolkit::CRowLayoutBuilder::begin()
                                  ->gap(static_cast<std::size_t>(14 * scale))
                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height - barPreviewHeight({shape, shown}, scale * 0.8) - 12 * scale}})
@@ -243,7 +243,7 @@ namespace ui {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::studioLaunch());
         const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
-        const auto planned     = config ? desktop::planTheme(*selected, bar.shape, bar.windowBorder, *config, environment)
+        const auto planned     = config ? desktop::planTheme(*selected, bar.shape, bar.border, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         const bool gtkSame     = desktop::gtkChanges(*selected, environment).empty();
@@ -280,7 +280,7 @@ namespace ui {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::studioLaunch());
         const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
-        auto       planned     = config ? desktop::planTheme(*selected, bar.shape, bar.windowBorder, *config, environment)
+        auto       planned     = config ? desktop::planTheme(*selected, bar.shape, bar.border, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         if (!planned) {
             outcome = planned.error();

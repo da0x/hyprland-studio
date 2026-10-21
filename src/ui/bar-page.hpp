@@ -83,15 +83,14 @@ namespace ui {
         application::Settings                                                settings;
         // The style shown in the big preview: Waybar's own at first, if it is one of the studio's.
         desktop::WaybarStyle                                                 selected;
-        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, bool>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
+        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> styleStatus;
         // What the status shows now, so that it is made anew only when that changes.
         std::string                                                          styleStatusShown;
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
-        // The thin border, then the windows'.
-        std::vector<std::pair<bool, Card>>                                   borderCards;
+        std::vector<std::pair<desktop::Border, Card>>                        borderCards;
         // The style under review and the files it would write.
         std::optional<desktop::WaybarStyle>                                  reviewing;
         std::vector<configuration::FileChange>                               changes;

@@ -78,14 +78,21 @@ namespace desktop {
         friend bool operator==(const BarGeometry&, const BarGeometry&) = default;
     };
 
+    // The bar's border, as wide as the windows' and in the colour of an inactive or of the
+    // focused window's. `thin` is the faint line styles had before, still read in files
+    // written then.
+    enum class Border {
+        thin,
+        inactive,
+        active,
+    };
+
     // A complete style: the shape, the palette, the geometry, and the border.
     struct WaybarStyle {
         Shape          shape    = Shape::islands;
         const Palette* palette  = nullptr;
         BarGeometry    geometry = {};
-        // The focused window's border, as wide as the windows' and in their colours,
-        // rather than a thin line in the bar's own.
-        bool           windowBorder = false;
+        Border         border   = Border::thin;
 
         bool operator==(const WaybarStyle&) const = default;
     };
