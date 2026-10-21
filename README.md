@@ -241,8 +241,7 @@ the build takes the usual `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX` and `DESTDI
 
 ## Acknowledgements
 
-Lantern is written with AI coding agents, under the direction and review of its human
-author.
+Lantern is written with AI coding agents, under my direction and review.
 
 Lantern learned from [Noctalia](https://github.com/noctalia-dev/noctalia), an
 MIT-licensed Wayland shell by noctalia-dev and contributors: in particular its direct use
