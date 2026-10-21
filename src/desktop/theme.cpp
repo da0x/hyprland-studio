@@ -116,6 +116,177 @@ window {{
                            palette.name, palette.accent, palette.base, palette.text, palette.surface, palette.text, palette.accent, palette.onAccent);
     }
 
+    std::string gtkStyle(const Palette& palette) {
+        return std::format(R"(/* {}, for GTK apps. */
+
+@define-color base      {};
+@define-color on_accent {};
+@define-color surface   {};
+@define-color raised    {};
+@define-color subtle    {};
+@define-color text      {};
+@define-color accent    {};
+@define-color alert     {};
+
+/* The names apps and themes look colours up by. */
+@define-color theme_bg_color          @base;
+@define-color theme_fg_color          @text;
+@define-color theme_base_color        @surface;
+@define-color theme_text_color        @text;
+@define-color theme_selected_bg_color @accent;
+@define-color theme_selected_fg_color @on_accent;
+@define-color window_bg_color         @base;
+@define-color window_fg_color         @text;
+@define-color view_bg_color           @surface;
+@define-color view_fg_color           @text;
+@define-color accent_bg_color         @accent;
+@define-color accent_fg_color         @on_accent;
+@define-color accent_color            @accent;
+@define-color headerbar_bg_color      @surface;
+@define-color headerbar_fg_color      @text;
+@define-color popover_bg_color        @base;
+@define-color popover_fg_color        @text;
+@define-color card_bg_color           @surface;
+@define-color card_fg_color           @text;
+
+window,
+dialog,
+.background {{
+    background-color: @base;
+    color: @text;
+}}
+
+headerbar,
+.titlebar {{
+    background: @surface;
+    color: @text;
+    border-color: @raised;
+    box-shadow: none;
+}}
+
+button {{
+    background: @surface;
+    color: @text;
+    border-color: @raised;
+    box-shadow: none;
+    text-shadow: none;
+}}
+
+button:hover {{
+    background: @raised;
+}}
+
+button:checked,
+button.suggested-action {{
+    background: @accent;
+    color: @on_accent;
+}}
+
+button.flat {{
+    background: transparent;
+    border-color: transparent;
+}}
+
+button.flat:hover {{
+    background: @surface;
+}}
+
+entry,
+spinbutton,
+textview text,
+treeview,
+list,
+listview,
+.view {{
+    background-color: @surface;
+    color: @text;
+    border-color: @raised;
+}}
+
+combobox button,
+dropdown > button {{
+    background: @surface;
+    color: @text;
+}}
+
+row:selected,
+treeview:selected,
+selection,
+*:selected {{
+    background-color: @accent;
+    color: @on_accent;
+}}
+
+scale trough,
+progressbar trough,
+levelbar trough {{
+    background-color: @raised;
+}}
+
+scale highlight,
+progressbar progress,
+levelbar block.filled {{
+    background-color: @accent;
+}}
+
+scale slider {{
+    background: @text;
+    border-color: @raised;
+}}
+
+notebook > header,
+notebook header {{
+    background-color: @base;
+    border-color: @raised;
+}}
+
+notebook tab {{
+    color: @subtle;
+}}
+
+notebook tab:checked {{
+    color: @text;
+    box-shadow: inset 0 -3px @accent;
+}}
+
+popover contents,
+popover > arrow,
+popover.background > contents,
+menu,
+.menu {{
+    background-color: @base;
+    color: @text;
+}}
+
+check,
+radio {{
+    background: @surface;
+    border-color: @raised;
+}}
+
+check:checked,
+radio:checked,
+switch:checked {{
+    background: @accent;
+    color: @on_accent;
+}}
+
+switch {{
+    background: @raised;
+}}
+
+.dim-label,
+label.dim-label {{
+    color: @subtle;
+}}
+
+.error {{
+    color: @alert;
+}}
+)",
+                           palette.name, palette.base, palette.onAccent, palette.surface, palette.raised, palette.subtle, palette.text, palette.accent, palette.alert);
+    }
+
     std::vector<GSetting> gtkChanges(const Palette& palette, const foundation::Environment& environment) {
         return gsettingChanges({{"org.gnome.desktop.interface", "color-scheme", "", palette.dark ? "'prefer-dark'" : "'prefer-light'"},
                                 {"org.gnome.desktop.interface", "accent-color", "", std::format("'{}'", palette.gnomeAccent)}},
@@ -168,6 +339,14 @@ window {{
 
         const auto home = configHome(environment);
         std::vector<std::expected<std::optional<configuration::FileChange>, std::string>> more;
+        // GTK apps, such as the volume control and the network settings: GTK 4 and GTK 3
+        // each read their own stylesheet, and GTK 3 its dark or light preference from
+        // settings.ini rather than from dconf.
+        for (const auto* version : {"gtk-3.0", "gtk-4.0"})
+            more.push_back(planEdit(home / version / "gtk.css", [&palette](std::string_view) { return gtkStyle(palette); }));
+        more.push_back(planEdit(home / "gtk-3.0" / "settings.ini", [&palette](std::string_view text) {
+            return configuration::withIniValues(text, {{"Settings", "gtk-application-prefer-dark-theme", palette.dark ? "1" : "0"}});
+        }));
         if (installed("wofi", environment))
             more.push_back(planEdit(home / "wofi" / "style.css", [&palette](std::string_view) { return wofiStyle(palette); }));
         if (installed("dunst", environment)) {

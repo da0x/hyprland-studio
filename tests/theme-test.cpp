@@ -31,8 +31,9 @@ namespace {
         EXPECT_EQ(desktop::currentTheme(config), nullptr);
         const auto planned = desktop::planTheme(tokyo, desktop::WaybarStyle{.shape = desktop::Shape::floating}, config, environment);
         ASSERT_TRUE(planned.has_value()) << planned.error();
-        // The Hyprland config, Waybar's two files and hyprtoolkit.conf.
-        ASSERT_EQ(planned->size(), 4U);
+        // The Hyprland config, Waybar's two files, hyprtoolkit.conf, and GTK's two
+        // stylesheets and settings.ini.
+        ASSERT_EQ(planned->size(), 7U);
         EXPECT_TRUE((*planned)[0].proposed.contains("active_border = { colors = {\"rgba(7aa2f7ee)\", \"rgba(7dcfffee)\"}, angle = 45 },"));
         EXPECT_TRUE((*planned)[0].proposed.contains("inactive_border = \"rgba(3b4261aa)\","));
         EXPECT_EQ((*planned)[3].proposed.substr(0, 30), "# my toolkit\nfont_size = 12\nba");
@@ -76,6 +77,11 @@ namespace {
         ASSERT_NE(find("dunstrc"), nullptr);
         EXPECT_TRUE(find("dunstrc")->proposed.starts_with("[global]\n    frame_color = \"#88c0d0\"\n"));
         EXPECT_TRUE(find("dunstrc")->proposed.contains("[urgency_critical]\n    background = \"#2e3440\"\n"));
+        // GTK apps get the palette, GTK 3 its dark preference too.
+        ASSERT_NE(find("gtk.css"), nullptr);
+        EXPECT_TRUE(find("gtk.css")->proposed.contains("@define-color accent    #88c0d0;"));
+        ASSERT_NE(find("settings.ini"), nullptr);
+        EXPECT_TRUE(find("settings.ini")->proposed.contains("gtk-application-prefer-dark-theme = 1"));
         // The terminal has themes of its own.
         EXPECT_EQ(find("current-theme.conf"), nullptr);
         EXPECT_EQ(find("kitty.conf"), nullptr);

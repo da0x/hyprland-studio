@@ -300,6 +300,9 @@ namespace ui {
         for (const auto& setting : gtk)
             steps.push_back(std::format("Set GTK's {} from {} to {}, for GTK apps.", setting.key, setting.current, setting.wanted));
         steps.emplace_back("Show the new colours at once: Hyprland's borders, Lantern, Waybar, the launcher and dunst's notifications.");
+        if (std::ranges::any_of(changes, [](const auto& change) { return change.file.filename() == "gtk.css"; }))
+            steps.emplace_back("Give GTK apps, such as the volume control and the network settings, the palette too: every one opened from now on, "
+                               "and the rest once they are opened again.");
         for (const auto& step : steps)
             body->addChild(paragraph(std::format("•  {}", step), palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});

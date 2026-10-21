@@ -119,7 +119,9 @@ writes the file it points to, and the review says which one.
 
 - **Theme:** the window border colours in your Hyprland config, Waybar's files, the
   colours in `hyprtoolkit.conf`, wofi's `style.css` and dunst's `dunstrc` if you have
-  them, and GTK's dark or light preference and accent colour.
+  them, a `gtk.css` for GTK 3 and one for GTK 4 that give GTK apps the palette, GTK 3's
+  dark or light preference in `settings.ini`, and GTK's dark or light preference and
+  accent colour in GNOME's settings.
 - **Wallpaper:** `hyprpaper.conf`, and the lines in your Hyprland config that start the
   wallpaper program at login and turn off Hyprland's own wallpaper. A picture you add
   is copied into your wallpapers folder under a new random name.

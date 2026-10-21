@@ -44,6 +44,11 @@ namespace desktop {
     // wofi's stylesheet for the palette.
     [[nodiscard]] std::string wofiStyle(const Palette& palette);
 
+    // A stylesheet that gives GTK apps the palette, for GTK 3 and GTK 4 alike. Adwaita
+    // builds its colours into its rules, so renaming them is not enough: the rules here
+    // cover what the volume control, the network settings and most small apps are made of.
+    [[nodiscard]] std::string gtkStyle(const Palette& palette);
+
     // The palette whose borders the Hyprland config sets now, if it is one of Lantern's.
     [[nodiscard]] const Palette* currentTheme(const configuration::MainConfig& config);
 
