@@ -225,20 +225,20 @@ namespace {
         const auto                 text   = desktop::waybarConfigText(style);
         const auto                 config = nlohmann::json::parse(text, nullptr, false);
         ASSERT_FALSE(config.is_discarded());
-        EXPECT_EQ(config["modules-left"], (nlohmann::json{"hyprland/workspaces", "wlr/taskbar", "hyprland/window"}));
+        EXPECT_EQ(config["modules-left"], (nlohmann::json{"hyprland/workspaces", "hyprland/window"}));
         EXPECT_EQ(config["modules-right"], (nlohmann::json{"mpris", "privacy", "cpu", "memory", "temperature", "idle_inhibitor", "bluetooth", "battery", "pulseaudio",
                                                            "network", "tray"}));
         for (const auto& info : desktop::waybarWidgets())
             EXPECT_TRUE(config.contains(info.module)) << info.module;
         EXPECT_EQ(desktop::widgetsIn(text), all);
         const auto css = desktop::waybarStyleText(style);
-        EXPECT_TRUE(css.contains("#taskbar button.active"));
+        EXPECT_TRUE(css.contains("#idle_inhibitor.activated"));
         EXPECT_EQ(std::ranges::count(css, '{'), std::ranges::count(css, '}'));
 
         const Folder                  folder;
         const auto                    system = folder.root / "etc";
         const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};
-        const desktop::WaybarStyle    some{.shape = desktop::Shape::floating, .palette = &desktop::waybarPalettes()[3], .widgets = {desktop::Widget::taskbar, desktop::Widget::cpu}};
+        const desktop::WaybarStyle    some{.shape = desktop::Shape::floating, .palette = &desktop::waybarPalettes()[3], .widgets = {desktop::Widget::windowTitle, desktop::Widget::cpu}};
         const auto                    planned = desktop::planWaybarStyle(some, environment, system);
         ASSERT_TRUE(planned.has_value());
         ASSERT_TRUE(configuration::applyChanges(*planned, folder.root / "backups", "test").has_value());

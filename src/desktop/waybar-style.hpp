@@ -90,9 +90,8 @@ namespace desktop {
 
     // Something more on the bar than the workspaces, the clock, the sound, the network and the
     // tray. Each is one of Waybar's own modules, so none needs a program of its own. In the
-    // order they sit on the bar: the first two after the workspaces, the rest before the sound.
+    // order they sit on the bar: the first after the workspaces, the rest before the sound.
     enum class Widget {
-        taskbar,
         windowTitle,
         media,
         privacy,

@@ -107,7 +107,6 @@ namespace ui {
         // How wide each widget is drawn, before scaling: its sample text or icon and padding.
         double widgetWidth(desktop::Widget widget) {
             switch (widget) {
-                case desktop::Widget::taskbar: return 96;
                 case desktop::Widget::windowTitle: return 70;
                 case desktop::Widget::media: return 134;
                 case desktop::Widget::privacy:
@@ -122,10 +121,10 @@ namespace ui {
         }
 
         bool onTheLeft(desktop::Widget widget) {
-            return widget == desktop::Widget::taskbar || widget == desktop::Widget::windowTitle;
+            return widget == desktop::Widget::windowTitle;
         }
 
-        // The workspaces, and the taskbar and the window title when they are on.
+        // The workspaces, and the window title when it is on.
         double leftWidth(const desktop::WaybarStyle& style, double scale) {
             double width = workspacesWidth(scale) / scale;
             for (const auto widget : style.widgets)
@@ -142,8 +141,8 @@ namespace ui {
             return width * scale;
         }
 
-        // Workspace 1 active, 2 and 3 with windows, 4 and 5 empty; then the taskbar's three
-        // windows, the first in use, and the title of that window.
+        // Workspace 1 active, 2 and 3 with windows, 4 and 5 empty; then the title of the window
+        // in use, when it is on.
         CSharedPointer<Hyprtoolkit::IElement> workspaces(const desktop::WaybarStyle& style, double scale, double height) {
             const auto& palette  = *style.palette;
             const auto  rounding = style.geometry.rounding;
@@ -162,28 +161,6 @@ namespace ui {
                 inside->addChild(label(std::to_string(number), textColour, pillWidth * scale, scale, height - 10 * scale));
                 pill->addChild(inside);
                 made->addChild(pill);
-            }
-            if (style.widgets.contains(desktop::Widget::taskbar)) {
-                const auto taskbar = row(widgetWidth(desktop::Widget::taskbar) * scale, height, 4 * scale);
-                taskbar->addChild(gap(6 * scale));
-                for (const auto hex : {palette.accent, palette.network, palette.audio}) {
-                    const bool active = hex == palette.accent;
-                    const auto button = Hyprtoolkit::CRectangleBuilder::begin()
-                                            ->color([c = colour(palette.surface, active ? 1.F : 0.F)] { return c; })
-                                            ->rounding(static_cast<int>(std::lround(rounding * 0.7 * scale)))
-                                            ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {24 * scale, height - 10 * scale}})
-                                            ->commence();
-                    const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {24 * scale, height - 10 * scale}})->commence();
-                    inside->addChild(gap(1, std::max(0.0, (height - 10 * scale - 14 * scale) / 2)));
-                    inside->addChild(Hyprtoolkit::CRectangleBuilder::begin()
-                                         ->color([c = colour(hex)] { return c; })
-                                         ->rounding(static_cast<int>(3 * scale))
-                                         ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {14 * scale, 14 * scale}})
-                                         ->commence());
-                    button->addChild(inside);
-                    taskbar->addChild(button);
-                }
-                whole->addChild(taskbar);
             }
             if (style.widgets.contains(desktop::Widget::windowTitle))
                 whole->addChild(label("kitty", palette.subtle, widgetWidth(desktop::Widget::windowTitle) * scale, scale, height));
@@ -204,7 +181,6 @@ namespace ui {
             for (const auto widget : style.widgets) {
                 const auto width = widgetWidth(widget) * scale;
                 switch (widget) {
-                    case desktop::Widget::taskbar:
                     case desktop::Widget::windowTitle: break;
                     case desktop::Widget::media: made->addChild(label("\U000F075A  Lofi radio", palette.text, width, scale, height)); break;
                     case desktop::Widget::privacy: made->addChild(label("\U000F0567", palette.alert, width, scale, height)); break;

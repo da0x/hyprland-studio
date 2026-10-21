@@ -127,7 +127,6 @@ tooltip label {
 )";
 
         constexpr std::array widgets{
-            WidgetInfo{Widget::taskbar, "wlr/taskbar", "Taskbar", "Your open windows; a click brings one forward."},
             WidgetInfo{Widget::windowTitle, "hyprland/window", "Window title", "The title of the window you are using."},
             WidgetInfo{Widget::media, "mpris", "Media", "What is playing, in any player."},
             WidgetInfo{Widget::privacy, "privacy", "Privacy", "A sign while your screen or microphone is shared."},
@@ -146,15 +145,6 @@ tooltip label {
         // Each widget's settings in Waybar's config, ending in a comma like the blocks around it.
         std::string widgetBlock(Widget widget) {
             switch (widget) {
-                case Widget::taskbar:
-                    return R"(    "wlr/taskbar": {
-        "format": "{icon}",
-        "icon-size": 18,
-        "tooltip-format": "{title}",
-        "on-click": "activate",
-        "on-click-middle": "close"
-    },
-)";
                 case Widget::windowTitle:
                     return R"(    "hyprland/window": {
         "format": "{title}",
@@ -246,19 +236,6 @@ tooltip label {
         // Each widget's look, in the palette's colours.
         std::string_view widgetRules(Widget widget) {
             switch (widget) {
-                case Widget::taskbar:
-                    return R"(
-#taskbar button {
-    padding: 0 6px;
-    margin: 5px 1px;
-    border-radius: 7px;
-    background: transparent;
-}
-
-#taskbar button.active {
-    background: @surface;
-}
-)";
                 case Widget::windowTitle:
                     return R"(
 #window {
@@ -445,12 +422,12 @@ window#waybar {
     std::string waybarConfigText(const WaybarStyle& style) {
         const auto& palette  = *style.palette;
         const bool  floating = style.shape != Shape::fullWidth;
-        // The taskbar and the title follow the workspaces; the rest come before the sound.
+        // The title follows the workspaces; the rest come before the sound.
         std::vector<std::string_view> left{"hyprland/workspaces"};
         std::vector<std::string_view> right;
         std::string                   blocks;
         for (const auto widget : style.widgets) {
-            (widget == Widget::taskbar || widget == Widget::windowTitle ? left : right).push_back(widgetInfo(widget).module);
+            (widget == Widget::windowTitle ? left : right).push_back(widgetInfo(widget).module);
             blocks += widgetBlock(widget);
         }
         right.insert(right.end(), {"pulseaudio", "network", "tray"});
