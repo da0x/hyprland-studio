@@ -35,9 +35,10 @@ namespace ui {
         constexpr std::size_t perRow       = 4;
         constexpr double      cardShare    = 0.24;
         constexpr double      thumbHeight  = 110;
-        // A card: the image, its name, and the margins and gap around them.
+        // A card: the image and the margin around it. The chosen image's name is beside the
+        // preview.
         double cardHeight() {
-            return thumbHeight + 2 * 8 + 6 + scaled(20);
+            return thumbHeight + 2 * 8;
         }
         constexpr double      previewWidth = 400;
         // A 16:9 screen.
@@ -405,7 +406,7 @@ namespace ui {
                               ->borderThickness(2)
                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {cardShare, 1.0}})
                               ->commence();
-        const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         inside->setMargin(8);
         auto& picture = thumbnails[image];
         if (!picture)
@@ -416,7 +417,6 @@ namespace ui {
                           ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, thumbHeight}})
                           ->commence();
         inside->addChild(picture);
-        inside->addChild(markupLine(escapeMarkup(image.filename().string()), palette, CFontSize{CFontSize::HT_FONT_SMALL}, chosen ? 1.F : 0.7F));
         card->addChild(inside);
         cards[image] = card;
         card->setReceivesMouse(true);
