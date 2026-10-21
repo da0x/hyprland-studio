@@ -148,7 +148,8 @@ namespace ui {
         // The large one is drawn smaller when the page has less height to give it.
         const double scale  = large ? previewHeight / 250 : 0.42;
         const double height = large ? previewHeight : 105;
-        const auto   shape  = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, shown}).shape;
+        const auto   bar    = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, shown});
+        const auto   shape  = bar.shape;
 
         const auto backdrop = Hyprtoolkit::CRectangleBuilder::begin()
                                   ->color([c = shown->dark ? paletteColour("#3b4252") : paletteColour("#b6bccb")] { return c; })
@@ -156,7 +157,7 @@ namespace ui {
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
                                   ->commence();
         const auto stack = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
-        stack->addChild(barPreview(desktop::WaybarStyle{shape, shown, desktop::runningBarGeometry()}, scale * 0.8));
+        stack->addChild(barPreview(desktop::WaybarStyle{shape, shown, desktop::runningBarGeometry(), bar.windowBorder}, scale * 0.8));
         const auto windows = Hyprtoolkit::CRowLayoutBuilder::begin()
                                  ->gap(static_cast<std::size_t>(14 * scale))
                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height - barPreviewHeight({shape, shown}, scale * 0.8) - 12 * scale}})
@@ -241,8 +242,8 @@ namespace ui {
     void ThemePage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::studioLaunch());
-        const auto shape       = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
-        const auto planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
+        const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
+        const auto planned     = config ? desktop::planTheme(*selected, bar.shape, bar.windowBorder, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         const bool gtkSame     = desktop::gtkChanges(*selected, environment).empty();
@@ -278,8 +279,8 @@ namespace ui {
     void ThemePage::showReview() {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::studioLaunch());
-        const auto shape       = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected}).shape;
-        auto       planned     = config ? desktop::planTheme(*selected, shape, *config, environment)
+        const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
+        auto       planned     = config ? desktop::planTheme(*selected, bar.shape, bar.windowBorder, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         if (!planned) {
             outcome = planned.error();

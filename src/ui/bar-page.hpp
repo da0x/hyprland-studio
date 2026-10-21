@@ -66,7 +66,7 @@ namespace ui {
         void                                                                   updateStyle();
         void                                                                   fillStyleStatus();
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
-        // card's, 2 a palette card's. An element has one parent, so each place has its own.
+        // card's, 2 a palette card's, 3 a border card's. An element has one parent, so each place has its own.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
@@ -83,13 +83,15 @@ namespace ui {
         application::Settings                                                settings;
         // The style shown in the big preview: Waybar's own at first, if it is one of the studio's.
         desktop::WaybarStyle                                                 selected;
-        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
+        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, bool>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> styleStatus;
         // What the status shows now, so that it is made anew only when that changes.
         std::string                                                          styleStatusShown;
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
+        // The thin border, then the windows'.
+        std::vector<std::pair<bool, Card>>                                   borderCards;
         // The style under review and the files it would write.
         std::optional<desktop::WaybarStyle>                                  reviewing;
         std::vector<configuration::FileChange>                               changes;

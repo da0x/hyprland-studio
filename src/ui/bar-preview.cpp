@@ -13,7 +13,6 @@
 #include <charconv>
 #include <cmath>
 #include <format>
-#include <optional>
 #include <string>
 
 namespace ui {
@@ -150,22 +149,30 @@ namespace ui {
             return made;
         }
 
-        CSharedPointer<Hyprtoolkit::CRectangleElement> panel(const desktop::Palette& palette, double width, double height, double rounding, bool border, float alpha,
-                                                     std::optional<int> windowsBorder) {
+        // How a style's border is drawn at `scale`: its colour, and at least a pixel wide.
+        Hyprtoolkit::CHyprColor borderColour(const desktop::WaybarStyle& style) {
+            return style.windowBorder ? colour(style.palette->accent, 0.93F) : colour(style.palette->surface);
+        }
+
+        int borderWidth(const desktop::WaybarStyle& style, double scale) {
+            return std::max(1, static_cast<int>(std::lround((style.windowBorder ? style.geometry.border : 1) * scale)));
+        }
+
+        // A bar or an island, with `bordered`'s border when there is one.
+        CSharedPointer<Hyprtoolkit::CRectangleElement> panel(const desktop::Palette& palette, double width, double height, double rounding, float alpha,
+                                                             const desktop::WaybarStyle* bordered, double scale) {
             auto builder = Hyprtoolkit::CRectangleBuilder::begin()
                                ->color([c = colour(palette.base, alpha)] { return c; })
                                ->rounding(static_cast<int>(rounding))
                                ->size(CDynamicSize{width > 0 ? CDynamicSize::HT_SIZE_ABSOLUTE : CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {width > 0 ? width : 1.0, height}});
-            if (border && windowsBorder)
-                builder->borderColor([c = colour(palette.accent, 0.93F)] { return c; })->borderThickness(*windowsBorder);
-            else if (border)
-                builder->borderColor([c = colour(palette.surface)] { return c; })->borderThickness(1);
+            if (bordered)
+                builder->borderColor([c = borderColour(*bordered)] { return c; })->borderThickness(borderWidth(*bordered, scale));
             return builder->commence();
         }
 
         CSharedPointer<Hyprtoolkit::IElement> island(const CSharedPointer<Hyprtoolkit::IElement>& content, double width, const desktop::Palette& palette, double scale, double rounding,
-                                             std::optional<int> windowsBorder) {
-            const auto made = panel(palette, width, barHeight * scale, rounding * scale, true, islandOpacity, windowsBorder);
+                                                     const desktop::WaybarStyle& style) {
+            const auto made = panel(palette, width, barHeight * scale, rounding * scale, islandOpacity, &style, scale);
             made->addChild(content);
             return made;
         }
@@ -204,17 +211,32 @@ namespace ui {
 
         switch (style.shape) {
             case desktop::Shape::islands: {
-                line->addChild(thirds(island(workspaces(palette, scale, barSize, style.geometry.rounding), workspacesWidth(scale), palette, scale, style.geometry.rounding, style.geometry.border),
-                                      island(clock(palette, scale, barSize), clockWidth * scale, palette, scale, style.geometry.rounding, style.geometry.border),
-                                      island(status(palette, scale, barSize), statusWidth * scale, palette, scale, style.geometry.rounding, style.geometry.border), barSize, true));
+                line->addChild(thirds(island(workspaces(palette, scale, barSize, style.geometry.rounding), workspacesWidth(scale), palette, scale, style.geometry.rounding, style),
+                                      island(clock(palette, scale, barSize), clockWidth * scale, palette, scale, style.geometry.rounding, style),
+                                      island(status(palette, scale, barSize), statusWidth * scale, palette, scale, style.geometry.rounding, style), barSize, true));
                 break;
             }
-            case desktop::Shape::floating:
-            case desktop::Shape::fullWidth: {
-                const auto whole = panel(palette, 1, barSize, floating ? style.geometry.rounding * scale : 0, floating, floating ? islandOpacity : 1.F, style.geometry.border);
+            case desktop::Shape::floating: {
+                const auto whole = panel(palette, 1, barSize, style.geometry.rounding * scale, islandOpacity, &style, scale);
                 whole->setGrow(true, false);
                 whole->addChild(thirds(workspaces(palette, scale, barSize, style.geometry.rounding), clock(palette, scale, barSize), status(palette, scale, barSize), barSize, false));
                 line->addChild(whole);
+                break;
+            }
+            case desktop::Shape::fullWidth: {
+                // The border runs only along the bottom, which a rectangle's own cannot draw.
+                const double underline = borderWidth(style, scale);
+                const double above     = barSize - underline;
+                const auto   column    = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, barSize}})->commence();
+                column->setGrow(true, false);
+                const auto whole = panel(palette, 0, above, 0, 1.F, nullptr, scale);
+                whole->addChild(thirds(workspaces(palette, scale, above, style.geometry.rounding), clock(palette, scale, above), status(palette, scale, above), above, false));
+                column->addChild(whole);
+                column->addChild(Hyprtoolkit::CRectangleBuilder::begin()
+                                     ->color([c = borderColour(style)] { return c; })
+                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, underline}})
+                                     ->commence());
+                line->addChild(column);
                 break;
             }
         }

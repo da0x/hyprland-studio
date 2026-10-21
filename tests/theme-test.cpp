@@ -29,7 +29,7 @@ namespace {
         const auto&                    tokyo = desktop::waybarPalettes()[3];
 
         EXPECT_EQ(desktop::currentTheme(config), nullptr);
-        const auto planned = desktop::planTheme(tokyo, desktop::Shape::floating, config, environment);
+        const auto planned = desktop::planTheme(tokyo, desktop::Shape::floating, false, config, environment);
         ASSERT_TRUE(planned.has_value()) << planned.error();
         // The Hyprland config, Waybar's two files and hyprtoolkit.conf.
         ASSERT_EQ(planned->size(), 4U);
@@ -40,7 +40,7 @@ namespace {
 
         ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Theme").has_value());
         EXPECT_EQ(desktop::currentTheme(config), &tokyo);
-        const auto again = desktop::planTheme(tokyo, desktop::Shape::floating, config, environment);
+        const auto again = desktop::planTheme(tokyo, desktop::Shape::floating, false, config, environment);
         ASSERT_TRUE(again.has_value());
         EXPECT_TRUE(again->empty());
         std::filesystem::remove_all(root);
@@ -64,7 +64,7 @@ namespace {
         const configuration::MainConfig config{.file = root / "home/.config/hypr/hyprland.lua", .choice = configuration::Choice::search, .safeMode = false};
 
         const auto& nord    = desktop::waybarPalettes()[4];
-        const auto  planned = desktop::planTheme(nord, desktop::Shape::islands, config, environment);
+        const auto  planned = desktop::planTheme(nord, desktop::Shape::islands, false, config, environment);
         ASSERT_TRUE(planned.has_value()) << planned.error();
         const auto find = [&planned](const std::string& name) -> const configuration::FileChange* {
             for (const auto& change : *planned)

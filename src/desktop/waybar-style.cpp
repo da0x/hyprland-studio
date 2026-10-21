@@ -292,9 +292,9 @@ window#waybar {
         };
         replaced("border-radius: 10px;", style.geometry.rounding);
         replaced("border-radius: 7px;", static_cast<int>(std::lround(style.geometry.rounding * 0.7)));
-        if (const auto border = style.geometry.border) {
+        if (style.windowBorder) {
             const std::string_view from = "1px solid @surface;";
-            const auto             to   = std::format("{}px solid alpha(@accent, 0.93);", *border);
+            const auto             to   = std::format("{}px solid alpha(@accent, 0.93);", style.geometry.border);
             for (auto at = text.find(from); at != std::string::npos; at = text.find(from, at + to.size()))
                 text.replace(at, from.size(), to);
             // GTK draws a border image with square corners, so only a square bar takes the
@@ -339,10 +339,12 @@ window#waybar {
     std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry, const std::filesystem::path& systemFolder) {
         for (const auto& info : shapes) {
             for (const auto& palette : palettes) {
-                const WaybarStyle style{info.shape, &palette, geometry};
-                const auto        planned = planWaybarStyle(style, environment, systemFolder);
-                if (planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); }))
-                    return style;
+                for (const bool windowBorder : {false, true}) {
+                    const WaybarStyle style{info.shape, &palette, geometry, windowBorder};
+                    const auto        planned = planWaybarStyle(style, environment, systemFolder);
+                    if (planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); }))
+                        return style;
+                }
             }
         }
         return std::nullopt;

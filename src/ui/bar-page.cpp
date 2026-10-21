@@ -121,7 +121,7 @@ namespace ui {
 
     CSharedPointer<Hyprtoolkit::IElement> BarPage::previewOf(int kind, const desktop::WaybarStyle& style) {
         constexpr double cardScale = 0.42;
-        auto&            made      = previews[{kind, style.shape, style.palette}];
+        auto&            made      = previews[{kind, style.shape, style.palette, style.windowBorder}];
         if (!made)
             made = barPreview(style, kind == 0 ? 1.0 : cardScale);
         return made;
@@ -170,6 +170,20 @@ namespace ui {
             }
             section->addChild(colours);
         }
+
+        section->addChild(markupLine("<span weight=\"600\">Border</span>", palette));
+        const auto borders = leftRow(0);
+        borders->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
+        borderCards.clear();
+        for (const auto& [windowBorder, name] : {std::pair{false, "Thin"}, std::pair{true, "Like your windows"}}) {
+            auto made = card(name, [this, windowBorder] {
+                selected.windowBorder = windowBorder;
+                updateStyle();
+            });
+            borders->addChild(made.frame);
+            borderCards.emplace_back(windowBorder, std::move(made));
+        }
+        section->addChild(borders);
         updateStyle();
         return section;
     }
@@ -184,9 +198,11 @@ namespace ui {
             made.name->rebuild()->text(chosen ? std::format("<span weight=\"600\">{}</span>", escapeMarkup(made.title)) : escapeMarkup(made.title))->commence();
         };
         for (auto& [shape, made] : shapeCards)
-            mark(made, shape == selected.shape, desktop::WaybarStyle{shape, selected.palette, selected.geometry}, 1);
+            mark(made, shape == selected.shape, desktop::WaybarStyle{shape, selected.palette, selected.geometry, selected.windowBorder}, 1);
         for (auto& [shown, made] : paletteCards)
-            mark(made, shown == selected.palette, desktop::WaybarStyle{selected.shape, shown, selected.geometry}, 2);
+            mark(made, shown == selected.palette, desktop::WaybarStyle{selected.shape, shown, selected.geometry, selected.windowBorder}, 2);
+        for (auto& [windowBorder, made] : borderCards)
+            mark(made, windowBorder == selected.windowBorder, desktop::WaybarStyle{selected.shape, selected.palette, selected.geometry, windowBorder}, 3);
         fillStyleStatus();
     }
 

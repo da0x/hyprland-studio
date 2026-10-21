@@ -72,18 +72,20 @@ namespace desktop {
         // From the top: the edge gap when the bar follows the windows; half of it in
         // files the studio wrote before.
         int topGap   = 10;
-        // The windows' border width. The bar's border takes the focused window's colours
-        // too. Nothing for the thin border styles had before they followed the windows'.
-        std::optional<int> border;
+        // The windows' border width, for a bar with their border.
+        int border   = 1;
 
         friend bool operator==(const BarGeometry&, const BarGeometry&) = default;
     };
 
-    // A complete style: the shape, the palette, and the geometry.
+    // A complete style: the shape, the palette, the geometry, and the border.
     struct WaybarStyle {
         Shape          shape    = Shape::islands;
         const Palette* palette  = nullptr;
         BarGeometry    geometry = {};
+        // The focused window's border, as wide as the windows' and in their colours,
+        // rather than a thin line in the bar's own.
+        bool           windowBorder = false;
 
         bool operator==(const WaybarStyle&) const = default;
     };
@@ -101,7 +103,8 @@ namespace desktop {
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planWaybarStyle(const WaybarStyle& style, const foundation::Environment& environment,
                                                                                                     const std::filesystem::path& systemFolder = "/etc/xdg");
 
-    // The studio's style that Waybar's files hold now, if they hold one exactly.
+    // The studio's style that Waybar's files hold now, if they hold one exactly, with
+    // either border.
     // Only styles with `geometry` are looked for, since the files hold it too.
     [[nodiscard]] std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry = {},
                                                                 const std::filesystem::path& systemFolder = "/etc/xdg");
