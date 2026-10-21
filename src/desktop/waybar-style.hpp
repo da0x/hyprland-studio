@@ -93,6 +93,9 @@ namespace desktop {
     // order they sit on the bar: the first after the workspaces, the rest before the sound.
     enum class Widget {
         windowTitle,
+        // The temperature from wttr.in, which sees the computer's address and so roughly
+        // where it is: the one widget that goes out to the internet.
+        weather,
         media,
         privacy,
         cpu,

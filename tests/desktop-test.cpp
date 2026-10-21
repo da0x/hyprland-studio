@@ -226,7 +226,7 @@ namespace {
         const auto                 config = nlohmann::json::parse(text, nullptr, false);
         ASSERT_FALSE(config.is_discarded());
         EXPECT_EQ(config["modules-left"], (nlohmann::json{"hyprland/workspaces", "hyprland/window"}));
-        EXPECT_EQ(config["modules-right"], (nlohmann::json{"mpris", "privacy", "cpu", "memory", "temperature", "idle_inhibitor", "bluetooth", "battery", "pulseaudio",
+        EXPECT_EQ(config["modules-right"], (nlohmann::json{"custom/weather", "mpris", "privacy", "cpu", "memory", "temperature", "idle_inhibitor", "bluetooth", "battery", "pulseaudio",
                                                            "network", "tray"}));
         for (const auto& info : desktop::waybarWidgets())
             EXPECT_TRUE(config.contains(info.module)) << info.module;

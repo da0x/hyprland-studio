@@ -108,6 +108,7 @@ namespace ui {
         double widgetWidth(desktop::Widget widget) {
             switch (widget) {
                 case desktop::Widget::windowTitle: return 70;
+                case desktop::Widget::weather: return 96;
                 case desktop::Widget::media: return 134;
                 case desktop::Widget::privacy:
                 case desktop::Widget::keepAwake:
@@ -182,6 +183,7 @@ namespace ui {
                 const auto width = widgetWidth(widget) * scale;
                 switch (widget) {
                     case desktop::Widget::windowTitle: break;
+                    case desktop::Widget::weather: made->addChild(label("\U000F0595  +18°C", palette.text, width, scale, height)); break;
                     case desktop::Widget::media: made->addChild(label("\U000F075A  Lofi radio", palette.text, width, scale, height)); break;
                     case desktop::Widget::privacy: made->addChild(label("\U000F0567", palette.alert, width, scale, height)); break;
                     case desktop::Widget::cpu: made->addChild(label("\U000F061A  12%", palette.subtle, width, scale, height)); break;

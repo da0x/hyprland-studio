@@ -399,6 +399,10 @@ namespace ui {
                                              off ? "Waybar is off, so it will not be restarted." : "Waybar then restarts to read them.",
                                              rules ? " The Hyprland config gets rules that float the volume control and the network settings the bar opens, under its right end." : ""),
                                  palette, true));
+        if (style.widgets.contains(desktop::Widget::weather))
+            body->addChild(paragraph("The weather widget asks the website wttr.in for the temperature every half hour. The site sees your computer's address, "
+                                     "which tells it roughly where you are.",
+                                     palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
         diff.setRows(diffRows(changes, *palette));
         body->addChild(diff.element());

@@ -57,8 +57,9 @@ Each page does one thing:
   hyprpaper or awww.
 - **Windows:** corners, gaps, border thickness, and whether dragging a border resizes,
   with a preview of your screen. The bar's corners and gaps follow the windows'.
-- **Bar:** a Waybar style that matches the theme, and a switch to start or stop it.
-- **Terminal:** a colour scheme, font and text size for kitty.
+- **Bar:** a Waybar style that matches the theme, widgets such as the weather, media and
+  processor, and a switch to start or stop it.
+- **Terminal:** a colour scheme, font, text size and background opacity for kitty.
 - **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
 - **Keyboard shortcuts:** every binding, what it does, where in your config it is set,
   and which keys are bound more than once, with a search.
@@ -125,7 +126,9 @@ writes the file it points to, and the review says which one.
 - **Windows:** the corners, gaps, border size and resizing in your Hyprland config, and
   Waybar's files, so the bar keeps matching.
 - **Bar:** Waybar's `config.jsonc` and `style.css`, and rules in your Hyprland config that
-  float the volume control and network settings the bar opens.
+  float the volume control and network settings the bar opens. The weather widget, when
+  you turn it on, has Waybar ask the website wttr.in for the temperature every half hour,
+  which lets that site see roughly where you are.
 - **Terminal:** kitty's `current-theme.conf`, and the font, text size and theme lines in
   `kitty.conf`.
 - **Accessibility:** animations, the cursor size and the colour-correction shader in your
@@ -198,7 +201,8 @@ Research is in [`docs/research.md`](docs/research.md), the design in
      switch, off until you turn it on.
 2. **0.2, make it yours.**
    - Themes you author yourself, next to the built-in ones.
-   - More widgets for the bar.
+   - Widgets for the bar: the window title, weather, media, privacy, processor, memory,
+     temperature, keep awake, Bluetooth and battery.
 
 After that: changing any option from the Options page and saving it to your config,
 keeping an activation across restarts (opt-in), an editable monitor layout, keybinding and

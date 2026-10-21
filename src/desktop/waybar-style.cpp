@@ -128,6 +128,7 @@ tooltip label {
 
         constexpr std::array widgets{
             WidgetInfo{Widget::windowTitle, "hyprland/window", "Window title", "The title of the window you are using."},
+            WidgetInfo{Widget::weather, "custom/weather", "Weather", "The temperature, from the website wttr.in."},
             WidgetInfo{Widget::media, "mpris", "Media", "What is playing, in any player."},
             WidgetInfo{Widget::privacy, "privacy", "Privacy", "A sign while your screen or microphone is shared."},
             WidgetInfo{Widget::cpu, "cpu", "Processor", "How busy the processor is."},
@@ -152,6 +153,18 @@ tooltip label {
         "separate-outputs": true
     },
 )";
+                case Widget::weather:
+                    // Asked every half hour; curl prints nothing when the site cannot be
+                    // reached, and Waybar hides a custom module with nothing to show.
+                    return std::format(R"(    "custom/weather": {{
+        "exec": "curl -sf --max-time 10 'https://wttr.in/?format=%t'",
+        "interval": 1800,
+        "format": "{}  {{}}",
+        "tooltip": false,
+        "on-click": "xdg-open https://wttr.in"
+    }},
+)",
+                                       "\U000F0595");
                 case Widget::media:
                     return std::format(R"(    "mpris": {{
         "format": "{}  {{dynamic}}",
@@ -241,6 +254,13 @@ tooltip label {
 #window {
     padding: 0 10px;
     color: @subtle;
+}
+)";
+                case Widget::weather:
+                    return R"(
+#custom-weather {
+    padding: 0 10px;
+    color: @text;
 }
 )";
                 case Widget::media:
