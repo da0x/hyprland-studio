@@ -4,6 +4,7 @@
 #include "application/session.hpp"
 #include "ui/bar-page.hpp"
 #include "ui/keybindings-page.hpp"
+#include "ui/options-page.hpp"
 #include "ui/restyle.hpp"
 #include "ui/terminal-page.hpp"
 #include "ui/accessibility-page.hpp"
@@ -48,7 +49,6 @@ namespace ui {
 
         // The pages planned for 0.1 that are not built yet. Each says what it will do until it does it.
         constexpr std::array plannedPages{
-            Page{"Options", "Every option with its description, default and current value."},
             Page{"Live tree", "Monitors, workspaces and windows as they change, from Hyprland's event socket."},
             Page{"Event log", "What Hyprland reports as it happens."},
             Page{"Console", "Read-only requests to Hyprland, and their replies."},
@@ -162,6 +162,7 @@ namespace ui {
                 },
         };
         KeybindingsPage keybindings{palette, defer};
+        OptionsPage     optionsPage{palette, defer};
         BarPage         bar{palette, defer, loop};
         WallpaperPage   wallpaper{palette, defer, loop};
         ThemePage       theme{palette, defer, loop};
@@ -215,6 +216,7 @@ namespace ui {
         addPageButton("Terminal", terminal.element());
         addPageButton("Accessibility", accessibility.element());
         addPageButton("Keyboard shortcuts", keybindings.element());
+        addPageButton("Options", optionsPage.element());
         addPageButton("Activate", activate.element());
         for (const auto& page : plannedPages)
             addPageButton(page.title, plannedPage(page, palette));
@@ -230,8 +232,13 @@ namespace ui {
         session.emplace(
             loop,
             application::Listeners{
-                .connection = [&keybindings](application::Connection connection, const std::string& reason) { keybindings.showConnection(connection, reason); },
+                .connection =
+                    [&keybindings, &optionsPage](application::Connection connection, const std::string& reason) {
+                        keybindings.showConnection(connection, reason);
+                        optionsPage.showConnection(connection, reason);
+                    },
                 .keybindings = [&keybindings](const auto& result) { keybindings.showKeybindings(result); },
+                .options     = [&optionsPage](const auto& result) { optionsPage.showOptions(result); },
             });
 
         // The session and the setup pages go first: they unwatch descriptors, which needs a live event loop.
@@ -248,7 +255,7 @@ namespace ui {
         window->m_events.closeRequest.listenStatic(quit);
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows, &activate](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows, &activate](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -256,6 +263,7 @@ namespace ui {
             if (resized)
                 theme.restyle();
             keybindings.restyle();
+            optionsPage.restyle();
             terminal.restyle();
             bar.restyle();
             wallpaper.restyle();

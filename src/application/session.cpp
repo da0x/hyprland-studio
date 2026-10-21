@@ -49,6 +49,7 @@ namespace application {
         // Subscribed first, then the snapshot, so no change can fall between the two.
         listeners.connection(Connection::live, {});
         refreshKeybindings();
+        refreshOptions();
     }
 
     void Session::lose(const std::string& reason) {
@@ -67,10 +68,13 @@ namespace application {
             return;
         }
 
-        // A reload replaces every binding, and no event reports a single binding changing.
-        // Hyprland also reloads when a config file changes, so this re-reads the config too.
-        if (std::ranges::any_of(*drained, [](const ipc::Event& event) { return event.name == "configreloaded"; }))
+        // A reload replaces every binding and option, and no event reports a single one
+        // changing. Hyprland also reloads when a config file changes, so this re-reads the
+        // config too. An option changed with hyprctl keyword or eval reports nothing.
+        if (std::ranges::any_of(*drained, [](const ipc::Event& event) { return event.name == "configreloaded"; })) {
             refreshKeybindings();
+            refreshOptions();
+        }
     }
 
     void Session::refreshKeybindings() {
@@ -98,6 +102,30 @@ namespace application {
                     keybindings->sources.push_back(readSourceFile(path));
             }
             return [this, keybindings = std::move(keybindings)] { listeners.keybindings(keybindings); };
+        });
+    }
+
+    void Session::refreshOptions() {
+        if (!listeners.options)
+            return;
+        worker.post([this, instance = *instance]() -> Worker::Continuation {
+            const auto reply        = ipc::request(instance, ipc::Query::descriptions);
+            auto       descriptions = reply ? ipc::parseOptionDescriptions(*reply) : std::expected<std::vector<ipc::OptionDescription>, std::string>{std::unexpect, reply.error()};
+            std::expected<Options, std::string> options{std::unexpect, descriptions ? std::string{} : descriptions.error()};
+            if (descriptions) {
+                std::vector<std::string> names;
+                for (const auto& description : *descriptions)
+                    names.push_back(description.name);
+                const auto values = ipc::requestOptions(instance, names);
+                if (!values) {
+                    options = std::unexpected{values.error()};
+                } else {
+                    const auto loaded    = findLoadedConfig(instance);
+                    const auto recording = loaded.config ? configuration::record(loaded.config->file) : std::expected<configuration::Recording, std::string>{std::unexpect, loaded.config.error()};
+                    options              = joinOptions(std::move(*descriptions), ipc::parseOptionValues(*values, names), recording);
+                }
+            }
+            return [this, options = std::move(options)] { listeners.options(options); };
         });
     }
 

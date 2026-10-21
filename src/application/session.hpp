@@ -2,6 +2,7 @@
 #pragma once
 
 #include "application/keybindings.hpp"
+#include "application/options.hpp"
 #include "application/worker.hpp"
 #include "ipc/events.hpp"
 #include "ipc/instance.hpp"
@@ -33,6 +34,7 @@ namespace application {
     struct Listeners {
         std::function<void(Connection, const std::string& reason)>                          connection;
         std::function<void(const std::expected<Keybindings, std::string>&)>               keybindings;
+        std::function<void(const std::expected<Options, std::string>&)>                   options;
     };
 
     // Keeps the studio's picture of the running Hyprland current. It listens on the event
@@ -51,6 +53,7 @@ namespace application {
         void                               lose(const std::string& reason);
         void                               readEvents();
         void                               refreshKeybindings();
+        void                               refreshOptions();
 
         EventLoop                          loop;
         Listeners                          listeners;

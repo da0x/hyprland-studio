@@ -5,6 +5,7 @@
 
 #include <expected>
 #include <string>
+#include <vector>
 
 namespace ipc {
 
@@ -13,11 +14,17 @@ namespace ipc {
     // the activation layer and does not go through this function.
     enum class Query {
         bindings,
+        descriptions,
         status,
     };
 
     // Sends one query and waits for the whole JSON reply. Blocks, so never call it on the
     // UI thread.
     [[nodiscard]] std::expected<std::string, std::string> request(const Instance& instance, Query query);
+
+    // Asks for the value of each option in `names` in one batch, for parseOptionValues.
+    // Only reads. A name that is not an option's, by its letters, is refused before
+    // anything is sent, so nothing but getoption can be smuggled into the batch. Blocks.
+    [[nodiscard]] std::expected<std::string, std::string> requestOptions(const Instance& instance, const std::vector<std::string>& names);
 
 }
