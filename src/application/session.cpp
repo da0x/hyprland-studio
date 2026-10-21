@@ -46,6 +46,17 @@ namespace application {
         connect();
     }
 
+    void Session::ask(std::string typed, std::function<void(const std::expected<std::string, std::string>&)> answered) {
+        if (!instance) {
+            answered(std::unexpected{std::string{"not connected to Hyprland"}});
+            return;
+        }
+        worker.post([instance = *instance, typed = std::move(typed), answered = std::move(answered)]() mutable -> Worker::Continuation {
+            auto reply = ipc::requestTyped(instance, typed);
+            return [answered = std::move(answered), reply = std::move(reply)] { answered(reply); };
+        });
+    }
+
     void Session::connect() {
         listeners.connection(Connection::connecting, {});
 

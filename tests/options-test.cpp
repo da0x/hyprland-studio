@@ -109,3 +109,29 @@ TEST(Tree, ReadsMonitorsWorkspacesAndWindows) {
     EXPECT_TRUE(tree->windows[0].fullscreen);
     EXPECT_FALSE(ipc::parseTree("[]", "{}", "[]"));
 }
+
+#include "ipc/request.hpp"
+
+TEST(ConsoleCommand, SendsOnlyListedRequestsThatRead) {
+    EXPECT_EQ(ipc::consoleCommand("monitors"), "j/monitors");
+    EXPECT_EQ(ipc::consoleCommand("  hyprctl -j clients "), "j/clients");
+    EXPECT_EQ(ipc::consoleCommand("j/version"), "j/version");
+    EXPECT_EQ(ipc::consoleCommand("monitors all"), "j/monitors all");
+    EXPECT_EQ(ipc::consoleCommand("getoption general:gaps_in"), "j/getoption general:gaps_in");
+
+    EXPECT_FALSE(ipc::consoleCommand(""));
+    EXPECT_FALSE(ipc::consoleCommand("dispatch exec kitty"));
+    EXPECT_FALSE(ipc::consoleCommand("keyword general:gaps_in 0"));
+    EXPECT_FALSE(ipc::consoleCommand("hyprctl reload"));
+    EXPECT_FALSE(ipc::consoleCommand("clients;dispatch exec kitty"));
+    EXPECT_FALSE(ipc::consoleCommand("[[BATCH]]j/clients"));
+    EXPECT_FALSE(ipc::consoleCommand("getoption general:gaps_in;dispatch exec kitty"));
+    EXPECT_FALSE(ipc::consoleCommand("getoption"));
+    EXPECT_FALSE(ipc::consoleCommand("clients extra"));
+    EXPECT_NE(ipc::consoleCommand("dispatch exec kitty").error().find("changes Hyprland"), std::string::npos);
+}
+
+TEST(ConsoleCommand, IndentsJsonAndLeavesOtherRepliesAsTheyCame) {
+    EXPECT_EQ(ipc::indentedReply(R"({"y":1,"x":2})"), "{\n  \"y\": 1,\n  \"x\": 2\n}");
+    EXPECT_EQ(ipc::indentedReply("\"splash\" - hyprBot"), "\"splash\" - hyprBot");
+}

@@ -3,6 +3,7 @@
 
 #include "application/session.hpp"
 #include "ui/bar-page.hpp"
+#include "ui/console-page.hpp"
 #include "ui/keybindings-page.hpp"
 #include "ui/event-log-page.hpp"
 #include "ui/live-tree-page.hpp"
@@ -43,29 +44,6 @@ namespace ui {
         using Hyprtoolkit::CFontSize;
         using Hyprutils::Memory::CSharedPointer;
         using Hyprutils::Memory::makeShared;
-
-        struct Page {
-            std::string_view title;
-            std::string_view summary;
-        };
-
-        // The pages planned for 0.1 that are not built yet. Each says what it will do until it does it.
-        constexpr std::array plannedPages{
-            Page{"Console", "Read-only requests to Hyprland, and their replies."},
-        };
-
-        CSharedPointer<Hyprtoolkit::IElement> plannedPage(const Page& page, const CSharedPointer<Hyprtoolkit::CPalette>& palette) {
-            const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1, 1}})->commence();
-            column->setMargin(28);
-            column->addChild(pageTitle(std::string{page.title}, palette));
-            column->addChild(paragraph(std::string{page.summary}, palette));
-            column->addChild(paragraph("Not built yet.", palette, true));
-            return column;
-        }
-
-    }
-
-    namespace {
 
         // The sidebar grows with the text, but by less, so its longest name still fits and
         // the page keeps most of the width.
@@ -172,6 +150,7 @@ namespace ui {
         AccessibilityPage accessibility{palette, defer, loop};
         WindowsPage     windows{palette, defer, loop};
         ActivatePage    activate{palette, defer};
+        ConsolePage     console{palette, defer};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
         opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
@@ -222,8 +201,7 @@ namespace ui {
         addPageButton("Live tree", liveTree.element());
         addPageButton("Event log", eventLog.element());
         addPageButton("Activate", activate.element());
-        for (const auto& page : plannedPages)
-            addPageButton(page.title, plannedPage(page, palette));
+        addPageButton("Console", console.element());
         const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
         show(first != titles.end() ? first->second : theme.element());
 
@@ -254,6 +232,8 @@ namespace ui {
                 .events      = [&eventLog](const auto& events) { eventLog.addEvents(events); },
             });
 
+        console.onAsk([&session](std::string typed, auto answered) { session->ask(std::move(typed), std::move(answered)); });
+
         // The session and the setup pages go first: they unwatch descriptors, which needs a live event loop.
         const auto quit = [&session, &bar, &wallpaper, &theme, &windows, window, backend] {
             session.reset();
@@ -268,7 +248,7 @@ namespace ui {
         window->m_events.closeRequest.listenStatic(quit);
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows, &activate](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -285,6 +265,7 @@ namespace ui {
             accessibility.restyle();
             windows.restyle();
             activate.restyle();
+            console.restyle();
             restyleAll(resized, before);
         };
         theme.onRecoloured([redraw] { redraw(false); });

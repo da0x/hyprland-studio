@@ -4,7 +4,9 @@
 #include "ipc/instance.hpp"
 
 #include <expected>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ipc {
@@ -29,5 +31,25 @@ namespace ipc {
     // Only reads. A name that is not an option's, by its letters, is refused before
     // anything is sent, so nothing but getoption can be smuggled into the batch. Blocks.
     [[nodiscard]] std::expected<std::string, std::string> requestOptions(const Instance& instance, const std::vector<std::string>& names);
+
+    // A request the console may send, by hyprctl's name for it, and what its reply tells.
+    struct ConsoleRequest {
+        std::string_view name;
+        std::string_view tells;
+    };
+
+    // Every request the console may send. Each one only reads.
+    [[nodiscard]] std::span<const ConsoleRequest> consoleRequests();
+
+    // What the console sends for `typed`: a request from consoleRequests(), or getoption and
+    // an option's name, written as for hyprctl, with or without "hyprctl" and "-j". Anything
+    // else is refused, with the reason.
+    [[nodiscard]] std::expected<std::string, std::string> consoleCommand(std::string_view typed);
+
+    // Sends consoleCommand(typed) and waits for the whole reply. Blocks.
+    [[nodiscard]] std::expected<std::string, std::string> requestTyped(const Instance& instance, std::string_view typed);
+
+    // A JSON reply indented the same way throughout; any other reply as it came.
+    [[nodiscard]] std::string indentedReply(std::string_view reply);
 
 }

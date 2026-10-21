@@ -52,6 +52,9 @@ namespace application {
 
         void start();
 
+        // Sends a request typed into the console, and hands Hyprland's reply to `answered`.
+        void ask(std::string typed, std::function<void(const std::expected<std::string, std::string>&)> answered);
+
       private:
         void                               connect();
         void                               lose(const std::string& reason);
