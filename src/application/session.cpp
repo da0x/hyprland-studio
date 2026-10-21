@@ -5,6 +5,9 @@
 #include "ipc/request.hpp"
 
 #include <algorithm>
+#include <array>
+#include <string_view>
+#include <utility>
 
 namespace application {
 
@@ -12,6 +15,14 @@ namespace application {
 
         // How long to wait before connecting again after the event socket drops.
         constexpr std::chrono::seconds retryDelay{2};
+
+        // The events after which the monitors, workspaces or windows may differ.
+        constexpr std::array<std::string_view, 25> treeEvents{
+            "openwindow",    "closewindow",       "movewindowv2",     "workspacev2",      "focusedmonv2",  "activewindowv2", "createworkspacev2",
+            "destroyworkspacev2", "moveworkspacev2", "renameworkspace", "monitoraddedv2", "monitorremovedv2", "changefloatingmode", "fullscreen",
+            "windowtitlev2", "activespecialv2", "pin", "minimized", "configreloaded", "movewindow", "workspace", "focusedmon", "activewindow",
+            "monitoradded", "monitorremoved",
+        };
 
     }
 
@@ -50,6 +61,7 @@ namespace application {
         listeners.connection(Connection::live, {});
         refreshKeybindings();
         refreshOptions();
+        refreshTree();
     }
 
     void Session::lose(const std::string& reason) {
@@ -75,6 +87,10 @@ namespace application {
             refreshKeybindings();
             refreshOptions();
         }
+        // Monitors, workspaces and windows. A window dragged or resized by hand reports
+        // nothing, so the tree shows where it was until the next event.
+        if (std::ranges::any_of(*drained, [](const ipc::Event& event) { return std::ranges::contains(treeEvents, event.name); }))
+            refreshTree();
     }
 
     void Session::refreshKeybindings() {
@@ -102,6 +118,36 @@ namespace application {
                     keybindings->sources.push_back(readSourceFile(path));
             }
             return [this, keybindings = std::move(keybindings)] { listeners.keybindings(keybindings); };
+        });
+    }
+
+    void Session::refreshTree() {
+        if (!listeners.tree)
+            return;
+        if (treeAsked) {
+            treeAgain = true;
+            return;
+        }
+        treeAsked = true;
+        worker.post([this, instance = *instance]() -> Worker::Continuation {
+            const auto monitors   = ipc::request(instance, ipc::Query::monitors);
+            const auto workspaces = ipc::request(instance, ipc::Query::workspaces);
+            const auto clients    = ipc::request(instance, ipc::Query::clients);
+            std::expected<ipc::Tree, std::string> tree{std::unexpect, std::string{}};
+            if (!monitors)
+                tree = std::unexpected{monitors.error()};
+            else if (!workspaces)
+                tree = std::unexpected{workspaces.error()};
+            else if (!clients)
+                tree = std::unexpected{clients.error()};
+            else
+                tree = ipc::parseTree(*monitors, *workspaces, *clients);
+            return [this, tree = std::move(tree)] {
+                listeners.tree(tree);
+                treeAsked = false;
+                if (std::exchange(treeAgain, false))
+                    refreshTree();
+            };
         });
     }
 

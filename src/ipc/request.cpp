@@ -20,7 +20,10 @@ namespace ipc {
         std::string_view command(Query query) {
             switch (query) {
                 case Query::bindings: return "j/binds";
+                case Query::clients: return "j/clients";
                 case Query::descriptions: return "j/descriptions";
+                case Query::monitors: return "j/monitors";
+                case Query::workspaces: return "j/workspaces";
                 case Query::status: return "j/status";
             }
             return {};

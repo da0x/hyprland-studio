@@ -6,6 +6,7 @@
 #include "application/worker.hpp"
 #include "ipc/events.hpp"
 #include "ipc/instance.hpp"
+#include "ipc/tree.hpp"
 
 #include <chrono>
 #include <expected>
@@ -35,6 +36,7 @@ namespace application {
         std::function<void(Connection, const std::string& reason)>                          connection;
         std::function<void(const std::expected<Keybindings, std::string>&)>               keybindings;
         std::function<void(const std::expected<Options, std::string>&)>                   options;
+        std::function<void(const std::expected<ipc::Tree, std::string>&)>                 tree;
     };
 
     // Keeps the studio's picture of the running Hyprland current. It listens on the event
@@ -54,12 +56,17 @@ namespace application {
         void                               readEvents();
         void                               refreshKeybindings();
         void                               refreshOptions();
+        void                               refreshTree();
 
         EventLoop                          loop;
         Listeners                          listeners;
         Worker                             worker;
         std::optional<ipc::Instance>       instance;
         std::optional<ipc::EventConnection> events;
+        // One tree request at a time: events that come while one is out ask for one more
+        // after it, however many they are.
+        bool                               treeAsked   = false;
+        bool                               treeAgain   = false;
     };
 
 }

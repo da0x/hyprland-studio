@@ -83,3 +83,29 @@ TEST(Options, FindsTheCallThatSetEachOptionAndWhatDiffersFromTheDefault) {
     EXPECT_FALSE(options.rows[3].where);
     EXPECT_FALSE(options.rows[3].changed());
 }
+
+#include "ipc/tree.hpp"
+
+TEST(Tree, ReadsMonitorsWorkspacesAndWindows) {
+    const auto tree = ipc::parseTree(
+        R"([{"id": 0, "name": "DP-1", "description": "A screen", "width": 3840, "height": 2160, "refreshRate": 59.99, "x": 0, "y": 0, "scale": 2,
+             "focused": true, "activeWorkspace": {"id": 2, "name": "2"}, "specialWorkspace": {"id": 0, "name": ""}}])",
+        R"([{"id": -98, "name": "special:magic", "monitor": "DP-1", "windows": 0, "hasfullscreen": false},
+            {"id": 2, "name": "2", "monitor": "DP-1", "windows": 1, "hasfullscreen": true},
+            {"id": 1, "name": "1", "monitor": "DP-1", "windows": 0, "hasfullscreen": false}])",
+        R"([{"address": "0x1", "class": "kitty", "title": "~", "workspace": {"id": 2, "name": "2"}, "monitor": 0, "at": [10, 20], "size": [800, 600],
+             "floating": true, "fullscreen": 2, "pinned": false, "xwayland": false, "hidden": false, "pid": 42, "focusHistoryID": 0}])");
+    ASSERT_TRUE(tree) << tree.error();
+    ASSERT_EQ(tree->monitors.size(), 1U);
+    EXPECT_EQ(tree->monitors[0].activeWorkspace, 2);
+    EXPECT_EQ(tree->monitors[0].scale, 2);
+    ASSERT_EQ(tree->workspaces.size(), 3U);
+    EXPECT_EQ(tree->workspaces[0].id, 1);
+    EXPECT_EQ(tree->workspaces[2].id, -98);
+    ASSERT_EQ(tree->windows.size(), 1U);
+    EXPECT_EQ(tree->windows[0].x, 10);
+    EXPECT_EQ(tree->windows[0].height, 600);
+    EXPECT_TRUE(tree->windows[0].floating);
+    EXPECT_TRUE(tree->windows[0].fullscreen);
+    EXPECT_FALSE(ipc::parseTree("[]", "{}", "[]"));
+}
