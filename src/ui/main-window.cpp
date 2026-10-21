@@ -12,6 +12,7 @@
 #include "ui/restyle.hpp"
 #include "ui/terminal-page.hpp"
 #include "ui/cursors-page.hpp"
+#include "ui/displays-page.hpp"
 #include "ui/accessibility-page.hpp"
 #include "ui/activate-page.hpp"
 #include "ui/windows-page.hpp"
@@ -152,14 +153,17 @@ namespace ui {
         ThemePage       theme{palette, defer, loop};
         TerminalPage    terminal{palette, defer};
         CursorsPage     cursors{palette, defer, loop};
+        DisplaysPage    displays{palette, defer, loop};
         AccessibilityPage accessibility{palette, defer, loop};
         WindowsPage     windows{palette, defer, loop};
         ActivatePage    activate{palette, defer};
         ConsolePage     console{palette, defer};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
-        opening = [&wallpaper](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+        opening = [&wallpaper, &displays](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
                 wallpaper.leave();
+            if (page == displays.element())
+                displays.refresh();
         };
 
         const auto addPageButton = [&sidebar, &show, &pages, &titles, defer](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
@@ -198,6 +202,7 @@ namespace ui {
         addPageButton("Theme", theme.element());
         addPageButton("Wallpaper", wallpaper.element());
         addPageButton("Windows", windows.element());
+        addPageButton("Displays", displays.element());
         addPageButton("Bar", bar.element());
         addPageButton("Terminal", terminal.element());
         addPageButton("Cursors", cursors.element());
@@ -266,7 +271,7 @@ namespace ui {
         });
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &accessibility, &windows, &activate, &console](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -279,6 +284,7 @@ namespace ui {
             eventLog.restyle();
             terminal.restyle();
             cursors.restyle();
+            displays.restyle();
             bar.restyle();
             wallpaper.restyle();
             accessibility.restyle();

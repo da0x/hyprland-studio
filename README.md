@@ -58,6 +58,9 @@ Each page does one thing:
   hyprpaper or awww.
 - **Windows:** corners, gaps, border thickness, and whether dragging a border resizes,
   with a preview of your screen. The bar's corners and gaps follow the windows'.
+- **Displays:** each display's resolution, refresh rate, scale, rotation, variable
+  refresh rate and place beside the others. A change is put back after 15 seconds unless
+  you keep it, so a display that goes dark fixes itself.
 - **Bar:** a Waybar style that matches the theme, with a border like your windows', the
   widgets you choose on the left, centre or right, such as the weather, media and
   processor, and a switch to start or stop it.
@@ -112,6 +115,8 @@ This is everything Lantern touches. Nothing else is read, written or started.
   `hyprpaper.conf`, or which picture awww shows.
 - **Terminal page and Console:** kitty's `kitty.conf` and `current-theme.conf`. For the
   preview of a see-through terminal, the Terminal page asks awww which picture it shows.
+- **Displays page:** each display Hyprland knows, with the modes it offers, from
+  `hyprctl monitors all`.
 - **Cursors page:** the cursor themes in your icon folders and the system's, and their
   cursor files, to draw them.
 - **Its own colours:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
@@ -134,6 +139,10 @@ writes the file it points to, and the review says which one.
   is copied into your wallpapers folder under a new random name.
 - **Windows:** the corners, gaps, border size and resizing in your Hyprland config, and
   Waybar's files, so the bar keeps matching.
+- **Displays:** the `hl.monitor` call for each display you change in your Hyprland
+  config, only the values that changed. A display your config sets only through a rule
+  for every display gets a call of its own, by its make, model and serial number, so it
+  keeps its settings on another port.
 - **Bar:** Waybar's `config.jsonc` and `style.css`, and rules in your Hyprland config that
   float the volume control and network settings the bar opens. The weather widget, when
   you turn it on, has Waybar ask the website wttr.in for the temperature every half hour,
@@ -217,9 +226,12 @@ Research is in [`docs/research.md`](docs/research.md), the design in
      privacy, processor, memory, temperature, keep awake, Bluetooth and battery, as well
      as the workspaces, clock, sound, network and tray.
    - A cursor theme page, a see-through terminal, and GTK apps in the theme's colours.
+   - The settings a plain Hyprland install still lacks: displays, keyboard and touchpad,
+     idle and lock, night light, a check for the desktop's essentials, autostart and
+     default apps.
 
 After that: changing any option from the Options page and saving it to your config,
-keeping an activation across restarts (opt-in), an editable monitor layout, keybinding and
+keeping an activation across restarts (opt-in), dragging displays into place, keybinding and
 window-rule editors, an animation and bezier editor, and writing the older
 `hyprland.conf` format.
 
