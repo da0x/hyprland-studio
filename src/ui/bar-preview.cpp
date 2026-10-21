@@ -224,14 +224,14 @@ namespace ui {
         return style.shape == desktop::Shape::fullWidth ? (fullHeight + 2 * topGap) * scale : (barHeight + 2 * topGap) * scale;
     }
 
-    CSharedPointer<Hyprtoolkit::IElement> barPreview(const desktop::WaybarStyle& style, double scale) {
+    CSharedPointer<Hyprtoolkit::IElement> barPreview(const desktop::WaybarStyle& style, double scale, bool backdropShown) {
         const auto& palette  = *style.palette;
         const bool  floating = style.shape != desktop::Shape::fullWidth;
         const auto  height   = barPreviewHeight(style, scale);
 
         // The desktop behind the bar: a soft tone that shows a light or a dark bar.
         const auto backdrop = Hyprtoolkit::CRectangleBuilder::begin()
-                                  ->color([c = palette.dark ? colour("#4b5263") : colour("#9aa3b5")] { return c; })
+                                  ->color([c = palette.dark ? colour("#4b5263", backdropShown ? 1.F : 0.F) : colour("#9aa3b5", backdropShown ? 1.F : 0.F)] { return c; })
                                   ->rounding(static_cast<int>(8 * scale))
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
                                   ->commence();

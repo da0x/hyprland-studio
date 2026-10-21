@@ -9,6 +9,7 @@
 #include "desktop/theme.hpp"
 #include "desktop/window-look.hpp"
 #include "ui/bar-preview.hpp"
+#include "ui/desktop-preview.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
@@ -31,74 +32,6 @@ namespace ui {
 
         constexpr auto   changeName = "Theme";
         constexpr double cardShare  = 0.32;
-
-        CSharedPointer<Hyprtoolkit::IElement> gap(double width, double height) {
-            return Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})->commence();
-        }
-
-        // A bar of a colour, standing for a line of text or a button in a window.
-        CSharedPointer<Hyprtoolkit::IElement> stroke(std::string_view hex, double share, double height, double rounding) {
-            return Hyprtoolkit::CRectangleBuilder::begin()
-                ->color([c = paletteColour(hex)] { return c; })
-                ->rounding(static_cast<int>(rounding))
-                ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {share, height}})
-                ->commence();
-        }
-
-        // A window as the theme draws it: hyprtoolkit's colours inside, Hyprland's border
-        // around, a gradient when it has the focus.
-        CSharedPointer<Hyprtoolkit::IElement> window(const desktop::Palette& shown, bool focused, double share, double height, double scale) {
-            auto builder = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([c = paletteColour(shown.base)] { return c; })
-                               ->rounding(static_cast<int>(10 * scale))
-                               ->borderThickness(std::max(1, static_cast<int>(2 * scale)))
-                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {share, height}});
-            if (focused)
-                builder->borderGradient([accent = paletteColour(shown.accent, 0.93F), audio = paletteColour(shown.audio, 0.93F)] {
-                    Hyprtoolkit::CGradientValueData gradient;
-                    gradient.m_vColors = {accent, audio};
-                    gradient.m_fAngle  = std::numbers::pi_v<float> / 4;
-                    return gradient;
-                });
-            else
-                builder->borderColor([c = paletteColour(shown.raised, 0.67F)] { return c; });
-            const auto made = builder->commence();
-
-            const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()
-                                    ->gap(static_cast<std::size_t>(8 * scale))
-                                    ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
-                                    ->commence();
-            inside->setMargin(static_cast<int>(14 * scale));
-            if (focused) {
-                // An app: a title, a panel with lines, and the accent button.
-                inside->addChild(stroke(shown.text, 0.45, 10 * scale, 3 * scale));
-                const auto panel = Hyprtoolkit::CRectangleBuilder::begin()
-                                       ->color([c = paletteColour(shown.surface)] { return c; })
-                                       ->rounding(static_cast<int>(6 * scale))
-                                       ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 56 * scale}})
-                                       ->commence();
-                const auto lines = Hyprtoolkit::CColumnLayoutBuilder::begin()
-                                       ->gap(static_cast<std::size_t>(8 * scale))
-                                       ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
-                                       ->commence();
-                lines->setMargin(static_cast<int>(10 * scale));
-                lines->addChild(stroke(shown.subtle, 0.8, 6 * scale, 3 * scale));
-                lines->addChild(stroke(shown.subtle, 0.6, 6 * scale, 3 * scale));
-                lines->addChild(stroke(shown.audio, 0.4, 6 * scale, 3 * scale));
-                panel->addChild(lines);
-                inside->addChild(panel);
-                inside->addChild(stroke(shown.accent, 0.3, 16 * scale, 5 * scale));
-            } else {
-                // A terminal: lines of output in a few colours.
-                inside->addChild(stroke(shown.network, 0.5, 6 * scale, 3 * scale));
-                inside->addChild(stroke(shown.subtle, 0.8, 6 * scale, 3 * scale));
-                inside->addChild(stroke(shown.subtle, 0.65, 6 * scale, 3 * scale));
-                inside->addChild(stroke(shown.alert, 0.35, 6 * scale, 3 * scale));
-                inside->addChild(stroke(shown.subtle, 0.7, 6 * scale, 3 * scale));
-            }
-            made->addChild(inside);
-            return made;
-        }
 
     }
 
@@ -148,27 +81,11 @@ namespace ui {
         // The large one is drawn smaller when the page has less height to give it.
         const double scale  = large ? previewHeight / 250 : 0.42;
         const double height = large ? previewHeight : 105;
-        const auto   bar    = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, shown});
-        const auto   shape  = bar.shape;
-
-        const auto backdrop = Hyprtoolkit::CRectangleBuilder::begin()
-                                  ->color([c = shown->dark ? paletteColour("#3b4252") : paletteColour("#b6bccb")] { return c; })
-                                  ->rounding(static_cast<int>(8 * scale))
-                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
-                                  ->commence();
-        const auto stack = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
-        stack->addChild(barPreview(desktop::WaybarStyle{shape, shown, desktop::runningBarGeometry(), bar.border}, scale * 0.8));
-        const auto windows = Hyprtoolkit::CRowLayoutBuilder::begin()
-                                 ->gap(static_cast<std::size_t>(14 * scale))
-                                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height - barPreviewHeight({shape, shown}, scale * 0.8) - 12 * scale}})
-                                 ->commence();
-        const double windowHeight = height - barPreviewHeight({shape, shown}, scale * 0.8) - 22 * scale;
-        windows->addChild(gap(16 * scale, 1));
-        windows->addChild(window(*shown, true, 0.56, windowHeight, scale));
-        windows->addChild(window(*shown, false, 0.36, windowHeight, scale));
-        stack->addChild(windows);
-        backdrop->addChild(stack);
-        made = backdrop;
+        // The windows as the config sets them, so this and the Windows page show the same desktop.
+        const auto bar    = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, shown});
+        const auto config = configuration::mainConfig(configuration::lanternLaunch());
+        const auto look   = (config ? desktop::currentWindowLook(*config) : std::nullopt).value_or(desktop::WindowLook{});
+        made              = desktopPreview(*shown, look, bar, scale, height);
         return made;
     }
 

@@ -7,6 +7,7 @@
 #include "desktop/system.hpp"
 #include "desktop/theme.hpp"
 #include "ui/bar-preview.hpp"
+#include "ui/desktop-preview.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
 #include "ui/widgets.hpp"
@@ -78,16 +79,6 @@ namespace ui {
             column->addChild(inside);
             frame->addChild(column);
             return frame;
-        }
-
-        // Empty space `width` wide, for a row.
-        CSharedPointer<Hyprtoolkit::IElement> across(double width) {
-            return Hyprtoolkit::CNullBuilder::begin()->size(fixed(width, 1))->commence();
-        }
-
-        // A border's width as drawn small: never thinner than a pixel unless there is none.
-        int drawnBorder(int border, double scale) {
-            return border == 0 ? 0 : std::max(1, static_cast<int>(std::lround(border * scale)));
         }
 
     }
@@ -284,78 +275,15 @@ namespace ui {
 
     void WindowsPage::fillPreview() {
         preview->clearChildren();
-        const auto colours = coloursFor(*palette);
-        const auto scale   = previewScale;
-        const auto radius  = wanted.rounding * scale;
-        const auto border  = drawnBorder(wanted.borderSize, scale);
-        const auto between = std::lround(wanted.gapsIn * 2 * scale);
-
-        const auto edge    = wanted.gapsOut * scale;
-
-        // The screen: Waybar at the top, the outer gap from it and from the sides, with its corners following the windows', as the bar is set to; then
-        // windows the outer gap from the bar and the screen's edges.
-        const auto screen = block(colours.backdrop, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, previewHeight}}, 8);
-        const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
-        inside->addChild(space(edge));
-        const auto barLine = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, barHeight}})->commence();
-        barLine->addChild(across(edge));
-        const auto bar = block(colours.window, CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}}, std::min(radius, barHeight / 2));
-        bar->setGrow(true, false);
-        const auto pieces = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(3)->size(filling())->commence();
-        pieces->setMargin(5);
-        const auto pill = [&](const std::string& colour, double width) {
-            return block(colour, CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {width, 1.0}}, std::min(std::round(radius * 0.7), 4.0));
-        };
-        // Workspaces on the left, the clock in the middle, the status on the right.
-        pieces->addChild(pill(colours.active, 14));
-        for (int workspace = 0; workspace < 3; ++workspace)
-            pieces->addChild(pill(colours.content, 14));
-        const auto springs = [&] {
-            const auto made = across(1);
-            made->setGrow(true, false);
-            pieces->addChild(made);
-        };
-        springs();
-        pieces->addChild(pill(colours.content, 50));
-        springs();
-        pieces->addChild(pill(colours.content, 22));
-        pieces->addChild(pill(colours.content, 22));
-        bar->addChild(pieces);
-        barLine->addChild(bar);
-        barLine->addChild(across(edge));
-        inside->addChild(barLine);
-        inside->addChild(space(edge));
-        const auto windowLine = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
-        windowLine->setGrow(false, true);
-        windowLine->addChild(across(edge));
-        // One window on the left, focused, and two stacked on the right, as Hyprland tiles three.
-        const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(static_cast<std::size_t>(between))->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
-        const auto window = [&](const std::string& edge, CDynamicSize size) {
-            const auto made  = block(colours.window, std::move(size), radius, edge, border);
-            const auto lines = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(filling())->commence();
-            lines->setMargin(14);
-            for (const double share : {0.5, 0.8, 0.65})
-                lines->addChild(block(colours.content, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {share, 5.0}}, 2));
-            made->addChild(lines);
-            return made;
-        };
-        const auto focused = window(colours.active, CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}});
-        // Takes the width the stack on the right leaves.
-        focused->setGrow(true, false);
-        row->addChild(focused);
-        const auto stack = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(static_cast<std::size_t>(between))->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {0.42, 1.0}})->commence();
-        const auto top = window(colours.inactive, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}});
-        top->setGrow(false, true);
-        stack->addChild(top);
-        stack->addChild(window(colours.inactive, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 0.5}}));
-        row->addChild(stack);
-        row->setGrow(true, false);
-        windowLine->addChild(row);
-        windowLine->addChild(across(edge));
-        inside->addChild(windowLine);
-        inside->addChild(space(edge));
-        screen->addChild(inside);
-        preview->addChild(screen);
+        // The desktop in the theme's colours, so this and the Theme page show the same desktop,
+        // with the bar following the windows as they are chosen here.
+        const auto        config  = configuration::mainConfig(configuration::lanternLaunch());
+        const auto*       theme   = config ? desktop::currentTheme(*config) : nullptr;
+        const auto        current = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry());
+        const auto&       shown   = theme ? *theme : current ? *current->palette : desktop::waybarPalettes().front();
+        auto              bar     = current.value_or(desktop::WaybarStyle{desktop::Shape::islands, &shown});
+        bar.geometry              = desktop::barGeometry(wanted);
+        preview->addChild(desktopPreview(shown, wanted, bar, previewScale, previewHeight));
         fillStatus();
     }
 
