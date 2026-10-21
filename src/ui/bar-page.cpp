@@ -176,7 +176,7 @@ namespace ui {
         choices->clearChildren();
         shapeCards.clear();
         paletteCards.clear();
-        borderButtons.clear();
+        borderCards.clear();
         widgetCards.clear();
         for (std::size_t index = 0; index < tabButtons.size(); ++index)
             tabButtons[index]->rebuild()->accent((index == 1) == showingWidgets)->commence();
@@ -213,24 +213,16 @@ namespace ui {
                 choices->addChild(colours);
             }
 
-            // The border as two switches on one line: drawn as cards, the two looked alike and
-            // took a row of the page's height.
-            const auto borders = leftRow();
-            borders->rebuild()->gap(8)->commence();
-            const auto borderLabel = markupLine("<span weight=\"600\">Border</span>", palette);
-            borderLabel->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {80.0, 1.0}})->commence();
-            borders->addChild(borderLabel);
-            borderButtons.clear();
+            choices->addChild(markupLine("<span weight=\"600\">Border</span>", palette));
+            const auto borders = leftRow(0);
+            borders->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
             for (const auto& [border, name] : {std::pair{desktop::Border::inactive, "Dim"}, std::pair{desktop::Border::active, "Lit"}}) {
-                auto made = button(name, 100, border == selected.border, [this, border] {
-                    defer([this, border] {
-                        selected.border = border;
-                        updateStyle();
-                    });
+                auto made = card(name, [this, border] {
+                    selected.border = border;
+                    updateStyle();
                 });
-                made->setTooltip(border == desktop::Border::inactive ? std::string{"The border of your other windows"} : std::string{"The border of the window you are using"});
-                borders->addChild(made);
-                borderButtons.emplace_back(border, std::move(made));
+                borders->addChild(made.frame);
+                borderCards.emplace_back(border, std::move(made));
             }
             choices->addChild(borders);
             return;
@@ -281,8 +273,8 @@ namespace ui {
             mark(made, shape == selected.shape, desktop::WaybarStyle{shape, selected.palette, selected.geometry, selected.border, selected.widgets}, 1);
         for (auto& [shown, made] : paletteCards)
             mark(made, shown == selected.palette, desktop::WaybarStyle{selected.shape, shown, selected.geometry, selected.border, selected.widgets}, 2);
-        for (const auto& [border, made] : borderButtons)
-            made->rebuild()->accent(border == selected.border)->commence();
+        for (auto& [border, made] : borderCards)
+            mark(made, border == selected.border, desktop::WaybarStyle{selected.shape, selected.palette, selected.geometry, border, selected.widgets}, 3);
         for (auto& [widget, made] : widgetCards) {
             const bool chosen = selected.widgets.contains(widget);
             made.frame->rebuild()->borderColor([palette = palette, chosen] { return chosen ? palette->m_colors.accent : Hyprtoolkit::CHyprColor{0, 0, 0, 0}; })->commence();

@@ -70,7 +70,7 @@ namespace ui {
         // The open tab's choices: the shape, colours and border, or the widgets.
         void                                                                   fillChoices();
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
-        // card's, 2 a palette card's. An element has one parent, so each place has its own.
+        // card's, 2 a palette card's, 3 a border card's. An element has one parent, so each place has its own.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
@@ -94,7 +94,7 @@ namespace ui {
         std::string                                                          styleStatusShown;
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
-        std::vector<std::pair<desktop::Border, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>> borderButtons;
+        std::vector<std::pair<desktop::Border, Card>>                        borderCards;
         // A card for each widget, with the accent around it while it is on.
         std::vector<std::pair<desktop::Widget, Card>>                        widgetCards;
         // The Style and Widgets tabs, and what the one open shows.
