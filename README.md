@@ -33,6 +33,31 @@ Three promises carry everything else:
 
 If you ever wonder "what did this do to my system?", that is a bug.
 
+## What it does
+
+Each page does one thing:
+
+- **Theme:** one palette for the whole desktop: window borders, the bar, the app
+  launcher, notifications, GTK apps and the studio itself.
+- **Wallpaper:** pick a picture, see it on the desktop at once, and keep it with
+  hyprpaper or awww.
+- **Windows:** corners, gaps, border thickness, and whether dragging a border resizes,
+  with a preview of your screen. The bar's corners and gaps follow the windows'.
+- **Bar:** a Waybar style that matches the theme, and a switch to start or stop it.
+- **Terminal:** a colour scheme and font for kitty, wofi's and dunst's colours to match.
+- **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
+- **Keyboard shortcuts:** every binding, what it does, and where in your config it is
+  set.
+- **Options:** every Hyprland option with its value, default and description, and which
+  ones your config sets or changes.
+- **Live tree:** a map of your monitors and their windows, and the tree of monitors,
+  workspaces and windows, kept current as things change.
+- **Event log:** what Hyprland reports as it happens, said in words.
+- **Activate:** applies the studio's effects to the running desktop, in the areas you
+  allowed; **Deactivate** puts everything back.
+- **Console:** asks Hyprland what it knows, like `hyprctl`, but only with requests
+  that read.
+
 ## Principles
 
 - **You decide every change.** No package installs, no `sudo`, no replaced or moved
@@ -63,7 +88,8 @@ or `~/Pictures`), the pictures folder itself, `~/.local/share/backgrounds`,
 or, with awww, asks `awww query` which image it shows. Its Add from files button opens your
 desktop's own file chooser, through xdg-desktop-portal. Its Copy button runs
 `wl-copy`, from wl-clipboard, if you have it, since the toolkit offers no clipboard of its
-own.
+own. The Terminal page and the Console read kitty's `kitty.conf` and `current-theme.conf`,
+the Console to draw its replies in kitty's colours.
 
 **Writes:** files you approved after reviewing the change line by line, such as Waybar's
 config and stylesheet, the wallpaper in `hyprpaper.conf`, the lines in your Hyprland
@@ -114,17 +140,22 @@ where commands, file writes and startup programs are recorded but never carried 
 
 ## Status
 
-Pre-0.1. Research is in [`docs/research.md`](docs/research.md), the design in
-[`docs/architecture.md`](docs/architecture.md), and the work is planned on
-[neotrac.org/hyprland-studio](https://neotrac.org/hyprland-studio). There is nothing to
-build yet.
+Nearly 0.1: every page above works. Left for 0.1: searching the keybindings and telling
+which ones clash, and the desktop theme area of Activate, which has nothing to activate
+yet, since the Theme page writes the theme to its files after you review the change.
+
+Research is in [`docs/research.md`](docs/research.md), the design in
+[`docs/architecture.md`](docs/architecture.md), the gaps in Hyprland's IPC in
+[`docs/upstream.md`](docs/upstream.md), and the work is planned on
+[neotrac.org/hyprland-studio](https://neotrac.org/hyprland-studio).
 
 ## Roadmap
 
 1. **0.1, see everything, and activate or deactivate in one click.**
-   - A keybinding browser with search and conflict detection, an option browser with
-     documentation and "changed from default" highlighting, a live tree of monitors,
-     workspaces and windows, and an event log.
+   - Done: a keybinding browser, an option browser with documentation and "changed from
+     default" highlighting, a live tree of monitors, workspaces and windows, an event
+     log, and a read-only console. Still to come: search and conflict detection in the
+     keybinding browser.
    - **Activate** applies the studio's effects to your running desktop: Hyprland options
      and rules, keybindings, outside programs you installed (a bar, a dock), and the
      desktop theme. **Deactivate** puts everything back exactly as it was. Each of these
@@ -157,11 +188,17 @@ sudo make install     # install under /usr/local
 sudo make uninstall   # remove what make install put there
 ```
 
-`make install PREFIX=~/.local` installs for your user only, without `sudo`. To scroll the theme and
-wallpaper cards smoothly, build against a hyprtoolkit whose scroll area is fixed (newer than
-0.6.0, or patched): `make HYPRTOOLKIT_PREFIX=/where/it/is/installed`. With 0.6.0 the cards
-move a row at a time with the mouse wheel instead, since its scroll area crashes the app. `make install`
-builds nothing itself, so run `make` as yourself first. Packagers can use CMake directly:
+`make install PREFIX=~/.local` installs for your user only, without `sudo`.
+
+hyprtoolkit 0.6.0 has two bugs the studio runs into. Its scroll area crashes the app, so
+with 0.6.0 the theme and wallpaper cards move a row at a time with the mouse wheel instead
+of scrolling smoothly. And text that gets narrower can leave a piece of its old self past
+its edge, which flickers as the mouse moves. Both are fixed in
+[da0x/hyprtoolkit](https://github.com/da0x/hyprtoolkit)'s `main` until a hyprtoolkit
+release has them. Build that, install it somewhere of its own, and point the studio at it:
+`make HYPRTOOLKIT_PREFIX=/where/it/is/installed`.
+
+`make install` builds nothing itself, so run `make` as yourself first. Packagers can use CMake directly:
 the build takes the usual `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX` and `DESTDIR`.
 
 ## Acknowledgements
