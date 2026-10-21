@@ -157,7 +157,7 @@ namespace ui {
                                ->rounding(static_cast<int>(rounding))
                                ->size(CDynamicSize{width > 0 ? CDynamicSize::HT_SIZE_ABSOLUTE : CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {width > 0 ? width : 1.0, height}});
             if (border && windowsBorder)
-                builder->borderColor([c = colour(palette.raised, 0.67F)] { return c; })->borderThickness(*windowsBorder);
+                builder->borderColor([c = colour(palette.accent, 0.93F)] { return c; })->borderThickness(*windowsBorder);
             else if (border)
                 builder->borderColor([c = colour(palette.surface)] { return c; })->borderThickness(1);
             return builder->commence();

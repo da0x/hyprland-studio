@@ -72,9 +72,8 @@ namespace desktop {
         // From the top: the edge gap when the bar follows the windows; half of it in
         // files the studio wrote before.
         int topGap   = 10;
-        // The windows' border width. The bar's border takes their colours too: the inactive
-        // one, and the active one while the pointer is on the bar. Nothing for the thin
-        // border styles had before they followed the windows' border.
+        // The windows' border width. The bar's border takes the focused window's colours
+        // too. Nothing for the thin border styles had before they followed the windows'.
         std::optional<int> border;
 
         friend bool operator==(const BarGeometry&, const BarGeometry&) = default;

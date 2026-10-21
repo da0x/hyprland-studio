@@ -65,10 +65,10 @@ namespace {
         EXPECT_TRUE((*planned)[0].proposed.contains("\"margin-left\": 10,"));
         EXPECT_TRUE((*planned)[1].proposed.contains("border-radius: 0px;"));
         EXPECT_FALSE((*planned)[1].proposed.contains("border-radius: 10px;"));
-        // The bar takes the windows' border: their width, the inactive colour, and the
-        // active one's gradient on hover, since the corners are square.
-        EXPECT_TRUE((*planned)[1].proposed.contains("border: 1px solid alpha(@raised, 0.67);"));
-        EXPECT_TRUE((*planned)[1].proposed.contains("window#waybar:hover {\n    border-image: linear-gradient(45deg, alpha(@accent, 0.93), alpha(@audio, 0.93)) 1;"));
+        // The bar takes the focused window's border: its width, and its gradient, since
+        // the corners are square.
+        EXPECT_TRUE((*planned)[1].proposed.contains("border: 1px solid alpha(@accent, 0.93);"));
+        EXPECT_TRUE((*planned)[1].proposed.contains("window#waybar {\n    border-image: linear-gradient(45deg, alpha(@accent, 0.93), alpha(@audio, 0.93)) 1;"));
         ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Windows").has_value());
         EXPECT_EQ(desktop::currentWaybarStyle(environment, desktop::barGeometry(square)), (desktop::WaybarStyle{old.shape, old.palette, desktop::barGeometry(square)}));
 
