@@ -70,11 +70,8 @@ namespace ui {
         void                                                                   fillStyleStatus();
         // The open tab's choices: the shape, colours and border, or the widgets.
         void                                                                   fillChoices();
-        // Puts each widget's card in its column, in order.
-        void                                                                   arrangeWidgets();
-        void                                                                   colourWidgetCards();
-        // Does what a drag that just ended asks.
-        void                                                                   dropWidget();
+        // Puts a widget on a side, in the table's order among the widgets there.
+        void                                                                   placeInOrder(desktop::Widget widget, desktop::Side side);
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
         // card's, 2 a palette card's, 3 a border card's. An element has one parent, so each place has its own.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
@@ -100,20 +97,12 @@ namespace ui {
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
         std::vector<std::pair<desktop::Border, Card>>                        borderCards;
-        // The widgets' cards, kept and moved between the columns as the order changes, so
-        // their text is not drawn again; the columns are Left, Center, Right and Off the bar.
-        std::map<desktop::Widget, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>> widgetCards;
-        std::array<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement>, 4>     widgetColumns;
-        // A drag: the card pressed, the card under the pointer, and where it was let go: on a
-        // side, or off the bar for none; before a card, or at the end.
-        struct Drop {
-            std::optional<desktop::Side>   side;
-            std::optional<desktop::Widget> before;
-            bool                           onCard = false;
+        // A row of the widgets' table, highlighted while its widget is on the bar.
+        struct WidgetRow {
+            desktop::Widget                                                   widget = desktop::Widget::workspaces;
+            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement> frame;
         };
-        std::optional<desktop::Widget>                                       dragging;
-        std::optional<desktop::Widget>                                       target;
-        std::optional<Drop>                                                  drop;
+        std::vector<WidgetRow>                                               widgetRows;
         // The Style and Widgets tabs, and what the one open shows.
         std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;
