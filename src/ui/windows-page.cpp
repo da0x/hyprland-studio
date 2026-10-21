@@ -174,11 +174,12 @@ namespace ui {
         const auto& resizing = sides[4];
 
         const auto colours = coloursFor(*palette);
-        // Presets, and the value the config has now when it is none of them.
+        // Presets, and the value the config has now when it is none of them, shown as
+        // `shown` times the value: the distance it makes on screen.
         const auto choicesOf = [this](int desktop::WindowLook::*member, std::vector<std::pair<std::string, int>> presets, const std::function<CSharedPointer<Hyprtoolkit::IElement>(int)>& draw,
-                                      const std::string& kind) {
+                                      const std::string& kind, int shown = 1) {
             if (current && std::ranges::none_of(presets, [&](const auto& preset) { return preset.second == (*current).*member; }))
-                presets.emplace_back(std::format("Yours · {} px", (*current).*member), (*current).*member);
+                presets.emplace_back(std::format("Yours · {} px", (*current).*member * shown), (*current).*member);
             std::vector<ChoiceCards::Choice> made;
             for (const auto& [label, value] : presets)
                 made.push_back(ChoiceCards::Choice{
@@ -236,8 +237,11 @@ namespace ui {
             });
         cards.addSetting(resizing, "Resize from the border", "drag a window's edge to resize it", std::move(resize));
 
-        cards.addSetting(between, "Between windows", "the gap on each side of a window",
-                         choicesOf(&desktop::WindowLook::gapsIn, {{"None", 0}, {"Tight", 2}, {"Normal", 5}, {"Wide", 10}},
+        // Hyprland keeps its inner gap on each side of a window, so two windows are twice it
+        // apart. The choices are named and shown by that distance, in the same steps as the
+        // screen's edge, so the same choice in both is the same gap.
+        cards.addSetting(between, "Between windows", "the distance between two windows",
+                         choicesOf(&desktop::WindowLook::gapsIn, {{"None", 0}, {"Small · 10 px", 5}, {"Normal · 20 px", 10}, {"Wide · 40 px", 20}},
                                    [colours](int gap) {
                                        // Two plain windows, and the gap between them drawn as a line as
                                        // thick as it is; with none they meet at a hairline.
@@ -246,13 +250,13 @@ namespace ui {
                                        if (gap == 0)
                                            row->addChild(block(colours.content, fixed(1, 38)));
                                        else
-                                           row->addChild(block(colours.active, fixed(std::max(2.0, std::round(gap * 1.2)), 38), 1));
+                                           row->addChild(block(colours.active, fixed(std::max(2.0, std::round(gap * 2 * 0.3)), 38), 1));
                                        row->addChild(block(colours.window, fixed(36, 38), 3));
                                        return cardPicture(colours.backdrop, row, 38);
                                    },
-                                   "between"));
+                                   "between", 2));
         cards.addSetting(edge, "Screen edge", "the gap between windows and the edges of the screen",
-                         choicesOf(&desktop::WindowLook::gapsOut, {{"None", 0}, {"Small", 10}, {"Normal", 20}, {"Wide", 40}},
+                         choicesOf(&desktop::WindowLook::gapsOut, {{"None", 0}, {"Small · 10 px", 10}, {"Normal · 20 px", 20}, {"Wide · 40 px", 40}},
                                    [colours](int gap) {
                                        // A monitor on its stand, the gap between its edge and the window on
                                        // it highlighted.
