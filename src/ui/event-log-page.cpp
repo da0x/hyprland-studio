@@ -158,7 +158,7 @@ namespace ui {
                     const auto repeats = every ? 0 : std::ranges::count_if(entries, [](const Entry& entry) { return application::repeatsNewerEvent(entry.event.name); });
                     text = std::format("{} {} since the studio started, newest first.", entries.size() - repeats, entries.size() - repeats == 1 ? "event" : "events");
                     if (repeats > 0)
-                        text += std::format(" Hyprland sent {} of them twice, in an older form too; Show repeats lists those as well.", repeats);
+                        text += std::format(" Hyprland also sent {} of them again in an older form; Show repeats lists those too.", repeats);
                 }
                 break;
             case application::Connection::lost:
