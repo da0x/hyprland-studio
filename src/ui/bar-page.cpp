@@ -179,7 +179,7 @@ namespace ui {
         const auto borders = leftRow(0);
         borders->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
         borderCards.clear();
-        for (const auto& [border, name] : {std::pair{desktop::Border::inactive, "Inactive"}, std::pair{desktop::Border::active, "Active"}}) {
+        for (const auto& [border, name] : {std::pair{desktop::Border::inactive, "Dim"}, std::pair{desktop::Border::active, "Lit"}}) {
             auto made = card(name, [this, border] {
                 selected.border = border;
                 updateStyle();
