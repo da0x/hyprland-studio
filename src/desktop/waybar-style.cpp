@@ -3,10 +3,14 @@
 
 #include "desktop/waybar.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <format>
+#include <fstream>
+#include <sstream>
 
 namespace desktop {
 
@@ -122,6 +126,242 @@ tooltip label {
 }
 )";
 
+        constexpr std::array widgets{
+            WidgetInfo{Widget::taskbar, "wlr/taskbar", "Taskbar", "Your open windows; a click brings one forward."},
+            WidgetInfo{Widget::windowTitle, "hyprland/window", "Window title", "The title of the window you are using."},
+            WidgetInfo{Widget::media, "mpris", "Media", "What is playing, in any player."},
+            WidgetInfo{Widget::privacy, "privacy", "Privacy", "A sign while your screen or microphone is shared."},
+            WidgetInfo{Widget::cpu, "cpu", "Processor", "How busy the processor is."},
+            WidgetInfo{Widget::memory, "memory", "Memory", "How much memory is in use."},
+            WidgetInfo{Widget::temperature, "temperature", "Temperature", "How warm the processor is."},
+            WidgetInfo{Widget::keepAwake, "idle_inhibitor", "Keep awake", "A switch that keeps the screen from sleeping."},
+            WidgetInfo{Widget::bluetooth, "bluetooth", "Bluetooth", "Whether Bluetooth is on, and what is connected."},
+            WidgetInfo{Widget::battery, "battery", "Battery", "How much charge is left."},
+        };
+
+        const WidgetInfo& widgetInfo(Widget widget) {
+            return *std::ranges::find(widgets, widget, &WidgetInfo::widget);
+        }
+
+        // Each widget's settings in Waybar's config, ending in a comma like the blocks around it.
+        std::string widgetBlock(Widget widget) {
+            switch (widget) {
+                case Widget::taskbar:
+                    return R"(    "wlr/taskbar": {
+        "format": "{icon}",
+        "icon-size": 18,
+        "tooltip-format": "{title}",
+        "on-click": "activate",
+        "on-click-middle": "close"
+    },
+)";
+                case Widget::windowTitle:
+                    return R"(    "hyprland/window": {
+        "format": "{title}",
+        "max-length": 48,
+        "separate-outputs": true
+    },
+)";
+                case Widget::media:
+                    return std::format(R"(    "mpris": {{
+        "format": "{}  {{dynamic}}",
+        "format-paused": "{}  {{dynamic}}",
+        "dynamic-len": 36,
+        "dynamic-order": ["title", "artist"]
+    }},
+)",
+                                       "\U000F075A", "\U000F03E4");
+                case Widget::privacy:
+                    return R"(    "privacy": {
+        "icon-size": 16,
+        "icon-spacing": 6
+    },
+)";
+                case Widget::cpu:
+                    return std::format(R"(    "cpu": {{
+        "format": "{}  {{usage}}%",
+        "interval": 5
+    }},
+)",
+                                       "\U000F061A");
+                case Widget::memory:
+                    return std::format(R"(    "memory": {{
+        "format": "{}  {{percentage}}%",
+        "interval": 10,
+        "tooltip-format": "{{used:0.1f}} of {{total:0.1f}} GiB in use"
+    }},
+)",
+                                       "\U000F035B");
+                case Widget::temperature:
+                    return std::format(R"(    "temperature": {{
+        "format": "{}  {{temperatureC}}°C",
+        "critical-threshold": 85
+    }},
+)",
+                                       "\U000F050F");
+                case Widget::keepAwake:
+                    return std::format(R"(    "idle_inhibitor": {{
+        "format": "{{icon}}",
+        "format-icons": {{
+            "activated": "{}",
+            "deactivated": "{}"
+        }},
+        "tooltip-format-activated": "The screen stays awake",
+        "tooltip-format-deactivated": "The screen sleeps as usual"
+    }},
+)",
+                                       "\U000F0208", "\U000F0209");
+                case Widget::bluetooth:
+                    return std::format(R"(    "bluetooth": {{
+        "format": "{}",
+        "format-off": "{}",
+        "format-disabled": "{}",
+        "format-connected": "{}  {{device_alias}}",
+        "tooltip-format-connected": "{{device_enumerate}}"
+    }},
+)",
+                                       "\U000F00AF", "\U000F00B2", "\U000F00B2", "\U000F00AF");
+                case Widget::battery:
+                    return std::format(R"(    "battery": {{
+        "format": "{{icon}}  {{capacity}}%",
+        "format-charging": "{}  {{capacity}}%",
+        "format-icons": [
+            "{}",
+            "{}",
+            "{}",
+            "{}",
+            "{}"
+        ],
+        "states": {{
+            "warning": 20,
+            "critical": 10
+        }}
+    }},
+)",
+                                       "\U000F0084", "\U000F007A", "\U000F007C", "\U000F007E", "\U000F0080", "\U000F0082");
+            }
+            return {};
+        }
+
+        // Each widget's look, in the palette's colours.
+        std::string_view widgetRules(Widget widget) {
+            switch (widget) {
+                case Widget::taskbar:
+                    return R"(
+#taskbar button {
+    padding: 0 6px;
+    margin: 5px 1px;
+    border-radius: 7px;
+    background: transparent;
+}
+
+#taskbar button.active {
+    background: @surface;
+}
+)";
+                case Widget::windowTitle:
+                    return R"(
+#window {
+    padding: 0 10px;
+    color: @subtle;
+}
+)";
+                case Widget::media:
+                    return R"(
+#mpris {
+    padding: 0 10px;
+    color: @text;
+}
+
+#mpris.paused {
+    color: @muted;
+}
+)";
+                case Widget::privacy:
+                    return R"(
+#privacy {
+    padding: 0 10px;
+}
+
+#privacy-item {
+    color: @alert;
+}
+)";
+                case Widget::cpu:
+                    return R"(
+#cpu {
+    padding: 0 10px;
+    color: @subtle;
+}
+)";
+                case Widget::memory:
+                    return R"(
+#memory {
+    padding: 0 10px;
+    color: @subtle;
+}
+)";
+                case Widget::temperature:
+                    return R"(
+#temperature {
+    padding: 0 10px;
+    color: @subtle;
+}
+
+#temperature.critical {
+    color: @alert;
+}
+)";
+                case Widget::keepAwake:
+                    return R"(
+#idle_inhibitor {
+    padding: 0 10px;
+    color: @muted;
+}
+
+#idle_inhibitor.activated {
+    color: @accent;
+}
+)";
+                case Widget::bluetooth:
+                    return R"(
+#bluetooth {
+    padding: 0 10px;
+    color: @audio;
+}
+
+#bluetooth.off,
+#bluetooth.disabled {
+    color: @muted;
+}
+)";
+                case Widget::battery:
+                    return R"(
+#battery {
+    padding: 0 10px;
+    color: @text;
+}
+
+#battery.charging {
+    color: @network;
+}
+
+#battery.warning:not(.charging) {
+    color: @alert;
+}
+)";
+            }
+            return {};
+        }
+
+        // A JSON array of module names, laid out as the config's other arrays.
+        std::string moduleList(const std::vector<std::string_view>& names) {
+            std::string list = "[\n";
+            for (std::size_t index = 0; index < names.size(); ++index)
+                list += std::format("        \"{}\"{}\n", names[index], index + 1 < names.size() ? "," : "");
+            return list + "    ]";
+        }
+
         std::string_view shapeRules(Shape shape) {
             switch (shape) {
                 case Shape::islands:
@@ -181,9 +421,39 @@ window#waybar {
         return shapes;
     }
 
+    std::span<const WidgetInfo> waybarWidgets() {
+        return widgets;
+    }
+
+    std::set<Widget> widgetsIn(std::string_view config) {
+        std::set<Widget> found;
+        const auto       parsed = nlohmann::json::parse(config, nullptr, false, true);
+        if (parsed.is_discarded() || !parsed.is_object())
+            return found;
+        for (const auto* side : {"modules-left", "modules-center", "modules-right"}) {
+            if (!parsed.contains(side) || !parsed[side].is_array())
+                continue;
+            for (const auto& module : parsed[side])
+                if (module.is_string())
+                    for (const auto& info : widgets)
+                        if (module.get<std::string>() == info.module)
+                            found.insert(info.widget);
+        }
+        return found;
+    }
+
     std::string waybarConfigText(const WaybarStyle& style) {
         const auto& palette  = *style.palette;
         const bool  floating = style.shape != Shape::fullWidth;
+        // The taskbar and the title follow the workspaces; the rest come before the sound.
+        std::vector<std::string_view> left{"hyprland/workspaces"};
+        std::vector<std::string_view> right;
+        std::string                   blocks;
+        for (const auto widget : style.widgets) {
+            (widget == Widget::taskbar || widget == Widget::windowTitle ? left : right).push_back(widgetInfo(widget).module);
+            blocks += widgetBlock(widget);
+        }
+        right.insert(right.end(), {"pulseaudio", "network", "tray"});
         return std::format(R"({{
     "layer": "top",
     "position": "top",
@@ -193,17 +463,11 @@ window#waybar {
     "margin-right": {},
     "spacing": 8,
     "reload_style_on_change": true,
-    "modules-left": [
-        "hyprland/workspaces"
-    ],
+    "modules-left": {},
     "modules-center": [
         "clock"
     ],
-    "modules-right": [
-        "pulseaudio",
-        "network",
-        "tray"
-    ],
+    "modules-right": {},
     "hyprland/workspaces": {{
         "format": "{{name}}",
         "on-click": "activate",
@@ -246,13 +510,15 @@ window#waybar {
         "tooltip-format": "{{ifname}}  {{ipaddr}}/{{cidr}}",
         "on-click": "nm-connection-editor"
     }},
-    "tray": {{
+{}    "tray": {{
         "icon-size": 18,
         "spacing": 10
     }}
 }}
 )",
-                           floating ? 38 : 34, floating ? style.geometry.topGap : 0, floating ? style.geometry.edgeGap : 0, floating ? style.geometry.edgeGap : 0, palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928", "\U000F0200", "\U000F092D");
+                           floating ? 38 : 34, floating ? style.geometry.topGap : 0, floating ? style.geometry.edgeGap : 0, floating ? style.geometry.edgeGap : 0, moduleList(left),
+                           moduleList(right), palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928",
+                           "\U000F0200", "\U000F092D", blocks);
     }
 
     std::string waybarStyleText(const WaybarStyle& style) {
@@ -283,6 +549,8 @@ window#waybar {
                                       palette.text, palette.accent, palette.audio, palette.network, palette.alert);
         text += shapeRules(style.shape);
         text += moduleRules;
+        for (const auto widget : style.widgets)
+            text += widgetRules(widget);
         // The radii written above are the default geometry's: the bar's 10 and the
         // workspace buttons' 7, which keep that proportion to it.
         const auto replaced = [&text](std::string_view from, int pixels) {
@@ -338,10 +606,18 @@ window#waybar {
     }
 
     std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry, const std::filesystem::path& systemFolder) {
+        // The widgets are read from the config, rather than tried in every combination.
+        std::set<Widget> widgets;
+        if (const auto config = waybarConfig(environment, systemFolder)) {
+            std::ifstream     stream{*config, std::ios::binary};
+            std::stringstream text;
+            text << stream.rdbuf();
+            widgets = widgetsIn(text.str());
+        }
         for (const auto& info : shapes) {
             for (const auto& palette : palettes) {
                 for (const auto border : {Border::thin, Border::inactive, Border::active}) {
-                    const WaybarStyle style{info.shape, &palette, geometry, border};
+                    const WaybarStyle style{info.shape, &palette, geometry, border, widgets};
                     const auto        planned = planWaybarStyle(style, environment, systemFolder);
                     if (planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); }))
                         return style;

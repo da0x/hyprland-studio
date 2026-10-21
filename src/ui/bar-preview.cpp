@@ -33,7 +33,7 @@ namespace ui {
         constexpr double pillGap        = 4;
         constexpr double groupPadding   = 6;
         constexpr double clockWidth     = 180;
-        constexpr double statusWidth    = 200;
+        constexpr double statusWidth    = 172;
         // Waybar's 15px font, in points.
         constexpr float  fontPoints     = 11.25F;
         constexpr float  islandOpacity  = 0.92F;
@@ -47,12 +47,6 @@ namespace ui {
 
         CSharedPointer<Hyprtoolkit::IElement> gap(double width, double height = 1) {
             return Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})->commence();
-        }
-
-        CSharedPointer<Hyprtoolkit::IElement> spring() {
-            const auto made = gap(1);
-            made->setGrow(true, false);
-            return made;
         }
 
         CSharedPointer<Hyprtoolkit::CRowLayoutElement> row(double width, double height, double spacing = 0);
@@ -76,21 +70,22 @@ namespace ui {
             return box;
         }
 
-        // Left, centre and right thirds. In hyprtoolkit 0.6.0 only the first growing child
-        // of a row takes the space left over, so two springs cannot centre anything; a
-        // column centres a narrower child, so the middle third is one.
+        // The left and right groups, each as wide as it needs, and the centre between them. In
+        // hyprtoolkit 0.6.0 only the first growing child of a row takes the space left over,
+        // so two springs cannot centre anything; a column centres a narrower child, so the
+        // centre is one, and the only one that grows.
         CSharedPointer<Hyprtoolkit::IElement> thirds(const CSharedPointer<Hyprtoolkit::IElement>& left, const CSharedPointer<Hyprtoolkit::IElement>& centre,
-                                                     const CSharedPointer<Hyprtoolkit::IElement>& right, double height, bool grow) {
+                                                     const CSharedPointer<Hyprtoolkit::IElement>& right, double height, bool grow, double leftSide, double rightSide) {
             const auto whole = row(grow ? 1 : 0, height);
             if (grow)
                 whole->setGrow(true, false);
-            const auto third = [height] { return CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0 / 3.0, height}}; };
-            const auto start = Hyprtoolkit::CRowLayoutBuilder::begin()->size(third())->commence();
+            const auto fixed = [height](double side) { return CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {side, height}}; };
+            const auto start = Hyprtoolkit::CRowLayoutBuilder::begin()->size(fixed(leftSide))->commence();
             start->addChild(left);
-            const auto middle = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(third())->commence();
+            const auto middle = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})->commence();
+            middle->setGrow(true, false);
             middle->addChild(centre);
-            const auto end = Hyprtoolkit::CRowLayoutBuilder::begin()->size(third())->commence();
-            end->addChild(spring());
+            const auto end = Hyprtoolkit::CRowLayoutBuilder::begin()->size(fixed(rightSide))->commence();
             end->addChild(right);
             whole->addChild(start);
             whole->addChild(middle);
@@ -109,9 +104,52 @@ namespace ui {
             return (5 * pillWidth + 4 * pillGap + 2 * groupPadding) * scale;
         }
 
-        // Workspace 1 active, 2 and 3 with windows, 4 and 5 empty.
-        CSharedPointer<Hyprtoolkit::IElement> workspaces(const desktop::Palette& palette, double scale, double height, double rounding) {
-            const auto made = row(workspacesWidth(scale), height, pillGap * scale);
+        // How wide each widget is drawn, before scaling: its sample text or icon and padding.
+        double widgetWidth(desktop::Widget widget) {
+            switch (widget) {
+                case desktop::Widget::taskbar: return 96;
+                case desktop::Widget::windowTitle: return 70;
+                case desktop::Widget::media: return 134;
+                case desktop::Widget::privacy:
+                case desktop::Widget::keepAwake:
+                case desktop::Widget::bluetooth: return 40;
+                case desktop::Widget::cpu:
+                case desktop::Widget::memory:
+                case desktop::Widget::battery: return 80;
+                case desktop::Widget::temperature: return 92;
+            }
+            return 0;
+        }
+
+        bool onTheLeft(desktop::Widget widget) {
+            return widget == desktop::Widget::taskbar || widget == desktop::Widget::windowTitle;
+        }
+
+        // The workspaces, and the taskbar and the window title when they are on.
+        double leftWidth(const desktop::WaybarStyle& style, double scale) {
+            double width = workspacesWidth(scale) / scale;
+            for (const auto widget : style.widgets)
+                if (onTheLeft(widget))
+                    width += widgetWidth(widget);
+            return width * scale;
+        }
+
+        double rightWidth(const desktop::WaybarStyle& style, double scale) {
+            double width = statusWidth;
+            for (const auto widget : style.widgets)
+                if (!onTheLeft(widget))
+                    width += widgetWidth(widget);
+            return width * scale;
+        }
+
+        // Workspace 1 active, 2 and 3 with windows, 4 and 5 empty; then the taskbar's three
+        // windows, the first in use, and the title of that window.
+        CSharedPointer<Hyprtoolkit::IElement> workspaces(const desktop::WaybarStyle& style, double scale, double height) {
+            const auto& palette  = *style.palette;
+            const auto  rounding = style.geometry.rounding;
+            const auto  whole    = row(leftWidth(style, scale), height);
+            const auto  made     = row(workspacesWidth(scale), height, pillGap * scale);
+            whole->addChild(made);
             made->addChild(gap((groupPadding - pillGap) * scale));
             for (int number = 1; number <= 5; ++number) {
                 const auto textColour = number == 1 ? palette.onAccent : number <= 3 ? palette.subtle : palette.raised;
@@ -125,7 +163,31 @@ namespace ui {
                 pill->addChild(inside);
                 made->addChild(pill);
             }
-            return made;
+            if (style.widgets.contains(desktop::Widget::taskbar)) {
+                const auto taskbar = row(widgetWidth(desktop::Widget::taskbar) * scale, height, 4 * scale);
+                taskbar->addChild(gap(6 * scale));
+                for (const auto hex : {palette.accent, palette.network, palette.audio}) {
+                    const bool active = hex == palette.accent;
+                    const auto button = Hyprtoolkit::CRectangleBuilder::begin()
+                                            ->color([c = colour(palette.surface, active ? 1.F : 0.F)] { return c; })
+                                            ->rounding(static_cast<int>(std::lround(rounding * 0.7 * scale)))
+                                            ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {24 * scale, height - 10 * scale}})
+                                            ->commence();
+                    const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {24 * scale, height - 10 * scale}})->commence();
+                    inside->addChild(gap(1, std::max(0.0, (height - 10 * scale - 14 * scale) / 2)));
+                    inside->addChild(Hyprtoolkit::CRectangleBuilder::begin()
+                                         ->color([c = colour(hex)] { return c; })
+                                         ->rounding(static_cast<int>(3 * scale))
+                                         ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {14 * scale, 14 * scale}})
+                                         ->commence());
+                    button->addChild(inside);
+                    taskbar->addChild(button);
+                }
+                whole->addChild(taskbar);
+            }
+            if (style.widgets.contains(desktop::Widget::windowTitle))
+                whole->addChild(label("kitty", palette.subtle, widgetWidth(desktop::Widget::windowTitle) * scale, scale, height));
+            return whole;
         }
 
         CSharedPointer<Hyprtoolkit::IElement> clock(const desktop::Palette& palette, double scale, double height) {
@@ -134,18 +196,28 @@ namespace ui {
             return made;
         }
 
-        // Audio, network and a tray icon.
-        CSharedPointer<Hyprtoolkit::IElement> status(const desktop::Palette& palette, double scale, double height) {
-            const auto made = row(statusWidth * scale, height);
+        // The widgets on the right, then audio and network. The tray is drawn empty, as it is
+        // until a program puts an icon in it.
+        CSharedPointer<Hyprtoolkit::IElement> status(const desktop::WaybarStyle& style, double scale, double height) {
+            const auto& palette = *style.palette;
+            const auto  made    = row(rightWidth(style, scale), height);
+            for (const auto widget : style.widgets) {
+                const auto width = widgetWidth(widget) * scale;
+                switch (widget) {
+                    case desktop::Widget::taskbar:
+                    case desktop::Widget::windowTitle: break;
+                    case desktop::Widget::media: made->addChild(label("\U000F075A  Lofi radio", palette.text, width, scale, height)); break;
+                    case desktop::Widget::privacy: made->addChild(label("\U000F0567", palette.alert, width, scale, height)); break;
+                    case desktop::Widget::cpu: made->addChild(label("\U000F061A  12%", palette.subtle, width, scale, height)); break;
+                    case desktop::Widget::memory: made->addChild(label("\U000F035B  38%", palette.subtle, width, scale, height)); break;
+                    case desktop::Widget::temperature: made->addChild(label("\U000F050F  52°C", palette.subtle, width, scale, height)); break;
+                    case desktop::Widget::keepAwake: made->addChild(label("\U000F0209", palette.muted, width, scale, height)); break;
+                    case desktop::Widget::bluetooth: made->addChild(label("\U000F00AF", palette.audio, width, scale, height)); break;
+                    case desktop::Widget::battery: made->addChild(label("\U000F0080  80%", palette.text, width, scale, height)); break;
+                }
+            }
             made->addChild(label("\U000F057E  40%", palette.audio, 80 * scale, scale, height));
             made->addChild(label("\U000F0928  home", palette.network, 90 * scale, scale, height));
-            const auto trayIcon = Hyprtoolkit::CRectangleBuilder::begin()
-                                      ->color([c = colour(palette.subtle)] { return c; })
-                                      ->rounding(static_cast<int>(4 * scale))
-                                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {16 * scale, 16 * scale}})
-                                      ->commence();
-            made->addChild(gap(12 * scale));
-            made->addChild(trayIcon);
             return made;
         }
 
@@ -214,17 +286,19 @@ namespace ui {
         if (floating)
             line->addChild(gap(style.geometry.edgeGap * scale));
 
+        const auto left  = leftWidth(style, scale);
+        const auto right = rightWidth(style, scale);
         switch (style.shape) {
             case desktop::Shape::islands: {
-                line->addChild(thirds(island(workspaces(palette, scale, barSize, style.geometry.rounding), workspacesWidth(scale), palette, scale, style.geometry.rounding, style),
+                line->addChild(thirds(island(workspaces(style, scale, barSize), leftWidth(style, scale), palette, scale, style.geometry.rounding, style),
                                       island(clock(palette, scale, barSize), clockWidth * scale, palette, scale, style.geometry.rounding, style),
-                                      island(status(palette, scale, barSize), statusWidth * scale, palette, scale, style.geometry.rounding, style), barSize, true));
+                                      island(status(style, scale, barSize), rightWidth(style, scale), palette, scale, style.geometry.rounding, style), barSize, true, left, right));
                 break;
             }
             case desktop::Shape::floating: {
                 const auto whole = panel(palette, 1, barSize, style.geometry.rounding * scale, islandOpacity, &style, scale);
                 whole->setGrow(true, false);
-                whole->addChild(thirds(workspaces(palette, scale, barSize, style.geometry.rounding), clock(palette, scale, barSize), status(palette, scale, barSize), barSize, false));
+                whole->addChild(thirds(workspaces(style, scale, barSize), clock(palette, scale, barSize), status(style, scale, barSize), barSize, false, left, right));
                 line->addChild(whole);
                 break;
             }
@@ -235,7 +309,7 @@ namespace ui {
                 const auto   column    = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, barSize}})->commence();
                 column->setGrow(true, false);
                 const auto whole = panel(palette, 0, above, 0, 1.F, nullptr, scale);
-                whole->addChild(thirds(workspaces(palette, scale, above, style.geometry.rounding), clock(palette, scale, above), status(palette, scale, above), above, false));
+                whole->addChild(thirds(workspaces(style, scale, above), clock(palette, scale, above), status(style, scale, above), above, false, left, right));
                 column->addChild(whole);
                 column->addChild(Hyprtoolkit::CRectangleBuilder::begin()
                                      ->color([c = borderColour(style)] { return c; })

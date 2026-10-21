@@ -243,7 +243,7 @@ namespace ui {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
-        const auto planned     = config ? desktop::planTheme(*selected, bar.shape, bar.border, *config, environment)
+        const auto planned     = config ? desktop::planTheme(*selected, bar, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         const bool gtkSame     = desktop::gtkChanges(*selected, environment).empty();
@@ -280,7 +280,7 @@ namespace ui {
         const auto environment = foundation::currentEnvironment();
         const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
-        auto       planned     = config ? desktop::planTheme(*selected, bar.shape, bar.border, *config, environment)
+        auto       planned     = config ? desktop::planTheme(*selected, bar, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         if (!planned) {
             outcome = planned.error();

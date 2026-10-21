@@ -128,7 +128,7 @@ window {{
         return std::filesystem::path{foundation::variable(environment, "HOME").value_or("")} / ".config" / "hypr" / "hyprtoolkit.conf";
     }
 
-    std::expected<std::vector<configuration::FileChange>, std::string> planTheme(const Palette& palette, Shape shape, Border border, const configuration::MainConfig& config,
+    std::expected<std::vector<configuration::FileChange>, std::string> planTheme(const Palette& palette, WaybarStyle bar, const configuration::MainConfig& config,
                                                                                  const foundation::Environment& environment) {
         if (!config.lua())
             return std::unexpected{"the theme changes window borders only in a Lua config (hyprland.lua) so far"};
@@ -150,7 +150,9 @@ window {{
         if (hyprland->changes())
             changes.push_back(std::move(*hyprland));
 
-        auto waybar = planWaybarStyle(WaybarStyle{shape, &palette, barGeometry(config), border}, environment);
+        bar.palette  = &palette;
+        bar.geometry = barGeometry(config);
+        auto waybar  = planWaybarStyle(bar, environment);
         if (!waybar)
             return std::unexpected{waybar.error()};
         for (auto& change : *waybar)

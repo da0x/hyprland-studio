@@ -19,6 +19,7 @@
 #include <map>
 #include <tuple>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -59,14 +60,17 @@ namespace ui {
             Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         name;
             std::string                                                          title;
         };
-        [[nodiscard]] Card card(const std::string& name, std::function<void()> chosenNow);
+        // `nameFirst` puts the name above what the card holds.
+        [[nodiscard]] Card card(const std::string& name, std::function<void()> chosenNow, bool nameFirst = false);
         // After a click on a card: changes the previews, borders and status in place, so
         // nothing else is made anew. hyprtoolkit draws a new text a frame or two after it is
         // made, so rebuilding the page on every click made it flicker.
         void                                                                   updateStyle();
         void                                                                   fillStyleStatus();
+        // The open tab's choices: the shape, colours and border, or the widgets.
+        void                                                                   fillChoices();
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
-        // card's, 2 a palette card's, 3 a border card's. An element has one parent, so each place has its own.
+        // card's, 2 a palette card's. An element has one parent, so each place has its own.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
@@ -83,14 +87,20 @@ namespace ui {
         application::Settings                                                settings;
         // The style shown in the big preview: Waybar's own at first, if it is one of Lantern's.
         desktop::WaybarStyle                                                 selected;
-        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
+        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border, std::set<desktop::Widget>>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> styleStatus;
         // What the status shows now, so that it is made anew only when that changes.
         std::string                                                          styleStatusShown;
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
-        std::vector<std::pair<desktop::Border, Card>>                        borderCards;
+        std::vector<std::pair<desktop::Border, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>> borderButtons;
+        // A card for each widget, with the accent around it while it is on.
+        std::vector<std::pair<desktop::Widget, Card>>                        widgetCards;
+        // The Style and Widgets tabs, and what the one open shows.
+        std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;
+        bool                                                                 showingWidgets = false;
         // The style under review and the files it would write.
         std::optional<desktop::WaybarStyle>                                  reviewing;
         std::vector<configuration::FileChange>                               changes;

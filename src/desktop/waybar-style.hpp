@@ -8,6 +8,7 @@
 #include <expected>
 #include <filesystem>
 #include <optional>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
@@ -87,12 +88,42 @@ namespace desktop {
         active,
     };
 
-    // A complete style: the shape, the palette, the geometry, and the border.
+    // Something more on the bar than the workspaces, the clock, the sound, the network and the
+    // tray. Each is one of Waybar's own modules, so none needs a program of its own. In the
+    // order they sit on the bar: the first two after the workspaces, the rest before the sound.
+    enum class Widget {
+        taskbar,
+        windowTitle,
+        media,
+        privacy,
+        cpu,
+        memory,
+        temperature,
+        keepAwake,
+        bluetooth,
+        battery,
+    };
+
+    struct WidgetInfo {
+        Widget           widget;
+        // Waybar's name for the module.
+        std::string_view module;
+        std::string_view name;
+        std::string_view summary;
+    };
+
+    [[nodiscard]] std::span<const WidgetInfo> waybarWidgets();
+
+    // The widgets a Waybar config shows, by the modules it lists.
+    [[nodiscard]] std::set<Widget> widgetsIn(std::string_view config);
+
+    // A complete style: the shape, the palette, the geometry, the border, and the widgets.
     struct WaybarStyle {
         Shape          shape    = Shape::islands;
         const Palette* palette  = nullptr;
         BarGeometry    geometry = {};
         Border         border   = Border::thin;
+        std::set<Widget> widgets  = {};
 
         bool operator==(const WaybarStyle&) const = default;
     };
@@ -110,8 +141,8 @@ namespace desktop {
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planWaybarStyle(const WaybarStyle& style, const foundation::Environment& environment,
                                                                                                     const std::filesystem::path& systemFolder = "/etc/xdg");
 
-    // Lantern's style that Waybar's files hold now, if they hold one exactly, with
-    // either border.
+    // Lantern's style that Waybar's files hold now, if they hold one exactly, with any
+    // border and the widgets its config lists.
     // Only styles with `geometry` are looked for, since the files hold it too.
     [[nodiscard]] std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry = {},
                                                                 const std::filesystem::path& systemFolder = "/etc/xdg");

@@ -30,11 +30,11 @@ namespace desktop {
     [[nodiscard]] std::filesystem::path hyprtoolkitConfigFile(const foundation::Environment& environment);
 
     // Every file change that gives the desktop `palette`: the Hyprland config (only a Lua
-    // config, through its hl.config borders; a linked config is followed), Waybar in
-    // `shape`, with `border`, hyprtoolkit.conf, and, for those installed, wofi's style.css and dunst's
+    // config, through its hl.config borders; a linked config is followed), Waybar as
+    // `bar` is, in the new palette and the windows' geometry, hyprtoolkit.conf, and, for those installed, wofi's style.css and dunst's
     // dunstrc (started from the system's when there is none). Only files that change are
     // listed. The terminal has themes of its own; see terminal-theme.hpp.
-    [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTheme(const Palette& palette, Shape shape, Border border, const configuration::MainConfig& config,
+    [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTheme(const Palette& palette, WaybarStyle bar, const configuration::MainConfig& config,
                                                                                                const foundation::Environment& environment);
 
     // The GTK settings that differ from what `palette` wants: color-scheme, dark or light,
