@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#include <ranges>
 
 namespace ui {
 
@@ -138,6 +139,9 @@ namespace ui {
                 const bool same = read->size() == displays.size() && std::ranges::equal(*read, displays, {}, &desktop::Display::name, &desktop::Display::name);
                 displays        = std::move(*read);
                 if (!same) {
+                    const auto config = configuration::mainConfig(configuration::lanternLaunch());
+                    sharpNow          = config ? desktop::currentSharpApps(*config) : std::nullopt;
+                    sharpWanted       = sharpNow && sharpNow->on;
                     wanted.clear();
                     for (const auto& display : displays)
                         wanted.push_back(display.settings);
@@ -162,7 +166,13 @@ namespace ui {
         const auto config = configuration::mainConfig(configuration::lanternLaunch());
         if (!config)
             return std::unexpected{config.error()};
-        return desktop::planDisplays(displays, wanted, *config);
+        // Hyprland's setting when it is switched, and GTK's scale again when it is on and a
+        // display's scale changes, so a GDK_SCALE of the user's own is otherwise left alone.
+        std::optional<desktop::SharpApps> sharp;
+        const bool rescaled = std::ranges::any_of(std::views::iota(std::size_t{0}, displays.size()), [this](std::size_t index) { return wanted[index].scale != displays[index].settings.scale; });
+        if (sharpNow && (sharpWanted != sharpNow->on || (sharpWanted && rescaled)))
+            sharp = desktop::sharpAppsFor(sharpWanted, wanted);
+        return desktop::planDisplays(displays, wanted, sharp, *config);
     }
 
     void DisplaysPage::showOverview() {
@@ -180,6 +190,7 @@ namespace ui {
         selected = std::min(selected, displays.size() - 1);
         fillMap();
         fillSettings();
+        fillSharpApps();
         fillStatus();
     }
 
@@ -387,6 +398,26 @@ namespace ui {
         }
     }
 
+    void DisplaysPage::fillSharpApps() {
+        // Only where it matters: a display scaled by other than 100%, or the setting is on.
+        const bool scaled = std::ranges::any_of(wanted, [](const auto& settings) { return settings.enabled && settings.scale != 1; });
+        if (!sharpNow || (!scaled && !sharpNow->on))
+            return;
+        body->addChild(space(8));
+        body->addChild(heading("Apps made for X11", palette));
+        const auto sharp = desktop::sharpAppsFor(true, wanted);
+        body->addChild(paragraph(std::format("Some older apps, such as Steam, Electron apps run without Wayland, and many games, run through XWayland. Scaled by Hyprland "
+                                             "they look blurry. Kept sharp, they are drawn at the display's own pixels, so they look smaller unless they scale themselves{}.",
+                                             sharp.gtkScale ? std::format("; GTK's apps are told to draw at {}×", *sharp.gtkScale) : ""),
+                                 palette, true));
+        body->addChild(settingRow("X11 apps", "for apps started after the change", {"Scaled, a little blurry", "Sharp, at their own size"}, sharpWanted ? 1 : 0, palette,
+                                  [this](std::size_t index) {
+                                      sharpWanted = index == 1;
+                                      showOverview();
+                                  },
+                                  defer));
+    }
+
     void DisplaysPage::fillStatus() {
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
@@ -493,6 +524,8 @@ namespace ui {
         trying.reset();
         ++trial;
         outcome = "Kept.";
+        // Read again, the config's XWayland setting with them.
+        displays.clear();
         refresh();
     }
 

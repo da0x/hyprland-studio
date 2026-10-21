@@ -2,12 +2,16 @@
 #include "desktop/displays.hpp"
 
 #include "configuration/lua-edit.hpp"
+#include "syntax/highlight.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <format>
+#include <fstream>
+#include <sstream>
 #include <regex>
 
 namespace desktop {
@@ -183,8 +187,49 @@ namespace desktop {
         return {other.x, other.y};
     }
 
+    namespace {
+
+        const std::vector<std::string_view> zeroScalingPath{"xwayland", "force_zero_scaling"};
+        constexpr std::string_view          gtkScaleName = "GDK_SCALE";
+
+        SharpApps sharpAppsIn(std::string_view config) {
+            SharpApps sharp;
+            if (const auto found = syntax::luaCallField(config, "hl.config", zeroScalingPath))
+                sharp.on = config.substr(found->begin, found->end - found->begin) == "true";
+            if (const auto scale = configuration::luaEnv(config, gtkScaleName)) {
+                int number = 0;
+                if (std::from_chars(scale->data(), scale->data() + scale->size(), number).ec == std::errc{})
+                    sharp.gtkScale = number;
+            }
+            return sharp;
+        }
+
+    }
+
+    std::optional<SharpApps> currentSharpApps(const configuration::MainConfig& config) {
+        if (!config.lua())
+            return std::nullopt;
+        std::ifstream stream{config.file, std::ios::binary};
+        if (!stream)
+            return std::nullopt;
+        std::stringstream text;
+        text << stream.rdbuf();
+        return sharpAppsIn(text.str());
+    }
+
+    SharpApps sharpAppsFor(bool on, const std::vector<DisplaySettings>& wanted) {
+        if (!on)
+            return {};
+        double largest = 1;
+        for (const auto& settings : wanted)
+            if (settings.enabled)
+                largest = std::max(largest, settings.scale);
+        const auto whole = static_cast<int>(std::floor(largest + 0.001));
+        return {.on = true, .gtkScale = whole >= 2 ? std::optional{whole} : std::nullopt};
+    }
+
     std::expected<std::optional<configuration::FileChange>, std::string> planDisplays(const std::vector<Display>& displays, const std::vector<DisplaySettings>& wanted,
-                                                                                     const configuration::MainConfig& config) {
+                                                                                     const std::optional<SharpApps>& sharp, const configuration::MainConfig& config) {
         if (!config.lua())
             return std::unexpected{"displays are set only in a Lua config (hyprland.lua) so far"};
         if (wanted.size() != displays.size())
@@ -205,6 +250,16 @@ namespace desktop {
                     return std::string{config};
                 }
                 text = std::move(*edited);
+            }
+            if (sharp) {
+                const auto now = sharpAppsIn(text);
+                if (now.on != sharp->on)
+                    text = configuration::withLuaConfigValueSet(text, zeroScalingPath, sharp->on ? "true" : "false");
+                // Off, GTK's apps are scaled by Hyprland again, so a scale of their own would
+                // make them twice as large.
+                const auto gtkScale = sharp->on ? sharp->gtkScale : now.gtkScale ? std::optional{1} : std::nullopt;
+                if (gtkScale && gtkScale != now.gtkScale)
+                    text = configuration::withLuaEnv(text, gtkScaleName, std::to_string(*gtkScale));
             }
             return text;
         });

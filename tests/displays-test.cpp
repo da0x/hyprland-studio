@@ -108,7 +108,7 @@ namespace {
         const auto                      displays = *desktop::parseDisplays(reply);
 
         std::vector<desktop::DisplaySettings> wanted{displays[0].settings, displays[1].settings};
-        const auto                            same = desktop::planDisplays(displays, wanted, main);
+        const auto                            same = desktop::planDisplays(displays, wanted, std::nullopt, main);
         ASSERT_TRUE(same.has_value()) << same.error();
         EXPECT_FALSE(same->has_value());
 
@@ -116,12 +116,43 @@ namespace {
         // description; the laptop's call is changed where it is.
         wanted[0].mode    = {3840, 2160, 29.97};
         wanted[1].enabled = false;
-        const auto planned = desktop::planDisplays(displays, wanted, main);
+        const auto planned = desktop::planDisplays(displays, wanted, std::nullopt, main);
         ASSERT_TRUE(planned.has_value() && planned->has_value());
         const auto& text = (*planned)->proposed;
         EXPECT_TRUE(text.contains("output   = \"desc:Samsung Electric Company Odyssey G70NC H1AK500000\",\n    mode     = \"3840x2160@29.97\",\n    position = \"0x0\",\n    scale    = 1,\n})"))
             << text;
         EXPECT_TRUE(text.contains("hl.monitor({ output = \"eDP-1\", mode = \"preferred\", disabled = true })")) << text;
+        std::filesystem::remove_all(root);
+    }
+
+    TEST(Displays, KeepsX11AppsSharp) {
+        static std::atomic<int> counter = 0;
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-sharp-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        std::filesystem::create_directories(root);
+        const auto lua = root / "hyprland.lua";
+        std::ofstream{lua} << config;
+        const configuration::MainConfig main{.file = lua, .choice = configuration::Choice::search, .safeMode = false};
+        const auto                      displays = *desktop::parseDisplays(reply);
+        std::vector<desktop::DisplaySettings> wanted{displays[0].settings, displays[1].settings};
+
+        EXPECT_EQ(desktop::currentSharpApps(main), desktop::SharpApps{});
+        // At 1.25 GTK cannot scale, so only Hyprland's setting is written; at 2, GTK's too.
+        EXPECT_EQ(desktop::sharpAppsFor(true, wanted), (desktop::SharpApps{.on = true, .gtkScale = std::nullopt}));
+        wanted[0].scale = 2;
+        const auto sharp = desktop::sharpAppsFor(true, wanted);
+        EXPECT_EQ(sharp, (desktop::SharpApps{.on = true, .gtkScale = 2}));
+        wanted[0].scale = 1;
+        const auto planned = desktop::planDisplays(displays, wanted, sharp, main);
+        ASSERT_TRUE(planned.has_value() && planned->has_value());
+        EXPECT_TRUE((*planned)->proposed.ends_with("\nhl.config({ xwayland = { force_zero_scaling = true } })\nhl.env(\"GDK_SCALE\", \"2\")\n")) << (*planned)->proposed;
+        ASSERT_TRUE(configuration::applyChanges({**planned}, root / "backups", "Displays").has_value());
+        EXPECT_EQ(desktop::currentSharpApps(main), sharp);
+
+        // Turned off, GTK's scale goes back to 1 rather than doubling its apps.
+        const auto off = desktop::planDisplays(displays, wanted, desktop::SharpApps{}, main);
+        ASSERT_TRUE(off.has_value() && off->has_value());
+        EXPECT_TRUE((*off)->proposed.contains("force_zero_scaling = false"));
+        EXPECT_TRUE((*off)->proposed.contains("hl.env(\"GDK_SCALE\", \"1\")"));
         std::filesystem::remove_all(root);
     }
 

@@ -48,6 +48,7 @@ namespace ui {
         [[nodiscard]] std::expected<std::optional<configuration::FileChange>, std::string> plan() const;
         void fillMap();
         void fillSettings();
+        void fillSharpApps();
         void fillStatus();
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
@@ -62,6 +63,9 @@ namespace ui {
         std::vector<desktop::Display>                                        displays;
         std::vector<desktop::DisplaySettings>                                wanted;
         std::size_t                                                          selected = 0;
+        // Whether X11 apps are kept sharp: as the config has it, and as chosen.
+        std::optional<desktop::SharpApps>                                    sharpNow;
+        bool                                                                 sharpWanted = false;
         // Why the displays could not be read, if they could not.
         std::string                                                          problem;
         bool                                                                 reviewing = false;

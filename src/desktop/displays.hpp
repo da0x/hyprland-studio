@@ -73,11 +73,31 @@ namespace desktop {
     // edges lined up.
     [[nodiscard]] std::pair<int, int> positionBeside(const DisplaySettings& placed, const DisplaySettings& other, Beside side);
 
+    // Whether apps made for X11, which run through XWayland, are drawn at the display's
+    // own pixels, sharp, rather than scaled up by Hyprland, blurred. GTK's apps then scale
+    // themselves by GDK_SCALE, which takes only whole numbers.
+    struct SharpApps {
+        bool               on = false;
+        std::optional<int> gtkScale;
+
+        friend bool operator==(const SharpApps&, const SharpApps&) = default;
+    };
+
+    // What the config sets: xwayland.force_zero_scaling, and GDK_SCALE. Nothing for a
+    // config that is not Lua, or that cannot be read.
+    [[nodiscard]] std::optional<SharpApps> currentSharpApps(const configuration::MainConfig& config);
+
+    // The sharp apps that suit displays set as `wanted`: GTK's scale is the largest
+    // display's, rounded down, when that is 2 or more, since GTK cannot scale by a part.
+    [[nodiscard]] SharpApps sharpAppsFor(bool on, const std::vector<DisplaySettings>& wanted);
+
     // The change to the Hyprland config (a Lua one; a linked config is followed) that sets
     // each display as `wanted` says, in the same order as `displays`: the hl.monitor call
     // for it changed where only what differs is written, or one of its own added for it,
-    // by its description. Nothing when nothing differs.
+    // by its description. With `sharp`, the XWayland setting and GDK_SCALE too, where they
+    // differ; turned off, GDK_SCALE goes back to 1 if the config sets it. Nothing when
+    // nothing differs.
     [[nodiscard]] std::expected<std::optional<configuration::FileChange>, std::string> planDisplays(const std::vector<Display>& displays, const std::vector<DisplaySettings>& wanted,
-                                                                                                   const configuration::MainConfig& config);
+                                                                                                   const std::optional<SharpApps>& sharp, const configuration::MainConfig& config);
 
 }
