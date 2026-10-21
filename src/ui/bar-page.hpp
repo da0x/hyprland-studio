@@ -87,15 +87,24 @@ namespace ui {
         application::Settings                                                settings;
         // The style shown in the big preview: Waybar's own at first, if it is one of Lantern's.
         desktop::WaybarStyle                                                 selected;
-        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border, std::set<desktop::Widget>>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
+        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border, std::map<desktop::Widget, desktop::Side>>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
         // What the status shows now, so that it is made anew only when that changes.
         std::string                                                          styleStatusShown;
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
         std::vector<std::pair<desktop::Border, Card>>                        borderCards;
-        // A card for each widget, with the accent around it while it is on.
-        std::vector<std::pair<desktop::Widget, Card>>                        widgetCards;
+        // A row of the widgets' table: highlighted while the widget is on, with a button for
+        // each side, the one it is on in the accent.
+        struct WidgetRow {
+            desktop::Widget                                                                  widget;
+            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>                frame;
+            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>                     name;
+            std::string                                                                      title;
+            std::string                                                                      summary;
+            std::vector<std::pair<desktop::Side, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>> sides;
+        };
+        std::vector<WidgetRow>                                               widgetRows;
         // The Style and Widgets tabs, and what the one open shows.
         std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;

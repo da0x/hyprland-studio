@@ -8,7 +8,7 @@
 #include <expected>
 #include <filesystem>
 #include <optional>
-#include <set>
+#include <map>
 #include <span>
 #include <string>
 #include <string_view>
@@ -88,11 +88,12 @@ namespace desktop {
         active,
     };
 
-    // Something more on the bar than the workspaces, the clock, the sound, the network and the
-    // tray. Each is one of Waybar's own modules, so none needs a program of its own. In the
-    // order they sit on the bar: the first after the workspaces, the rest before the sound.
+    // What the bar shows. Each is one of Waybar's own modules, so none needs a program of its
+    // own. In the order they sit on each side of the bar.
     enum class Widget {
+        workspaces,
         windowTitle,
+        clock,
         // The temperature from wttr.in, which sees the computer's address and so roughly
         // where it is: the one widget that goes out to the internet.
         weather,
@@ -104,6 +105,16 @@ namespace desktop {
         keepAwake,
         bluetooth,
         battery,
+        sound,
+        network,
+        tray,
+    };
+
+    // Where a widget sits on the bar.
+    enum class Side {
+        left,
+        centre,
+        right,
     };
 
     struct WidgetInfo {
@@ -112,12 +123,20 @@ namespace desktop {
         std::string_view module;
         std::string_view name;
         std::string_view summary;
+        // Where it goes when first turned on.
+        Side             side;
+        // Whether a new bar has it: the workspaces, the clock, the sound, the network and
+        // the tray, as in Waybar's own config.
+        bool             standard;
     };
 
     [[nodiscard]] std::span<const WidgetInfo> waybarWidgets();
 
-    // The widgets a Waybar config shows, by the modules it lists.
-    [[nodiscard]] std::set<Widget> widgetsIn(std::string_view config);
+    // The widgets a new bar has, each on its own side.
+    [[nodiscard]] std::map<Widget, Side> standardWidgets();
+
+    // The widgets a Waybar config shows, by the modules it lists, and the side of each.
+    [[nodiscard]] std::map<Widget, Side> widgetsIn(std::string_view config);
 
     // A complete style: the shape, the palette, the geometry, the border, and the widgets.
     struct WaybarStyle {
@@ -125,7 +144,7 @@ namespace desktop {
         const Palette* palette  = nullptr;
         BarGeometry    geometry = {};
         Border         border   = Border::thin;
-        std::set<Widget> widgets  = {};
+        std::map<Widget, Side> widgets  = standardWidgets();
 
         bool operator==(const WaybarStyle&) const = default;
     };

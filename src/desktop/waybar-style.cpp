@@ -127,16 +127,21 @@ tooltip label {
 )";
 
         constexpr std::array widgets{
-            WidgetInfo{Widget::windowTitle, "hyprland/window", "Window title", "The title of the window you are using."},
-            WidgetInfo{Widget::weather, "custom/weather", "Weather", "The temperature, from the website wttr.in."},
-            WidgetInfo{Widget::media, "mpris", "Media", "What is playing, in any player."},
-            WidgetInfo{Widget::privacy, "privacy", "Privacy", "A sign while your screen or microphone is shared."},
-            WidgetInfo{Widget::cpu, "cpu", "Processor", "How busy the processor is."},
-            WidgetInfo{Widget::memory, "memory", "Memory", "How much memory is in use."},
-            WidgetInfo{Widget::temperature, "temperature", "Temperature", "How warm the processor is."},
-            WidgetInfo{Widget::keepAwake, "idle_inhibitor", "Keep awake", "A switch that keeps the screen from sleeping."},
-            WidgetInfo{Widget::bluetooth, "bluetooth", "Bluetooth", "Whether Bluetooth is on, and what is connected."},
-            WidgetInfo{Widget::battery, "battery", "Battery", "How much charge is left."},
+            WidgetInfo{Widget::workspaces, "hyprland/workspaces", "Workspaces", "Your workspaces, to go to one.", Side::left, true},
+            WidgetInfo{Widget::windowTitle, "hyprland/window", "Window title", "The window you are using.", Side::left, false},
+            WidgetInfo{Widget::clock, "clock", "Clock", "Date and time; a calendar on hover.", Side::centre, true},
+            WidgetInfo{Widget::weather, "custom/weather", "Weather", "The temperature, from wttr.in.", Side::right, false},
+            WidgetInfo{Widget::media, "mpris", "Media", "What is playing.", Side::right, false},
+            WidgetInfo{Widget::privacy, "privacy", "Privacy", "A sign while your screen or mic is shared.", Side::right, false},
+            WidgetInfo{Widget::cpu, "cpu", "Processor", "How busy the processor is.", Side::right, false},
+            WidgetInfo{Widget::memory, "memory", "Memory", "How much memory is in use.", Side::right, false},
+            WidgetInfo{Widget::temperature, "temperature", "Temperature", "How warm the processor is.", Side::right, false},
+            WidgetInfo{Widget::keepAwake, "idle_inhibitor", "Keep awake", "Keeps the screen from sleeping.", Side::right, false},
+            WidgetInfo{Widget::bluetooth, "bluetooth", "Bluetooth", "Whether it is on, and what is connected.", Side::right, false},
+            WidgetInfo{Widget::battery, "battery", "Battery", "How much charge is left.", Side::right, false},
+            WidgetInfo{Widget::sound, "pulseaudio", "Sound", "The volume, and its control on a click.", Side::right, true},
+            WidgetInfo{Widget::network, "network", "Network", "The connection, and its settings.", Side::right, true},
+            WidgetInfo{Widget::tray, "tray", "Tray", "Icons that programs put there.", Side::right, true},
         };
 
         const WidgetInfo& widgetInfo(Widget widget) {
@@ -146,6 +151,12 @@ tooltip label {
         // Each widget's settings in Waybar's config, ending in a comma like the blocks around it.
         std::string widgetBlock(Widget widget) {
             switch (widget) {
+                // Always in the config, where they have always been.
+                case Widget::workspaces:
+                case Widget::clock:
+                case Widget::sound:
+                case Widget::network:
+                case Widget::tray: return {};
                 case Widget::windowTitle:
                     return R"(    "hyprland/window": {
         "format": "{title}",
@@ -249,6 +260,12 @@ tooltip label {
         // Each widget's look, in the palette's colours.
         std::string_view widgetRules(Widget widget) {
             switch (widget) {
+                // Always in the stylesheet.
+                case Widget::workspaces:
+                case Widget::clock:
+                case Widget::sound:
+                case Widget::network:
+                case Widget::tray: return {};
                 case Widget::windowTitle:
                     return R"(
 #window {
@@ -422,19 +439,27 @@ window#waybar {
         return widgets;
     }
 
-    std::set<Widget> widgetsIn(std::string_view config) {
-        std::set<Widget> found;
+    std::map<Widget, Side> standardWidgets() {
+        std::map<Widget, Side> standard;
+        for (const auto& info : widgets)
+            if (info.standard)
+                standard[info.widget] = info.side;
+        return standard;
+    }
+
+    std::map<Widget, Side> widgetsIn(std::string_view config) {
+        std::map<Widget, Side> found;
         const auto       parsed = nlohmann::json::parse(config, nullptr, false, true);
         if (parsed.is_discarded() || !parsed.is_object())
             return found;
-        for (const auto* side : {"modules-left", "modules-center", "modules-right"}) {
-            if (!parsed.contains(side) || !parsed[side].is_array())
+        for (const auto& [key, side] : {std::pair{"modules-left", Side::left}, std::pair{"modules-center", Side::centre}, std::pair{"modules-right", Side::right}}) {
+            if (!parsed.contains(key) || !parsed[key].is_array())
                 continue;
-            for (const auto& module : parsed[side])
+            for (const auto& module : parsed[key])
                 if (module.is_string())
                     for (const auto& info : widgets)
                         if (module.get<std::string>() == info.module)
-                            found.insert(info.widget);
+                            found[info.widget] = side;
         }
         return found;
     }
@@ -442,15 +467,16 @@ window#waybar {
     std::string waybarConfigText(const WaybarStyle& style) {
         const auto& palette  = *style.palette;
         const bool  floating = style.shape != Shape::fullWidth;
-        // The title follows the workspaces; the rest come before the sound.
-        std::vector<std::string_view> left{"hyprland/workspaces"};
+        // Each side lists its widgets in the order of Widget, which puts the workspaces and the
+        // clock first and the sound, the network and the tray last, as they always were.
+        std::vector<std::string_view> left;
+        std::vector<std::string_view> centre;
         std::vector<std::string_view> right;
         std::string                   blocks;
-        for (const auto widget : style.widgets) {
-            (widget == Widget::windowTitle ? left : right).push_back(widgetInfo(widget).module);
+        for (const auto& [widget, side] : style.widgets) {
+            (side == Side::left ? left : side == Side::centre ? centre : right).push_back(widgetInfo(widget).module);
             blocks += widgetBlock(widget);
         }
-        right.insert(right.end(), {"pulseaudio", "network", "tray"});
         return std::format(R"({{
     "layer": "top",
     "position": "top",
@@ -461,9 +487,7 @@ window#waybar {
     "spacing": 8,
     "reload_style_on_change": true,
     "modules-left": {},
-    "modules-center": [
-        "clock"
-    ],
+    "modules-center": {},
     "modules-right": {},
     "hyprland/workspaces": {{
         "format": "{{name}}",
@@ -514,7 +538,7 @@ window#waybar {
 }}
 )",
                            floating ? 38 : 34, floating ? style.geometry.topGap : 0, floating ? style.geometry.edgeGap : 0, floating ? style.geometry.edgeGap : 0, moduleList(left),
-                           moduleList(right), palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928",
+                           moduleList(centre), moduleList(right), palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928",
                            "\U000F0200", "\U000F092D", blocks);
     }
 
@@ -546,7 +570,7 @@ window#waybar {
                                       palette.text, palette.accent, palette.audio, palette.network, palette.alert);
         text += shapeRules(style.shape);
         text += moduleRules;
-        for (const auto widget : style.widgets)
+        for (const auto& [widget, side] : style.widgets)
             text += widgetRules(widget);
         // The radii written above are the default geometry's: the bar's 10 and the
         // workspace buttons' 7, which keep that proportion to it.
@@ -604,7 +628,7 @@ window#waybar {
 
     std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry, const std::filesystem::path& systemFolder) {
         // The widgets are read from the config, rather than tried in every combination.
-        std::set<Widget> widgets;
+        std::map<Widget, Side> widgets;
         if (const auto config = waybarConfig(environment, systemFolder)) {
             std::ifstream     stream{*config, std::ios::binary};
             std::stringstream text;

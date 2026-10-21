@@ -10,7 +10,7 @@
 
 #include <atomic>
 #include <filesystem>
-#include <set>
+#include <map>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -218,16 +218,24 @@ namespace {
     }
 
     TEST(Desktop, PutsTheWidgetsOnTheBarAndRecognisesThem) {
-        std::set<desktop::Widget> all;
+        // A new bar has Waybar's usual five.
+        EXPECT_EQ(desktop::WaybarStyle{}.widgets, (std::map<desktop::Widget, desktop::Side>{{desktop::Widget::workspaces, desktop::Side::left},
+                                                                                            {desktop::Widget::clock, desktop::Side::centre},
+                                                                                            {desktop::Widget::sound, desktop::Side::right},
+                                                                                            {desktop::Widget::network, desktop::Side::right},
+                                                                                            {desktop::Widget::tray, desktop::Side::right}}));
+
+        std::map<desktop::Widget, desktop::Side> all;
         for (const auto& info : desktop::waybarWidgets())
-            all.insert(info.widget);
+            all[info.widget] = info.side;
         const desktop::WaybarStyle style{.shape = desktop::Shape::islands, .palette = &desktop::waybarPalettes()[0], .widgets = all};
         const auto                 text   = desktop::waybarConfigText(style);
         const auto                 config = nlohmann::json::parse(text, nullptr, false);
         ASSERT_FALSE(config.is_discarded());
         EXPECT_EQ(config["modules-left"], (nlohmann::json{"hyprland/workspaces", "hyprland/window"}));
-        EXPECT_EQ(config["modules-right"], (nlohmann::json{"custom/weather", "mpris", "privacy", "cpu", "memory", "temperature", "idle_inhibitor", "bluetooth", "battery", "pulseaudio",
-                                                           "network", "tray"}));
+        EXPECT_EQ(config["modules-center"], (nlohmann::json{"clock"}));
+        EXPECT_EQ(config["modules-right"], (nlohmann::json{"custom/weather", "mpris", "privacy", "cpu", "memory", "temperature", "idle_inhibitor", "bluetooth", "battery",
+                                                           "pulseaudio", "network", "tray"}));
         for (const auto& info : desktop::waybarWidgets())
             EXPECT_TRUE(config.contains(info.module)) << info.module;
         EXPECT_EQ(desktop::widgetsIn(text), all);
@@ -235,14 +243,24 @@ namespace {
         EXPECT_TRUE(css.contains("#idle_inhibitor.activated"));
         EXPECT_EQ(std::ranges::count(css, '{'), std::ranges::count(css, '}'));
 
+        // Widgets go to the side chosen, after what is there by default; one can be left out.
+        const desktop::WaybarStyle moved{.shape    = desktop::Shape::floating,
+                                         .palette  = &desktop::waybarPalettes()[3],
+                                         .widgets  = {{desktop::Widget::workspaces, desktop::Side::left},
+                                                      {desktop::Widget::clock, desktop::Side::right},
+                                                      {desktop::Widget::cpu, desktop::Side::centre},
+                                                      {desktop::Widget::sound, desktop::Side::right}}};
+        const auto                 movedConfig = nlohmann::json::parse(desktop::waybarConfigText(moved), nullptr, false);
+        EXPECT_EQ(movedConfig["modules-center"], (nlohmann::json{"cpu"}));
+        EXPECT_EQ(movedConfig["modules-right"], (nlohmann::json{"clock", "pulseaudio"}));
+
         const Folder                  folder;
         const auto                    system = folder.root / "etc";
         const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};
-        const desktop::WaybarStyle    some{.shape = desktop::Shape::floating, .palette = &desktop::waybarPalettes()[3], .widgets = {desktop::Widget::windowTitle, desktop::Widget::cpu}};
-        const auto                    planned = desktop::planWaybarStyle(some, environment, system);
+        const auto                    planned = desktop::planWaybarStyle(moved, environment, system);
         ASSERT_TRUE(planned.has_value());
         ASSERT_TRUE(configuration::applyChanges(*planned, folder.root / "backups", "test").has_value());
-        EXPECT_EQ(desktop::currentWaybarStyle(environment, {}, system), some);
+        EXPECT_EQ(desktop::currentWaybarStyle(environment, {}, system), moved);
     }
 
     TEST(Waybar, FloatsWhatTheBarOpensOnce) {

@@ -33,7 +33,6 @@ namespace ui {
         constexpr double pillGap        = 4;
         constexpr double groupPadding   = 6;
         constexpr double clockWidth     = 180;
-        constexpr double statusWidth    = 172;
         // Waybar's 15px font, in points.
         constexpr float  fontPoints     = 11.25F;
         constexpr float  islandOpacity  = 0.92F;
@@ -100,14 +99,13 @@ namespace ui {
                 ->commence();
         }
 
-        double workspacesWidth(double scale) {
-            return (5 * pillWidth + 4 * pillGap + 2 * groupPadding) * scale;
-        }
-
         // How wide each widget is drawn, before scaling: its sample text or icon and padding.
+        // The tray is drawn empty, as it is until a program puts an icon in it.
         double widgetWidth(desktop::Widget widget) {
             switch (widget) {
+                case desktop::Widget::workspaces: return 5 * pillWidth + 4 * pillGap + 2 * groupPadding;
                 case desktop::Widget::windowTitle: return 70;
+                case desktop::Widget::clock: return clockWidth;
                 case desktop::Widget::weather: return 96;
                 case desktop::Widget::media: return 134;
                 case desktop::Widget::privacy:
@@ -115,41 +113,20 @@ namespace ui {
                 case desktop::Widget::bluetooth: return 40;
                 case desktop::Widget::cpu:
                 case desktop::Widget::memory:
+                case desktop::Widget::sound:
                 case desktop::Widget::battery: return 80;
                 case desktop::Widget::temperature: return 92;
+                case desktop::Widget::network: return 90;
+                case desktop::Widget::tray: return 2;
             }
             return 0;
         }
 
-        bool onTheLeft(desktop::Widget widget) {
-            return widget == desktop::Widget::windowTitle;
-        }
-
-        // The workspaces, and the window title when it is on.
-        double leftWidth(const desktop::WaybarStyle& style, double scale) {
-            double width = workspacesWidth(scale) / scale;
-            for (const auto widget : style.widgets)
-                if (onTheLeft(widget))
-                    width += widgetWidth(widget);
-            return width * scale;
-        }
-
-        double rightWidth(const desktop::WaybarStyle& style, double scale) {
-            double width = statusWidth;
-            for (const auto widget : style.widgets)
-                if (!onTheLeft(widget))
-                    width += widgetWidth(widget);
-            return width * scale;
-        }
-
-        // Workspace 1 active, 2 and 3 with windows, 4 and 5 empty; then the title of the window
-        // in use, when it is on.
+        // Workspace 1 active, 2 and 3 with windows, 4 and 5 empty.
         CSharedPointer<Hyprtoolkit::IElement> workspaces(const desktop::WaybarStyle& style, double scale, double height) {
             const auto& palette  = *style.palette;
             const auto  rounding = style.geometry.rounding;
-            const auto  whole    = row(leftWidth(style, scale), height);
-            const auto  made     = row(workspacesWidth(scale), height, pillGap * scale);
-            whole->addChild(made);
+            const auto  made     = row(widgetWidth(desktop::Widget::workspaces) * scale, height, pillGap * scale);
             made->addChild(gap((groupPadding - pillGap) * scale));
             for (int number = 1; number <= 5; ++number) {
                 const auto textColour = number == 1 ? palette.onAccent : number <= 3 ? palette.subtle : palette.raised;
@@ -163,39 +140,46 @@ namespace ui {
                 pill->addChild(inside);
                 made->addChild(pill);
             }
-            if (style.widgets.contains(desktop::Widget::windowTitle))
-                whole->addChild(label("kitty", palette.subtle, widgetWidth(desktop::Widget::windowTitle) * scale, scale, height));
-            return whole;
-        }
-
-        CSharedPointer<Hyprtoolkit::IElement> clock(const desktop::Palette& palette, double scale, double height) {
-            const auto made = row(clockWidth * scale, height);
-            made->addChild(label("<b>Tue 20 Oct   14:30</b>", palette.text, clockWidth * scale, scale, height));
             return made;
         }
 
-        // The widgets on the right, then audio and network. The tray is drawn empty, as it is
-        // until a program puts an icon in it.
-        CSharedPointer<Hyprtoolkit::IElement> status(const desktop::WaybarStyle& style, double scale, double height) {
+        CSharedPointer<Hyprtoolkit::IElement> widget(const desktop::WaybarStyle& style, desktop::Widget widget, double scale, double height) {
             const auto& palette = *style.palette;
-            const auto  made    = row(rightWidth(style, scale), height);
-            for (const auto widget : style.widgets) {
-                const auto width = widgetWidth(widget) * scale;
-                switch (widget) {
-                    case desktop::Widget::windowTitle: break;
-                    case desktop::Widget::weather: made->addChild(label("\U000F0595  +18°C", palette.text, width, scale, height)); break;
-                    case desktop::Widget::media: made->addChild(label("\U000F075A  Lofi radio", palette.text, width, scale, height)); break;
-                    case desktop::Widget::privacy: made->addChild(label("\U000F0567", palette.alert, width, scale, height)); break;
-                    case desktop::Widget::cpu: made->addChild(label("\U000F061A  12%", palette.subtle, width, scale, height)); break;
-                    case desktop::Widget::memory: made->addChild(label("\U000F035B  38%", palette.subtle, width, scale, height)); break;
-                    case desktop::Widget::temperature: made->addChild(label("\U000F050F  52°C", palette.subtle, width, scale, height)); break;
-                    case desktop::Widget::keepAwake: made->addChild(label("\U000F0209", palette.muted, width, scale, height)); break;
-                    case desktop::Widget::bluetooth: made->addChild(label("\U000F00AF", palette.audio, width, scale, height)); break;
-                    case desktop::Widget::battery: made->addChild(label("\U000F0080  80%", palette.text, width, scale, height)); break;
-                }
+            const auto  width   = widgetWidth(widget) * scale;
+            switch (widget) {
+                case desktop::Widget::workspaces: return workspaces(style, scale, height);
+                case desktop::Widget::windowTitle: return label("kitty", palette.subtle, width, scale, height);
+                case desktop::Widget::clock: return label("<b>Tue 20 Oct   14:30</b>", palette.text, width, scale, height);
+                case desktop::Widget::weather: return label("\U000F0595  +18°C", palette.text, width, scale, height);
+                case desktop::Widget::media: return label("\U000F075A  Lofi radio", palette.text, width, scale, height);
+                case desktop::Widget::privacy: return label("\U000F0567", palette.alert, width, scale, height);
+                case desktop::Widget::cpu: return label("\U000F061A  12%", palette.subtle, width, scale, height);
+                case desktop::Widget::memory: return label("\U000F035B  38%", palette.subtle, width, scale, height);
+                case desktop::Widget::temperature: return label("\U000F050F  52°C", palette.subtle, width, scale, height);
+                case desktop::Widget::keepAwake: return label("\U000F0209", palette.muted, width, scale, height);
+                case desktop::Widget::bluetooth: return label("\U000F00AF", palette.audio, width, scale, height);
+                case desktop::Widget::battery: return label("\U000F0080  80%", palette.text, width, scale, height);
+                case desktop::Widget::sound: return label("\U000F057E  40%", palette.audio, width, scale, height);
+                case desktop::Widget::network: return label("\U000F0928  home", palette.network, width, scale, height);
+                case desktop::Widget::tray: return gap(width);
             }
-            made->addChild(label("\U000F057E  40%", palette.audio, 80 * scale, scale, height));
-            made->addChild(label("\U000F0928  home", palette.network, 90 * scale, scale, height));
+            return gap(width);
+        }
+
+        // The widgets on one side, in a row as wide as they are.
+        double sideWidth(const desktop::WaybarStyle& style, desktop::Side side, double scale) {
+            double width = 0;
+            for (const auto& [shown, at] : style.widgets)
+                if (at == side)
+                    width += widgetWidth(shown);
+            return width * scale;
+        }
+
+        CSharedPointer<Hyprtoolkit::IElement> group(const desktop::WaybarStyle& style, desktop::Side side, double scale, double height) {
+            const auto made = row(std::max(1.0, sideWidth(style, side, scale)), height);
+            for (const auto& [shown, at] : style.widgets)
+                if (at == side)
+                    made->addChild(widget(style, shown, scale, height));
             return made;
         }
 
@@ -264,19 +248,24 @@ namespace ui {
         if (floating)
             line->addChild(gap(style.geometry.edgeGap * scale));
 
-        const auto left  = leftWidth(style, scale);
-        const auto right = rightWidth(style, scale);
+        const auto left  = std::max(1.0, sideWidth(style, desktop::Side::left, scale));
+        const auto right = std::max(1.0, sideWidth(style, desktop::Side::right, scale));
         switch (style.shape) {
             case desktop::Shape::islands: {
-                line->addChild(thirds(island(workspaces(style, scale, barSize), leftWidth(style, scale), palette, scale, style.geometry.rounding, style),
-                                      island(clock(palette, scale, barSize), clockWidth * scale, palette, scale, style.geometry.rounding, style),
-                                      island(status(style, scale, barSize), rightWidth(style, scale), palette, scale, style.geometry.rounding, style), barSize, true, left, right));
+                // A side with nothing on it has no island.
+                const auto islandOf = [&](desktop::Side side) -> CSharedPointer<Hyprtoolkit::IElement> {
+                    const auto width = sideWidth(style, side, scale);
+                    if (width <= 0)
+                        return gap(1, barSize);
+                    return island(group(style, side, scale, barSize), width, palette, scale, style.geometry.rounding, style);
+                };
+                line->addChild(thirds(islandOf(desktop::Side::left), islandOf(desktop::Side::centre), islandOf(desktop::Side::right), barSize, true, left, right));
                 break;
             }
             case desktop::Shape::floating: {
                 const auto whole = panel(palette, 1, barSize, style.geometry.rounding * scale, islandOpacity, &style, scale);
                 whole->setGrow(true, false);
-                whole->addChild(thirds(workspaces(style, scale, barSize), clock(palette, scale, barSize), status(style, scale, barSize), barSize, false, left, right));
+                whole->addChild(thirds(group(style, desktop::Side::left, scale, barSize), group(style, desktop::Side::centre, scale, barSize), group(style, desktop::Side::right, scale, barSize), barSize, false, left, right));
                 line->addChild(whole);
                 break;
             }
@@ -287,7 +276,7 @@ namespace ui {
                 const auto   column    = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, barSize}})->commence();
                 column->setGrow(true, false);
                 const auto whole = panel(palette, 0, above, 0, 1.F, nullptr, scale);
-                whole->addChild(thirds(workspaces(style, scale, above), clock(palette, scale, above), status(style, scale, above), above, false, left, right));
+                whole->addChild(thirds(group(style, desktop::Side::left, scale, above), group(style, desktop::Side::centre, scale, above), group(style, desktop::Side::right, scale, above), above, false, left, right));
                 column->addChild(whole);
                 column->addChild(Hyprtoolkit::CRectangleBuilder::begin()
                                      ->color([c = borderColour(style)] { return c; })
