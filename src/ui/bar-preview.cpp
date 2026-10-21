@@ -13,6 +13,7 @@
 #include <charconv>
 #include <cmath>
 #include <format>
+#include <optional>
 #include <string>
 
 namespace ui {
@@ -149,18 +150,22 @@ namespace ui {
             return made;
         }
 
-        CSharedPointer<Hyprtoolkit::CRectangleElement> panel(const desktop::Palette& palette, double width, double height, double rounding, bool border, float alpha) {
+        CSharedPointer<Hyprtoolkit::CRectangleElement> panel(const desktop::Palette& palette, double width, double height, double rounding, bool border, float alpha,
+                                                     std::optional<int> windowsBorder) {
             auto builder = Hyprtoolkit::CRectangleBuilder::begin()
                                ->color([c = colour(palette.base, alpha)] { return c; })
                                ->rounding(static_cast<int>(rounding))
                                ->size(CDynamicSize{width > 0 ? CDynamicSize::HT_SIZE_ABSOLUTE : CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {width > 0 ? width : 1.0, height}});
-            if (border)
+            if (border && windowsBorder)
+                builder->borderColor([c = colour(palette.raised, 0.67F)] { return c; })->borderThickness(*windowsBorder);
+            else if (border)
                 builder->borderColor([c = colour(palette.surface)] { return c; })->borderThickness(1);
             return builder->commence();
         }
 
-        CSharedPointer<Hyprtoolkit::IElement> island(const CSharedPointer<Hyprtoolkit::IElement>& content, double width, const desktop::Palette& palette, double scale, double rounding) {
-            const auto made = panel(palette, width, barHeight * scale, rounding * scale, true, islandOpacity);
+        CSharedPointer<Hyprtoolkit::IElement> island(const CSharedPointer<Hyprtoolkit::IElement>& content, double width, const desktop::Palette& palette, double scale, double rounding,
+                                             std::optional<int> windowsBorder) {
+            const auto made = panel(palette, width, barHeight * scale, rounding * scale, true, islandOpacity, windowsBorder);
             made->addChild(content);
             return made;
         }
@@ -199,14 +204,14 @@ namespace ui {
 
         switch (style.shape) {
             case desktop::Shape::islands: {
-                line->addChild(thirds(island(workspaces(palette, scale, barSize, style.geometry.rounding), workspacesWidth(scale), palette, scale, style.geometry.rounding),
-                                      island(clock(palette, scale, barSize), clockWidth * scale, palette, scale, style.geometry.rounding),
-                                      island(status(palette, scale, barSize), statusWidth * scale, palette, scale, style.geometry.rounding), barSize, true));
+                line->addChild(thirds(island(workspaces(palette, scale, barSize, style.geometry.rounding), workspacesWidth(scale), palette, scale, style.geometry.rounding, style.geometry.border),
+                                      island(clock(palette, scale, barSize), clockWidth * scale, palette, scale, style.geometry.rounding, style.geometry.border),
+                                      island(status(palette, scale, barSize), statusWidth * scale, palette, scale, style.geometry.rounding, style.geometry.border), barSize, true));
                 break;
             }
             case desktop::Shape::floating:
             case desktop::Shape::fullWidth: {
-                const auto whole = panel(palette, 1, barSize, floating ? style.geometry.rounding * scale : 0, floating, floating ? islandOpacity : 1.F);
+                const auto whole = panel(palette, 1, barSize, floating ? style.geometry.rounding * scale : 0, floating, floating ? islandOpacity : 1.F, style.geometry.border);
                 whole->setGrow(true, false);
                 whole->addChild(thirds(workspaces(palette, scale, barSize, style.geometry.rounding), clock(palette, scale, barSize), status(palette, scale, barSize), barSize, false));
                 line->addChild(whole);

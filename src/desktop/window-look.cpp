@@ -73,7 +73,7 @@ namespace desktop {
     BarGeometry barGeometry(const std::optional<WindowLook>& look) {
         if (!look)
             return {};
-        return {.rounding = look->rounding, .edgeGap = look->gapsOut, .topGap = look->gapsOut};
+        return {.rounding = look->rounding, .edgeGap = look->gapsOut, .topGap = look->gapsOut, .border = look->borderSize};
     }
 
     BarGeometry barGeometry(const configuration::MainConfig& config) {
@@ -86,11 +86,13 @@ namespace desktop {
     }
 
     std::optional<WaybarStyle> currentBarStyle(const foundation::Environment& environment, const BarGeometry& geometry) {
-        // Files written before have half the gap at the top, or, before the bar followed
-        // the windows, the old fixed geometry.
+        // Files written before have the thin border, half the gap at the top, or, before
+        // the bar followed the windows, the old fixed geometry.
         auto style = currentWaybarStyle(environment, geometry);
         if (!style)
-            style = currentWaybarStyle(environment, BarGeometry{.rounding = geometry.rounding, .edgeGap = geometry.edgeGap, .topGap = geometry.edgeGap / 2});
+            style = currentWaybarStyle(environment, BarGeometry{.rounding = geometry.rounding, .edgeGap = geometry.edgeGap, .topGap = geometry.topGap, .border = std::nullopt});
+        if (!style)
+            style = currentWaybarStyle(environment, BarGeometry{.rounding = geometry.rounding, .edgeGap = geometry.edgeGap, .topGap = geometry.edgeGap / 2, .border = std::nullopt});
         if (!style)
             style = currentWaybarStyle(environment, BarGeometry{});
         if (style)

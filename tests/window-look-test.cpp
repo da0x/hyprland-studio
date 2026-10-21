@@ -65,17 +65,22 @@ namespace {
         EXPECT_TRUE((*planned)[0].proposed.contains("\"margin-left\": 10,"));
         EXPECT_TRUE((*planned)[1].proposed.contains("border-radius: 0px;"));
         EXPECT_FALSE((*planned)[1].proposed.contains("border-radius: 10px;"));
+        // The bar takes the windows' border: their width, the inactive colour, and the
+        // active one's gradient on hover, since the corners are square.
+        EXPECT_TRUE((*planned)[1].proposed.contains("border: 1px solid alpha(@raised, 0.67);"));
+        EXPECT_TRUE((*planned)[1].proposed.contains("window#waybar:hover {\n    border-image: linear-gradient(45deg, alpha(@accent, 0.93), alpha(@audio, 0.93)) 1;"));
         ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Windows").has_value());
         EXPECT_EQ(desktop::currentWaybarStyle(environment, desktop::barGeometry(square)), (desktop::WaybarStyle{old.shape, old.palette, desktop::barGeometry(square)}));
 
         // A bar written when the top got half the gap is still read, and given all of it.
-        const desktop::WaybarStyle halfTop{old.shape, old.palette, {.rounding = 0, .edgeGap = 10, .topGap = 5}};
+        const desktop::WaybarStyle halfTop{old.shape, old.palette, {.rounding = 0, .edgeGap = 10, .topGap = 5, .border = std::nullopt}};
         const auto                 rewritten = desktop::planWaybarStyle(halfTop, environment);
         ASSERT_TRUE(rewritten.has_value());
         ASSERT_TRUE(configuration::applyChanges(*rewritten, root / "backups", "Waybar").has_value());
         const auto again = desktop::planBarFollowing(square, square, environment);
         ASSERT_TRUE(again.has_value()) << again.error();
-        ASSERT_EQ(again->size(), 1U);
+        // The config for the gap, and the stylesheet for the windows' border.
+        ASSERT_EQ(again->size(), 2U);
         EXPECT_TRUE((*again)[0].proposed.contains("\"margin-top\": 10,"));
 
         // A bar the studio did not write is left alone.

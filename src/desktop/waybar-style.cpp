@@ -292,6 +292,21 @@ window#waybar {
         };
         replaced("border-radius: 10px;", style.geometry.rounding);
         replaced("border-radius: 7px;", static_cast<int>(std::lround(style.geometry.rounding * 0.7)));
+        if (const auto border = style.geometry.border) {
+            const std::string_view from = "1px solid @surface;";
+            const auto             to   = std::format("{}px solid alpha(@raised, 0.67);", *border);
+            for (auto at = text.find(from); at != std::string::npos; at = text.find(from, at + to.size()))
+                text.replace(at, from.size(), to);
+            // GTK draws a border image with square corners, so a rounded bar takes the
+            // active colour without its gradient.
+            text += std::format(R"(
+{} {{
+    {}
+}}
+)",
+                                style.shape == Shape::islands ? ".modules-left:hover,\n.modules-center:hover,\n.modules-right:hover" : "window#waybar:hover",
+                                style.geometry.rounding == 0 ? "border-image: linear-gradient(45deg, alpha(@accent, 0.93), alpha(@audio, 0.93)) 1;" : "border-color: alpha(@accent, 0.93);");
+        }
         return text;
     }
 
