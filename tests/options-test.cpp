@@ -131,7 +131,7 @@ TEST(ConsoleCommand, SendsOnlyListedRequestsThatRead) {
     EXPECT_NE(ipc::consoleCommand("dispatch exec kitty").error().find("changes Hyprland"), std::string::npos);
 }
 
-TEST(ConsoleCommand, IndentsJsonAndLeavesOtherRepliesAsTheyCame) {
-    EXPECT_EQ(ipc::indentedReply(R"({"y":1,"x":2})"), "{\n  \"y\": 1,\n  \"x\": 2\n}");
-    EXPECT_EQ(ipc::indentedReply("\"splash\" - hyprBot"), "\"splash\" - hyprBot");
+TEST(ConsoleCommand, IndentsJsonInHyprlandsOrderAndTellsOtherRepliesApart) {
+    EXPECT_EQ(ipc::indentedJson(R"({"y":1,"x":2})"), "{\n  \"y\": 1,\n  \"x\": 2\n}");
+    EXPECT_EQ(ipc::indentedJson("\"splash\" - hyprBot"), std::nullopt);
 }

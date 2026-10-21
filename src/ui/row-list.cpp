@@ -30,9 +30,9 @@ namespace ui {
     }
 
     RowList::RowList(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, std::vector<Column> columns,
-                     double rowHeight) :
-        palette{std::move(palette)}, defer{std::move(defer)}, columns{std::move(columns)}, rowHeight{rowHeight} {
-        const auto text = [p = this->palette] { return p->m_colors.text; };
+                     double rowHeight, std::function<Hyprtoolkit::CHyprColor()> textColour) :
+        palette{std::move(palette)}, defer{std::move(defer)}, columns{std::move(columns)}, rowHeight{rowHeight}, textColour{std::move(textColour)} {
+        const auto text = [this] { return this->textColour ? this->textColour() : this->palette->m_colors.text; };
 
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         root->setGrow(false, true);
@@ -127,7 +127,7 @@ namespace ui {
     }
 
     RowList::Shown RowList::makeRow(std::size_t index) {
-        const auto text = [p = palette] { return p->m_colors.text; };
+        const auto text = [this] { return textColour ? textColour() : palette->m_colors.text; };
         Shown      made;
         made.background = Hyprtoolkit::CRectangleBuilder::begin()
                               ->color([this, index] { return rowColour(index); })

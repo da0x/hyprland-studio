@@ -5,10 +5,12 @@
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/element/Textbox.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
+#include <array>
 #include <expected>
 #include <functional>
 #include <string>
@@ -19,6 +21,13 @@ namespace ui {
     // that read: what may be asked is the list beside the reply.
     class ConsolePage {
       public:
+        // The colours the reply is drawn in, kitty's when its theme is one the studio knows.
+        struct Terminal {
+            std::string                 background;
+            std::string                 foreground;
+            std::array<std::string, 16> colours;
+        };
+
         using Ask = std::function<void(std::string typed, std::function<void(const std::expected<std::string, std::string>&)> answered)>;
 
         // `defer` runs a function after the current layout pass; see RowList.
@@ -32,6 +41,7 @@ namespace ui {
         void restyle();
 
       private:
+        void readTerminal();
         void send(std::string typed);
         void showRequests();
         void showReply();
@@ -42,6 +52,8 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextboxElement>      typed;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         status;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>    screen;
+        Terminal                                                             terminal;
         RowList                                                              requests;
         RowList                                                              reply;
 

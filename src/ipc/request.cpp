@@ -151,11 +151,10 @@ namespace ipc {
         return send(instance, *command, *command);
     }
 
-    std::string indentedReply(std::string_view reply) {
-        // Ordered, so the fields stay in Hyprland's order.
+    std::optional<std::string> indentedJson(std::string_view reply) {
         const auto parsed = nlohmann::ordered_json::parse(reply, nullptr, false);
         if (parsed.is_discarded())
-            return std::string{reply};
+            return std::nullopt;
         return parsed.dump(2, ' ', false, nlohmann::ordered_json::error_handler_t::replace);
     }
 

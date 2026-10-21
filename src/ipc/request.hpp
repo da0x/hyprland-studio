@@ -4,6 +4,7 @@
 #include "ipc/instance.hpp"
 
 #include <expected>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -49,7 +50,8 @@ namespace ipc {
     // Sends consoleCommand(typed) and waits for the whole reply. Blocks.
     [[nodiscard]] std::expected<std::string, std::string> requestTyped(const Instance& instance, std::string_view typed);
 
-    // A JSON reply indented the same way throughout; any other reply as it came.
-    [[nodiscard]] std::string indentedReply(std::string_view reply);
+    // A JSON reply indented the same way throughout, in Hyprland's order; nothing for a
+    // reply that is not JSON.
+    [[nodiscard]] std::optional<std::string> indentedJson(std::string_view reply);
 
 }
