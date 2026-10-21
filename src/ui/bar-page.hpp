@@ -70,8 +70,6 @@ namespace ui {
         void                                                                   fillStyleStatus();
         // The open tab's choices: the shape, colours and border, or the widgets.
         void                                                                   fillChoices();
-        // Puts a widget on a side, in the table's order among the widgets there.
-        void                                                                   placeInOrder(desktop::Widget widget, desktop::Side side);
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
         // card's, 2 a palette card's, 3 a border card's. An element has one parent, so each place has its own.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
@@ -97,12 +95,6 @@ namespace ui {
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
         std::vector<std::pair<desktop::Border, Card>>                        borderCards;
-        // A row of the widgets' table, highlighted while its widget is on the bar.
-        struct WidgetRow {
-            desktop::Widget                                                   widget = desktop::Widget::workspaces;
-            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement> frame;
-        };
-        std::vector<WidgetRow>                                               widgetRows;
         // The Style and Widgets tabs, and what the one open shows.
         std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;
