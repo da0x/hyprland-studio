@@ -13,6 +13,7 @@
 #include "ui/terminal-page.hpp"
 #include "ui/cursors-page.hpp"
 #include "ui/displays-page.hpp"
+#include "ui/input-page.hpp"
 #include "ui/accessibility-page.hpp"
 #include "ui/activate-page.hpp"
 #include "ui/windows-page.hpp"
@@ -154,6 +155,7 @@ namespace ui {
         TerminalPage    terminal{palette, defer};
         CursorsPage     cursors{palette, defer, loop};
         DisplaysPage    displays{palette, defer, loop};
+        InputPage       input{palette, defer, loop};
         AccessibilityPage accessibility{palette, defer, loop};
         WindowsPage     windows{palette, defer, loop};
         ActivatePage    activate{palette, defer};
@@ -203,6 +205,7 @@ namespace ui {
         addPageButton("Wallpaper", wallpaper.element());
         addPageButton("Windows", windows.element());
         addPageButton("Displays", displays.element());
+        addPageButton("Keyboard and mouse", input.element());
         addPageButton("Bar", bar.element());
         addPageButton("Terminal", terminal.element());
         addPageButton("Cursors", cursors.element());
@@ -271,7 +274,7 @@ namespace ui {
         });
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &accessibility, &windows, &activate, &console](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &input, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -285,6 +288,7 @@ namespace ui {
             terminal.restyle();
             cursors.restyle();
             displays.restyle();
+            input.restyle();
             bar.restyle();
             wallpaper.restyle();
             accessibility.restyle();

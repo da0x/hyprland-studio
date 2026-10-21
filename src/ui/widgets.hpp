@@ -75,6 +75,13 @@ namespace ui {
                    const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>&                    note = nullptr,
                    const std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>& away = {});
 
+    // A setting's name, a few words on what it does under it, and its dropdown, on a row of
+    // its own. `changed` gets the index chosen, after the current layout pass.
+    [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement> settingRow(const std::string& name, const std::string& about, std::vector<std::string> items,
+                                                                                               std::size_t current, const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette,
+                                                                                               std::function<void(std::size_t)>                  changed,
+                                                                                               const std::function<void(std::function<void()>)>& defer);
+
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> heading(const std::string& text, const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette);
 
     // A diff as list rows: a header per file, then its changes with a sign and a colour.

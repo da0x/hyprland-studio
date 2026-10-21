@@ -77,26 +77,6 @@ namespace ui {
             }
         }
 
-        // A setting's name on the left and its dropdown, on a row of its own.
-        CSharedPointer<Hyprtoolkit::CRowLayoutElement> settingRow(const std::string& name, const std::string& about, std::vector<std::string> items, std::size_t current,
-                                                                   const CSharedPointer<Hyprtoolkit::CPalette>& palette, std::function<void(std::size_t)> changed,
-                                                                   const std::function<void(std::function<void()>)>& defer) {
-            const auto row   = leftRow(scaled(40.0));
-            const auto names = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {scaled(220.0), 1.0}})->commence();
-            names->addChild(markupLine(std::format("<b>{}</b>", escapeMarkup(name)), palette));
-            names->addChild(markupLine(escapeMarkup(about), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
-            row->addChild(names);
-            row->addChild(Hyprtoolkit::CComboboxBuilder::begin()
-                              ->items(std::move(items))
-                              ->currentItem(current)
-                              ->onChanged([changed = std::move(changed), defer](CSharedPointer<Hyprtoolkit::CComboboxElement>, std::size_t index) {
-                                  defer([changed, index] { changed(index); });
-                              })
-                              ->size(fixed(scaled(260.0), scaled(34.0)))
-                              ->commence());
-            return row;
-        }
-
     }
 
     DisplaysPage::DisplaysPage(CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, application::EventLoop loop) :
