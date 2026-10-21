@@ -11,6 +11,7 @@
 #include "ui/options-page.hpp"
 #include "ui/restyle.hpp"
 #include "ui/terminal-page.hpp"
+#include "ui/cursors-page.hpp"
 #include "ui/accessibility-page.hpp"
 #include "ui/activate-page.hpp"
 #include "ui/windows-page.hpp"
@@ -150,6 +151,7 @@ namespace ui {
         WallpaperPage   wallpaper{palette, defer, loop};
         ThemePage       theme{palette, defer, loop};
         TerminalPage    terminal{palette, defer};
+        CursorsPage     cursors{palette, defer, loop};
         AccessibilityPage accessibility{palette, defer, loop};
         WindowsPage     windows{palette, defer, loop};
         ActivatePage    activate{palette, defer};
@@ -198,6 +200,7 @@ namespace ui {
         addPageButton("Windows", windows.element());
         addPageButton("Bar", bar.element());
         addPageButton("Terminal", terminal.element());
+        addPageButton("Cursors", cursors.element());
         addPageButton("Accessibility", accessibility.element());
         addPageButton("Keyboard shortcuts", keybindings.element());
         addPageButton("Options", optionsPage.element());
@@ -262,7 +265,7 @@ namespace ui {
         });
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &accessibility, &windows, &activate, &console](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -274,6 +277,7 @@ namespace ui {
             liveTree.restyle();
             eventLog.restyle();
             terminal.restyle();
+            cursors.restyle();
             bar.restyle();
             wallpaper.restyle();
             accessibility.restyle();
