@@ -238,8 +238,8 @@ namespace ui {
         cards.addSetting(resizing, "Resize from the border", "drag a window's edge to resize it", std::move(resize));
 
         // Hyprland keeps its inner gap on each side of a window, so two windows are twice it
-        // apart. The choices are in the same steps as the
-        // screen's edge, so the same choice in both is the same gap.
+        // apart. The choices come in the screen edge's steps, so the same choice in both is
+        // the same gap.
         cards.addSetting(between, "Between windows", "the distance between two windows",
                          choicesOf(&desktop::WindowLook::gapsIn, {{"None", 0}, {"Small", 5}, {"Normal", 10}, {"Wide", 20}},
                                    [colours](int gap) {
