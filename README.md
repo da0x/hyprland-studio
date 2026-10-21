@@ -58,7 +58,7 @@ Each page does one thing:
 - **Windows:** corners, gaps, border thickness, and whether dragging a border resizes,
   with a preview of your screen. The bar's corners and gaps follow the windows'.
 - **Bar:** a Waybar style that matches the theme, and a switch to start or stop it.
-- **Terminal:** a colour scheme and font for kitty, wofi's and dunst's colours to match.
+- **Terminal:** a colour scheme, font and text size for kitty.
 - **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
 - **Keyboard shortcuts:** every binding, what it does, where in your config it is set,
   and which keys are bound more than once, with a search.
@@ -91,67 +91,82 @@ Each page does one thing:
 
 ## What it reads and writes
 
-**Reads:** your Hyprland config folder (following links), Hyprland's IPC sockets in
-`$XDG_RUNTIME_DIR/hypr/`, the running instance's `hyprland.lock` and command line (to
-find which config it loaded), and, if present, Hyprland's API stubs in
-`/usr/share/hypr/stubs/`. For the Bar page it looks for Waybar on your `PATH`, asks
-fontconfig whether the icon font is installed, finds the config Waybar would read, and
-reads `/etc/os-release` to name the right install command. The Wallpaper page looks for
-images in the Wallpapers folder of your pictures folder (from `~/.config/user-dirs.dirs`,
-or `~/Pictures`), the pictures folder itself, `~/.local/share/backgrounds`,
-`/usr/share/hypr` and `/usr/share/backgrounds`, and reads `~/.config/hypr/hyprpaper.conf`,
-or, with awww, asks `awww query` which image it shows. Its Add from files button opens your
-desktop's own file chooser, through xdg-desktop-portal. Its Copy button runs
-`wl-copy`, from wl-clipboard, if you have it, since the toolkit offers no clipboard of its
-own. The Terminal page and the Console read kitty's `kitty.conf` and `current-theme.conf`,
-the Console to draw its replies in kitty's colours.
+This is everything Lantern touches. Nothing else is read, written or started.
 
-**Writes:** files you approved after reviewing the change line by line, such as Waybar's
-config and stylesheet, the wallpaper in `hyprpaper.conf`, the lines in your Hyprland
-config that start the wallpaper program at login and turn off Hyprland's own wallpaper, the window border colours in its
-`hl.config` (only those values, nothing else in the file), the colours in
-`~/.config/hypr/hyprtoolkit.conf`, wofi's and dunst's colours (below), and
-from the Terminal page, kitty's `current-theme.conf` and the line in `kitty.conf` that
-includes it, wofi's `style.css`, dunst's `dunstrc` (a first one starts
-as a copy of the system's); from the Accessibility page, `animations.enabled` and
-`decoration.screen_shader` in `hl.config` (added in a call of their own at the end when the
-config does not set them), the `XCURSOR_SIZE` and `HYPRCURSOR_SIZE` lines, a colour-correction
-shader in `~/.config/hypr/shaders/`, and the text sizes in `hyprtoolkit.conf`; and, outside
-any file, GTK's `color-scheme` and `accent-color`, and the desktop's `high-contrast`,
-`reduced-motion`, `enable-animations`, `text-scaling-factor` and `cursor-size`, through
-`gsettings`, whose old values are kept with the change so Undo can restore them (if your config is a link, the file it
-points at, which the review names); an image you add from files, copied into your
-wallpapers folder under a new random name (a UUID, with the image's own extension); and its own folder, `~/.config/lantern-hyprland/`: its settings
-(window size, last page, which areas you allowed, whether you dismissed a page's checklist), the effects you set up (plain Hyprland
-Lua you can read and copy into your own config, in `effects.lua`), while anything is active a
-record of what is (`activation.json`), so Deactivate can take it back even after Lantern
-was closed, a record in `backups/` of each change it
-wrote, with copies of the files it replaced, so any change can be undone, and, only while
-the desktop-theme area is active, a record of the theme values it changed so they can
-always be put back, even after a crash. No caches, no exports: copying goes to the
-clipboard. A menu item removes that folder for you.
+### Reads
 
-**Starts and stops Waybar, hyprpaper and awww** only when you press their On or Off switch,
-on the Bar and Wallpaper pages. While one is on, Lantern restarts it after writing its
-files, so it reads them. Applying a wallpaper makes the chosen program the only one: it
-turns the other off and, as part of the change you review, starts the chosen one at login
-instead of the other. Picking a wallpaper shows it on the desktop straight away, through
-`hyprctl hyprpaper` or `awww img`, without writing anything; leaving the page puts back the
-one applied, unless you apply the new one. awww remembers its image itself, so for awww
-Lantern keeps only the fit you chose, in its settings. After a change to your Hyprland
-config, Lantern asks Hyprland for config errors and puts the files back if it reports
-any.
+- **Hyprland:** your config folder, following links, and the running Hyprland's
+  sockets. To learn which config Hyprland loaded, it reads Hyprland's lock file and
+  command line. If they are installed, it also reads Hyprland's Lua type stubs in
+  `/usr/share/hypr/stubs/`.
+- **Bar page:** whether Waybar is installed, whether its icon font is, which config
+  Waybar would read, and `/etc/os-release`, to show the install command for your
+  distribution.
+- **Wallpaper page:** the pictures in your Wallpapers and Pictures folders,
+  `~/.local/share/backgrounds`, `/usr/share/hypr` and `/usr/share/backgrounds`, and
+  `hyprpaper.conf`, or which picture awww shows.
+- **Terminal page and Console:** kitty's `kitty.conf` and `current-theme.conf`.
+- **Its own colours:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
 
-**Takes its colours** from hyprtoolkit, as every app built on it does: from
-`hyprtoolkit.conf`, or hyprtoolkit's own defaults. When the Theme page applies a palette,
-Lantern changes to it at once, without closing.
+Reading your config never runs it. Lantern reads it in a sandbox of its own, where
+commands, file writes and startup programs are noted but never carried out.
 
-**Changes while active, only in areas you allowed:** the running Hyprland's options, rules
-and keybindings (through IPC; a reload undoes them), the programs it started for you, and
-your desktop theme settings.
+### Writes
 
-Reading your config never runs it. Lantern reads Lua configs in a sandbox of its own,
-where commands, file writes and startup programs are recorded but never carried out.
+Only after you review the change line by line. When your config is a link, Lantern
+writes the file it points to, and the review says which one.
+
+- **Theme:** the window border colours in your Hyprland config, Waybar's files, the
+  colours in `hyprtoolkit.conf`, wofi's `style.css` and dunst's `dunstrc` if you have
+  them, and GTK's dark or light preference and accent colour.
+- **Wallpaper:** `hyprpaper.conf`, and the lines in your Hyprland config that start the
+  wallpaper program at login and turn off Hyprland's own wallpaper. A picture you add
+  is copied into your wallpapers folder under a new random name.
+- **Windows:** the corners, gaps, border size and resizing in your Hyprland config, and
+  Waybar's files, so the bar keeps matching.
+- **Bar:** Waybar's `config.jsonc` and `style.css`, and rules in your Hyprland config that
+  float the volume control and network settings the bar opens.
+- **Terminal:** kitty's `current-theme.conf`, and the font, text size and theme lines in
+  `kitty.conf`.
+- **Accessibility:** animations, the cursor size and the colour-correction shader in your
+  Hyprland config, the shader itself in `~/.config/hypr/shaders/`, the text sizes in
+  `hyprtoolkit.conf`, and the desktop's contrast, motion, text size and cursor size
+  settings.
+
+Desktop settings are changed through `gsettings`, and their old values are kept so Undo
+can restore them. After any change to your Hyprland config, Lantern asks Hyprland whether
+it found errors, and puts the files back if it did.
+
+### Its own folder
+
+Everything Lantern keeps for itself is in `~/.config/lantern-hyprland/`, and a menu item
+deletes it for you:
+
+- `settings.json`: the window size, the last page, which areas you allowed, and
+  checklists you dismissed.
+- `effects.lua`: the effects Activate applies, as plain Hyprland Lua you can copy into
+  your own config.
+- `activation.json`: what is active right now, so Deactivate works even after Lantern
+  was closed.
+- `backups/`: a record of each change, with copies of the files it replaced, for Undo.
+
+There are no caches and no exports. Copying goes to the clipboard.
+
+### Starts and stops
+
+- **Waybar, hyprpaper and awww,** only when you press their On or Off switch. If one is
+  running when Lantern writes its files, Lantern restarts it so it reads them.
+- **A wallpaper preview.** Picking a picture shows it straight away, without writing
+  anything, and leaving the page puts back the one you applied. Applying makes the
+  chosen program your only wallpaper program, at login too.
+- **Helpers you already have:** `wl-copy` for the Copy buttons, and your desktop's own
+  file chooser for adding pictures.
+
+### Changes while active
+
+Only in the areas you allowed on the Activate page: the running Hyprland's options, rules
+and keybindings, which a reload undoes, the programs you allowed it to start, and your
+desktop theme settings.
 
 ## Status
 
