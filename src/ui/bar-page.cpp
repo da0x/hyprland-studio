@@ -244,7 +244,9 @@ namespace ui {
         std::size_t longest = 0;
         for (const auto& side : selected.widgets)
             longest = std::max(longest, side.size());
-        const double rowHeight = scaled(40.0);
+        // A widget drawn at this scale fits a row.
+        constexpr double widgetScale = 0.8;
+        const double     rowHeight   = std::max(scaled(40.0), 38 * widgetScale + 6);
         const double height    = scaled(34.0) + static_cast<double>(longest + 1) * (rowHeight + 6) + scaled(34.0) + 16;
 
         const auto table = leftRow(0);
@@ -276,8 +278,10 @@ namespace ui {
                 row->setTooltip(std::move(summary));
                 const auto line = leftRow(40);
                 line->setMargin(3);
-                line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->gap(6)->commence();
-                const auto name = markupLine(std::format("  {}", escapeMarkup(std::string{info.name})), palette);
+                line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->gap(8)->commence();
+                // The widget itself, as the bar draws it, then its name.
+                line->addChild(widgetPreview(selected, widget, widgetScale));
+                const auto name = markupLine(escapeMarkup(std::string{info.name}), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.7F);
                 name->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
                 name->setGrow(true, false);
                 line->addChild(name);

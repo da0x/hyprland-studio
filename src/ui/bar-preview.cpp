@@ -220,6 +220,32 @@ namespace ui {
         return colour(hex, alpha);
     }
 
+    CSharedPointer<Hyprtoolkit::IElement> widgetPreview(const desktop::WaybarStyle& style, desktop::Widget shown, double scale) {
+        const auto height = barHeight * scale;
+        // The tray draws nothing until a program puts an icon there, so it shows one.
+        const auto width = (shown == desktop::Widget::tray ? 40.0 : widgetWidth(shown)) * scale;
+        const auto piece = Hyprtoolkit::CRectangleBuilder::begin()
+                               ->color([c = colour(style.palette->base, islandOpacity)] { return c; })
+                               ->rounding(static_cast<int>(std::lround(std::min(style.geometry.rounding * scale, height / 2))))
+                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})
+                               ->commence();
+        const auto inside = row(width, height);
+        if (shown == desktop::Widget::tray) {
+            const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})->commence();
+            column->addChild(gap(1, (height - 16 * scale) / 2));
+            column->addChild(Hyprtoolkit::CRectangleBuilder::begin()
+                                 ->color([c = colour(style.palette->subtle)] { return c; })
+                                 ->rounding(static_cast<int>(4 * scale))
+                                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {16 * scale, 16 * scale}})
+                                 ->commence());
+            inside->addChild(column);
+        } else {
+            inside->addChild(widget(style, shown, scale, height));
+        }
+        piece->addChild(inside);
+        return piece;
+    }
+
     double barPreviewHeight(const desktop::WaybarStyle& style, double scale) {
         return style.shape == desktop::Shape::fullWidth ? (fullHeight + 2 * topGap) * scale : (barHeight + 2 * topGap) * scale;
     }
