@@ -37,6 +37,8 @@ namespace application {
         std::function<void(const std::expected<Keybindings, std::string>&)>               keybindings;
         std::function<void(const std::expected<Options, std::string>&)>                   options;
         std::function<void(const std::expected<ipc::Tree, std::string>&)>                 tree;
+        // Every event, as it comes.
+        std::function<void(const std::vector<ipc::Event>&)>                               events;
     };
 
     // Keeps the studio's picture of the running Hyprland current. It listens on the event

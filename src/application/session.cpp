@@ -80,6 +80,9 @@ namespace application {
             return;
         }
 
+        if (listeners.events && !drained->empty())
+            listeners.events(*drained);
+
         // A reload replaces every binding and option, and no event reports a single one
         // changing. Hyprland also reloads when a config file changes, so this re-reads the
         // config too. An option changed with hyprctl keyword or eval reports nothing.
