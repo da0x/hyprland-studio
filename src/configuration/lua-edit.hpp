@@ -2,6 +2,7 @@
 #pragma once
 
 #include <expected>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -25,5 +26,19 @@ namespace configuration {
 
     // The value the config's last hl.env("name", "...") call sets, if any.
     [[nodiscard]] std::optional<std::string> luaEnv(std::string_view config, std::string_view name);
+
+    // A field of an hl.monitor({...}) table and its value, Lua source: {"mode", "\"1920x1080@60\""}.
+    using LuaField = std::pair<std::string, std::string>;
+
+    // The output of each hl.monitor({...}) call at the top of a Lua config, in order, when it
+    // is written as a string.
+    [[nodiscard]] std::vector<std::string> luaMonitorOutputs(std::string_view config);
+
+    // A Lua config whose last hl.monitor({...}) call at the top, of those whose output
+    // `matches`, has `fields`: each changed in place, or added to its table. When no call
+    // matches, a call of its own for `output` with the fields goes after the last
+    // hl.monitor call, or at the end. Refuses to change a value that is not a literal.
+    [[nodiscard]] std::expected<std::string, std::string> withLuaMonitor(std::string_view config, const std::function<bool(std::string_view)>& matches, std::string_view output,
+                                                                         const std::vector<LuaField>& fields);
 
 }

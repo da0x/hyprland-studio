@@ -3,6 +3,7 @@
 
 #include "syntax/highlight.hpp"
 
+#include <algorithm>
 #include <format>
 #include <regex>
 
@@ -68,6 +69,129 @@ namespace configuration {
         if (!found)
             return std::nullopt;
         return std::string{config.substr(found->valueBegin, found->valueEnd - found->valueBegin)};
+    }
+
+    namespace {
+
+        constexpr std::string_view monitorCall = "hl.monitor";
+
+        struct MonitorCall {
+            syntax::Range range;
+            std::string   output;
+        };
+
+        std::vector<MonitorCall> monitorCalls(std::string_view config) {
+            std::vector<MonitorCall> calls;
+            for (const auto& statement : syntax::luaStatements(config)) {
+                if (statement.broken || statement.call != monitorCall)
+                    continue;
+                const auto text   = config.substr(statement.range.begin, statement.range.end - statement.range.begin);
+                const auto output = syntax::luaCallField(text, monitorCall, {"output"});
+                if (!output)
+                    continue;
+                const auto value = text.substr(output->begin, output->end - output->begin);
+                if (value.size() < 2 || value.front() != '"' || value.back() != '"')
+                    continue;
+                calls.push_back(MonitorCall{statement.range, std::string{value.substr(1, value.size() - 2)}});
+            }
+            return calls;
+        }
+
+        // A string, number or boolean written as is, which Lantern may replace.
+        bool literal(std::string_view value) {
+            if (value == "true" || value == "false")
+                return true;
+            if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+                return !value.substr(1, value.size() - 2).contains('"');
+            return !value.empty() && std::ranges::all_of(value, [](char c) { return (c >= '0' && c <= '9') || c == '.' || c == '-'; });
+        }
+
+        // The call at `range` with `field` set: its value replaced, or a line of its own
+        // added before the table's closing brace, lined up with the output's.
+        std::expected<std::string, std::string> withField(std::string_view config, syntax::Range range, const LuaField& field) {
+            const auto call  = config.substr(range.begin, range.end - range.begin);
+            std::string text{config};
+            if (const auto found = syntax::luaCallField(call, monitorCall, {field.first})) {
+                const auto value = call.substr(found->begin, found->end - found->begin);
+                if (!literal(value))
+                    return std::unexpected{std::format("its hl.monitor call computes {}, which Lantern does not rewrite", field.first)};
+                text.replace(range.begin + found->begin, found->end - found->begin, field.second);
+                return text;
+            }
+            const auto close = call.rfind('}');
+            const auto last  = call.find_last_not_of(" \t\r\n", close == std::string_view::npos || close == 0 ? std::string_view::npos : close - 1);
+            if (close == std::string_view::npos || last == std::string_view::npos)
+                return std::unexpected{"its hl.monitor call is not a table Lantern can add to"};
+            const bool separated = call[last] == ',' || call[last] == '{';
+            const auto lineEnd   = call.rfind('\n', close);
+            if (lineEnd == std::string_view::npos || lineEnd < last) {
+                // All on one line: hl.monitor({ output = "", mode = "preferred" }).
+                text.insert(range.begin + last + 1, std::format("{}{} = {}{}", separated ? " " : ", ", field.first, field.second, call[last] == ',' ? "," : ""));
+                return text;
+            }
+            // A line like the output's: its indent, and the same width up to its "=".
+            std::string indent = "    ";
+            std::size_t width  = field.first.size() + 1;
+            if (const auto output = syntax::luaCallField(call, monitorCall, {"output"})) {
+                const auto lineStart = call.rfind('\n', output->begin) + 1;
+                const auto before    = call.substr(lineStart, output->begin - lineStart);
+                const auto key       = before.find_first_not_of(" \t");
+                const auto equals    = before.find('=');
+                if (key != std::string_view::npos && equals != std::string_view::npos && equals > key) {
+                    indent = std::string{before.substr(0, key)};
+                    width  = std::max(width, equals - key);
+                }
+            }
+            text.insert(range.begin + lineEnd + 1, std::format("{}{:<{}}= {},\n", indent, field.first, width, field.second));
+            if (!separated)
+                text.insert(range.begin + last + 1, ",");
+            return text;
+        }
+
+    }
+
+    std::vector<std::string> luaMonitorOutputs(std::string_view config) {
+        std::vector<std::string> outputs;
+        for (auto& call : monitorCalls(config))
+            outputs.push_back(std::move(call.output));
+        return outputs;
+    }
+
+    std::expected<std::string, std::string> withLuaMonitor(std::string_view config, const std::function<bool(std::string_view)>& matches, std::string_view output,
+                                                           const std::vector<LuaField>& fields) {
+        std::string text{config};
+        const auto  matching = [&matches](std::string_view now) {
+            std::optional<syntax::Range> found;
+            for (const auto& call : monitorCalls(now))
+                if (matches(call.output))
+                    found = call.range;
+            return found;
+        };
+        if (matching(text)) {
+            // A field at a time, finding the call again, since each one moves what follows.
+            for (const auto& field : fields) {
+                auto edited = withField(text, *matching(text), field);
+                if (!edited)
+                    return edited;
+                text = std::move(*edited);
+            }
+            return text;
+        }
+        std::size_t width = std::string_view{"output"}.size();
+        for (const auto& field : fields)
+            width = std::max(width, field.first.size());
+        auto made = std::format("hl.monitor({{\n    {:<{}} = \"{}\",\n", "output", width, output);
+        for (const auto& [name, value] : fields)
+            made += std::format("    {:<{}} = {},\n", name, width, value);
+        made += "})";
+        const auto calls = monitorCalls(text);
+        if (calls.empty()) {
+            if (!text.empty() && !text.ends_with('\n'))
+                text += '\n';
+            return text + "\n" + made + "\n";
+        }
+        text.insert(calls.back().range.end, "\n\n" + made);
+        return text;
     }
 
 }
