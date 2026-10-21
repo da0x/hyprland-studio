@@ -238,10 +238,10 @@ namespace ui {
         cards.addSetting(resizing, "Resize from the border", "drag a window's edge to resize it", std::move(resize));
 
         // Hyprland keeps its inner gap on each side of a window, so two windows are twice it
-        // apart. The choices are named and shown by that distance, in the same steps as the
+        // apart. The choices are in the same steps as the
         // screen's edge, so the same choice in both is the same gap.
         cards.addSetting(between, "Between windows", "the distance between two windows",
-                         choicesOf(&desktop::WindowLook::gapsIn, {{"None", 0}, {"Small · 10 px", 5}, {"Normal · 20 px", 10}, {"Wide · 40 px", 20}},
+                         choicesOf(&desktop::WindowLook::gapsIn, {{"None", 0}, {"Small", 5}, {"Normal", 10}, {"Wide", 20}},
                                    [colours](int gap) {
                                        // Two plain windows, and the gap between them drawn as a line as
                                        // thick as it is; with none they meet at a hairline.
@@ -256,7 +256,7 @@ namespace ui {
                                    },
                                    "between", 2));
         cards.addSetting(edge, "Screen edge", "the gap between windows and the edges of the screen",
-                         choicesOf(&desktop::WindowLook::gapsOut, {{"None", 0}, {"Small · 10 px", 10}, {"Normal · 20 px", 20}, {"Wide · 40 px", 40}},
+                         choicesOf(&desktop::WindowLook::gapsOut, {{"None", 0}, {"Small", 10}, {"Normal", 20}, {"Wide", 40}},
                                    [colours](int gap) {
                                        // A monitor on its stand, the gap between its edge and the window on
                                        // it highlighted.
