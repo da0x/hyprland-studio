@@ -31,6 +31,8 @@ namespace ui {
         constexpr double previewHeight = 230;
         // The preview draws the desktop at a little over half its size.
         constexpr double previewScale  = 0.6;
+        // Waybar's height, as the preview draws it.
+        constexpr double barHeight     = 22;
 
         // The colours windows are drawn in: the desktop's theme, if the studio set one, or
         // the studio's own.
@@ -76,6 +78,11 @@ namespace ui {
             column->addChild(inside);
             frame->addChild(column);
             return frame;
+        }
+
+        // Empty space `width` wide, for a row.
+        CSharedPointer<Hyprtoolkit::IElement> across(double width) {
+            return Hyprtoolkit::CNullBuilder::begin()->size(fixed(width, 1))->commence();
         }
 
         // A border's width as drawn small: never thinner than a pixel unless there is none.
@@ -202,17 +209,24 @@ namespace ui {
                 .draw =
                     [this, on, colours] {
                         return cards.picture(std::format("resize {}", on), [&] {
-                            // A window, and on its edge the pointer that resizes it.
-                            const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(2)->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 38.0}})->commence();
-                            row->addChild(block(colours.window, fixed(70, 38), 6, colours.active, 2));
-                            const auto pointer = Hyprtoolkit::CTextBuilder::begin()
-                                                     ->text(on ? "↔" : " ")
-                                                     ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, 16.F})
-                                                     ->color([c = paletteColour(colours.active)] { return c; })
-                                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
-                                                     ->commence();
-                            row->addChild(pointer);
-                            return cardPicture(colours.backdrop, row, 38);
+                            // On, a window whose highlighted edge is being dragged out to the
+                            // outline of the size it will be; off, a window and nothing more.
+                            const auto outline = block(colours.backdrop, fixed(80, 38), 6, colours.content, on ? 1 : 0);
+                            const auto row     = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(3)->size(filling())->commence();
+                            row->addChild(block(colours.window, fixed(46, 38), 6, on ? colours.active : colours.inactive, on ? 3 : 1));
+                            if (on) {
+                                const auto arrow = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
+                                arrow->addChild(space(8));
+                                arrow->addChild(Hyprtoolkit::CTextBuilder::begin()
+                                                    ->text("→")
+                                                    ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, 14.F})
+                                                    ->color([c = paletteColour(colours.active)] { return c; })
+                                                    ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
+                                                    ->commence());
+                                row->addChild(arrow);
+                            }
+                            outline->addChild(row);
+                            return cardPicture(colours.backdrop, outline, 38);
                         });
                     },
             });
@@ -221,25 +235,38 @@ namespace ui {
         cards.addSetting(between, "Between windows", "the gap on each side of a window",
                          choicesOf(&desktop::WindowLook::gapsIn, {{"None", 0}, {"Tight", 2}, {"Normal", 5}, {"Wide", 10}},
                                    [colours](int gap) {
-                                       const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()
-                                                            ->gap(static_cast<std::size_t>(gap * 2))
-                                                            ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 38.0}})
-                                                            ->commence();
-                                       row->addChild(block(colours.window, fixed(34, 38), 4, colours.active, 1));
-                                       row->addChild(block(colours.window, fixed(34, 38), 4, colours.inactive, 1));
+                                       // Two plain windows, and the gap between them drawn as a line as
+                                       // thick as it is; with none they meet at a hairline.
+                                       const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 38.0}})->commence();
+                                       row->addChild(block(colours.window, fixed(36, 38), 3));
+                                       if (gap == 0)
+                                           row->addChild(block(colours.content, fixed(1, 38)));
+                                       else
+                                           row->addChild(block(colours.active, fixed(std::max(2.0, std::round(gap * 1.2)), 38), 1));
+                                       row->addChild(block(colours.window, fixed(36, 38), 3));
                                        return cardPicture(colours.backdrop, row, 38);
                                    },
                                    "between"));
         cards.addSetting(edge, "Screen edge", "the gap between windows and the edges of the screen",
                          choicesOf(&desktop::WindowLook::gapsOut, {{"None", 0}, {"Small", 10}, {"Normal", 20}, {"Wide", 40}},
                                    [colours](int gap) {
-                                       // The screen, and a window inside it as far from its edges as asked.
-                                       const auto screen = block(colours.backdrop, fixed(90, 44), 3, colours.content, 1);
-                                       const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
+                                       // A monitor on its stand, the gap between its edge and the window on
+                                       // it highlighted.
+                                       const auto bezel = block(colours.window, fixed(84, 42), 4);
+                                       const auto glass = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
+                                       glass->setMargin(3);
+                                       const auto edgeGap = block(colours.active, filling(), 1);
+                                       const auto inside  = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
                                        inside->setMargin(gap * 0.3);
-                                       inside->addChild(block(colours.window, filling(), 3, colours.active, 1));
-                                       screen->addChild(inside);
-                                       return cardPicture(colours.backdrop, screen, 44);
+                                       inside->addChild(block(colours.content, filling(), 2));
+                                       edgeGap->addChild(inside);
+                                       glass->addChild(edgeGap);
+                                       bezel->addChild(glass);
+                                       const auto monitor = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+                                       monitor->addChild(bezel);
+                                       monitor->addChild(block(colours.window, fixed(10, 4)));
+                                       monitor->addChild(block(colours.window, fixed(30, 3), 1));
+                                       return cardPicture(colours.backdrop, monitor, 49);
                                    },
                                    "edge"));
 
@@ -255,12 +282,47 @@ namespace ui {
         const auto border  = drawnBorder(wanted.borderSize, scale);
         const auto between = std::lround(wanted.gapsIn * 2 * scale);
 
-        // The screen, then windows as far from its edges as the outer gap says.
+        const auto edge    = wanted.gapsOut * scale;
+
+        // The screen: Waybar at the top, half the outer gap from it and the whole gap from
+        // the sides, with its corners following the windows', as the bar is set to; then
+        // windows the outer gap from the bar and the screen's edges.
         const auto screen = block(colours.backdrop, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, previewHeight}}, 8);
         const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
-        inside->setMargin(wanted.gapsOut * scale);
+        inside->addChild(space(edge / 2));
+        const auto barLine = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, barHeight}})->commence();
+        barLine->addChild(across(edge));
+        const auto bar = block(colours.window, CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}}, std::min(radius, barHeight / 2));
+        bar->setGrow(true, false);
+        const auto pieces = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(3)->size(filling())->commence();
+        pieces->setMargin(5);
+        const auto pill = [&](const std::string& colour, double width) {
+            return block(colour, CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {width, 1.0}}, std::min(std::round(radius * 0.7), 4.0));
+        };
+        // Workspaces on the left, the clock in the middle, the status on the right.
+        pieces->addChild(pill(colours.active, 14));
+        for (int workspace = 0; workspace < 3; ++workspace)
+            pieces->addChild(pill(colours.content, 14));
+        const auto springs = [&] {
+            const auto made = across(1);
+            made->setGrow(true, false);
+            pieces->addChild(made);
+        };
+        springs();
+        pieces->addChild(pill(colours.content, 50));
+        springs();
+        pieces->addChild(pill(colours.content, 22));
+        pieces->addChild(pill(colours.content, 22));
+        bar->addChild(pieces);
+        barLine->addChild(bar);
+        barLine->addChild(across(edge));
+        inside->addChild(barLine);
+        inside->addChild(space(edge));
+        const auto windowLine = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
+        windowLine->setGrow(false, true);
+        windowLine->addChild(across(edge));
         // One window on the left, focused, and two stacked on the right, as Hyprland tiles three.
-        const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(static_cast<std::size_t>(between))->size(filling())->commence();
+        const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(static_cast<std::size_t>(between))->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         const auto window = [&](const std::string& edge, CDynamicSize size) {
             const auto made  = block(colours.window, std::move(size), radius, edge, border);
             const auto lines = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(filling())->commence();
@@ -280,7 +342,11 @@ namespace ui {
         stack->addChild(top);
         stack->addChild(window(colours.inactive, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 0.5}}));
         row->addChild(stack);
-        inside->addChild(row);
+        row->setGrow(true, false);
+        windowLine->addChild(row);
+        windowLine->addChild(across(edge));
+        inside->addChild(windowLine);
+        inside->addChild(space(edge));
         screen->addChild(inside);
         preview->addChild(screen);
         fillStatus();
