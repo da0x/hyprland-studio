@@ -242,12 +242,37 @@ namespace ui {
                 off.push_back(info.widget);
         // All three as tall as the longest, since a row centres shorter children.
         std::size_t longest = 0;
-        for (const auto& side : selected.widgets)
-            longest = std::max(longest, side.size());
-        // A widget drawn at this scale fits a row.
-        constexpr double widgetScale = 0.8;
-        const double     rowHeight   = std::max(scaled(40.0), 38 * widgetScale + 6);
-        const double height    = scaled(34.0) + static_cast<double>(longest + 1) * (rowHeight + 6) + scaled(34.0) + 16;
+        for (std::size_t side = 0; side < selected.widgets.size(); ++side)
+            longest = std::max(longest, adding == static_cast<desktop::Side>(side) ? off.size() : selected.widgets[side].size());
+        // A tile: the widget's name, and under it the widget as the bar draws it, both centred.
+        // The previews shrink when a column holds many, so the page still fits its window: a
+        // page laid out taller than that comes out wrong.
+        constexpr double tilesHeight = 440;
+        const double     each        = tilesHeight / static_cast<double>(std::max<std::size_t>(longest, 1)) - 6;
+        const double     widgetScale = std::clamp((each - scaled(18.0) - 14) / 38, 0.35, 0.7);
+        const double     rowHeight   = scaled(18.0) + 38 * widgetScale + 14;
+        const double     height      = scaled(34.0) + static_cast<double>(longest) * (rowHeight + 6) + 24;
+        const auto tile = [this, &infoOf, rowHeight, widgetScale](desktop::Widget widget, bool offered) {
+            const auto made = Hyprtoolkit::CRectangleBuilder::begin()
+                                  ->color([palette = palette, offered] {
+                                      auto colour = offered ? palette->m_colors.accent : palette->m_colors.base;
+                                      if (offered)
+                                          colour.a = 0.18F;
+                                      return colour;
+                                  })
+                                  ->rounding(palette->m_vars.smallRounding)
+                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, rowHeight}})
+                                  ->commence();
+            // A column centres what is narrower than itself.
+            const auto stack = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
+            stack->setMargin(5);
+            const auto name = markupLine(escapeMarkup(std::string{infoOf(widget).name}), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.8F);
+            name->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            stack->addChild(name);
+            stack->addChild(widgetPreview(selected, widget, widgetScale));
+            made->addChild(stack);
+            return made;
+        };
 
         const auto table = leftRow(0);
         table->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
@@ -261,8 +286,42 @@ namespace ui {
                                   ->commence();
             const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
             inside->setMargin(8);
-            inside->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", titles[column]), palette));
-            for (const auto widget : selected.widgets[column]) {
+            // The column's name, and a button that lists the widgets it can add.
+            const auto top = leftRow(34);
+            top->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, scaled(34.0)}})->commence();
+            const auto title = markupLine(std::format("<span weight=\"600\">{}</span>", titles[column]), palette);
+            title->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            title->setGrow(true, false);
+            top->addChild(title);
+            const bool open = adding == side;
+            if (!off.empty() || open)
+                top->addChild(button(open ? "\u00d7" : "+", 34, open, [this, side, open] {
+                    defer([this, side, open] {
+                        adding = open ? std::nullopt : std::optional{side};
+                        fillChoices();
+                    });
+                }));
+            inside->addChild(top);
+            // The widgets it can add, each with a click; the list stays open for the next.
+            if (open) {
+                for (const auto widget : off) {
+                    const auto choice = tile(widget, true);
+                    choice->setTooltip(std::string{infoOf(widget).summary});
+                    choice->setReceivesMouse(true);
+                    choice->setMouseButton([this, side, widget](Hyprtoolkit::Input::eMouseButton pressed, bool down) {
+                        if (pressed != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !down)
+                            return;
+                        defer([this, side, widget] {
+                            desktop::placeWidget(selected.widgets, widget, side);
+                            fillChoices();
+                            updateStyle();
+                        });
+                    });
+                    inside->addChild(choice);
+                }
+            }
+            // While the list is open, it stands in for the column's own widgets.
+            for (const auto widget : open ? std::vector<desktop::Widget>{} : selected.widgets[column]) {
                 const auto& info = infoOf(widget);
                 // What it shows, and what it would show nothing without on this computer.
                 std::string summary{info.summary};
@@ -270,49 +329,22 @@ namespace ui {
                     summary = "Needs bluez, which is not installed.";
                 if (widget == desktop::Widget::battery && !battery)
                     summary = "This computer reports no battery.";
-                const auto row = Hyprtoolkit::CRectangleBuilder::begin()
-                                     ->color([palette = palette] { return palette->m_colors.base; })
-                                     ->rounding(palette->m_vars.smallRounding)
-                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, rowHeight}})
-                                     ->commence();
+                const auto row = tile(widget, false);
                 row->setTooltip(std::move(summary));
-                const auto line = leftRow(40);
-                line->setMargin(3);
-                line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->gap(8)->commence();
-                // The widget itself, as the bar draws it, then its name.
-                line->addChild(widgetPreview(selected, widget, widgetScale));
-                const auto name = markupLine(escapeMarkup(std::string{info.name}), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.7F);
-                name->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-                name->setGrow(true, false);
-                line->addChild(name);
-                line->addChild(button("\u2212", 34, false, [this, widget] {
+                // The button that takes it off, at the tile's right edge.
+                const auto remove = button("\u2212", 30, false, [this, widget] {
                     defer([this, widget] {
                         desktop::removeWidget(selected.widgets, widget);
                         fillChoices();
                         updateStyle();
                     });
-                }));
-                row->addChild(line);
+                });
+                remove->setPositionMode(Hyprtoolkit::IElement::HT_POSITION_ABSOLUTE);
+                remove->setPositionFlag(Hyprtoolkit::IElement::HT_POSITION_FLAG_RIGHT, true);
+                remove->setPositionFlag(Hyprtoolkit::IElement::HT_POSITION_FLAG_VCENTER, true);
+                remove->setAbsolutePosition({-6, 0});
+                row->addChild(remove);
                 inside->addChild(row);
-            }
-            if (!off.empty()) {
-                std::vector<std::string> names{"+  Add a widget"};
-                for (const auto widget : off)
-                    names.emplace_back(infoOf(widget).name);
-                inside->addChild(Hyprtoolkit::CComboboxBuilder::begin()
-                                     ->items(std::move(names))
-                                     ->currentItem(0)
-                                     ->onChanged([this, side, off](CSharedPointer<Hyprtoolkit::CComboboxElement>, std::size_t index) {
-                                         if (index == 0 || index > off.size())
-                                             return;
-                                         defer([this, side, widget = off[index - 1]] {
-                                             desktop::placeWidget(selected.widgets, widget, side);
-                                             fillChoices();
-                                             updateStyle();
-                                         });
-                                     })
-                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, scaled(34.0)}})
-                                     ->commence());
             }
             area->addChild(inside);
             table->addChild(area);

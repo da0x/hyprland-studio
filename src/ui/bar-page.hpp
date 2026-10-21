@@ -99,6 +99,8 @@ namespace ui {
         std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;
         bool                                                                 showingWidgets = false;
+        // The column whose list of widgets to add is open, if one is.
+        std::optional<desktop::Side>                                         adding;
         // The style under review and the files it would write.
         std::optional<desktop::WaybarStyle>                                  reviewing;
         std::vector<configuration::FileChange>                               changes;
