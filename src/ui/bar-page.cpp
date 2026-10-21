@@ -243,7 +243,7 @@ namespace ui {
         // All three as tall as the longest, since a row centres shorter children.
         std::size_t longest = 0;
         for (std::size_t side = 0; side < selected.widgets.size(); ++side)
-            longest = std::max(longest, adding == static_cast<desktop::Side>(side) ? off.size() : selected.widgets[side].size());
+            longest = std::max(longest, selected.widgets[side].size());
         // A tile: the widget's name, and under it the widget as the bar draws it, both centred.
         // The previews shrink when a column holds many, so the page still fits its window: a
         // page laid out taller than that comes out wrong.
@@ -252,14 +252,9 @@ namespace ui {
         const double     widgetScale = std::clamp((each - scaled(18.0) - 14) / 38, 0.35, 0.7);
         const double     rowHeight   = scaled(18.0) + 38 * widgetScale + 14;
         const double     height      = scaled(34.0) + static_cast<double>(longest) * (rowHeight + 6) + 24;
-        const auto tile = [this, &infoOf, rowHeight, widgetScale](desktop::Widget widget, bool offered) {
+        const auto tile = [this, &infoOf, rowHeight, widgetScale](desktop::Widget widget) {
             const auto made = Hyprtoolkit::CRectangleBuilder::begin()
-                                  ->color([palette = palette, offered] {
-                                      auto colour = offered ? palette->m_colors.accent : palette->m_colors.base;
-                                      if (offered)
-                                          colour.a = 0.18F;
-                                      return colour;
-                                  })
+                                  ->color([palette = palette] { return palette->m_colors.base; })
                                   ->rounding(palette->m_vars.smallRounding)
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, rowHeight}})
                                   ->commence();
@@ -293,35 +288,10 @@ namespace ui {
             title->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
             title->setGrow(true, false);
             top->addChild(title);
-            const bool open = adding == side;
-            if (!off.empty() || open)
-                top->addChild(button(open ? "\u00d7" : "+", 34, open, [this, side, open] {
-                    defer([this, side, open] {
-                        adding = open ? std::nullopt : std::optional{side};
-                        fillChoices();
-                    });
-                }));
+            if (!off.empty())
+                top->addChild(button("+", 34, false, [this, side, off] { defer([this, side, off] { openAddMenu(side, off); }); }));
             inside->addChild(top);
-            // The widgets it can add, each with a click; the list stays open for the next.
-            if (open) {
-                for (const auto widget : off) {
-                    const auto choice = tile(widget, true);
-                    choice->setTooltip(std::string{infoOf(widget).summary});
-                    choice->setReceivesMouse(true);
-                    choice->setMouseButton([this, side, widget](Hyprtoolkit::Input::eMouseButton pressed, bool down) {
-                        if (pressed != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !down)
-                            return;
-                        defer([this, side, widget] {
-                            desktop::placeWidget(selected.widgets, widget, side);
-                            fillChoices();
-                            updateStyle();
-                        });
-                    });
-                    inside->addChild(choice);
-                }
-            }
-            // While the list is open, it stands in for the column's own widgets.
-            for (const auto widget : open ? std::vector<desktop::Widget>{} : selected.widgets[column]) {
+            for (const auto widget : selected.widgets[column]) {
                 const auto& info = infoOf(widget);
                 // What it shows, and what it would show nothing without on this computer.
                 std::string summary{info.summary};
@@ -329,7 +299,7 @@ namespace ui {
                     summary = "Needs bluez, which is not installed.";
                 if (widget == desktop::Widget::battery && !battery)
                     summary = "This computer reports no battery.";
-                const auto row = tile(widget, false);
+                const auto row = tile(widget);
                 row->setTooltip(std::move(summary));
                 // The button that takes it off, at the tile's right edge.
                 const auto remove = button("\u2212", 30, false, [this, widget] {
@@ -350,6 +320,62 @@ namespace ui {
             table->addChild(area);
         }
         choices->addChild(table);
+    }
+
+    void BarPage::setWindow(CSharedPointer<Hyprtoolkit::IWindow> window) {
+        this->window = std::move(window);
+    }
+
+    void BarPage::openAddMenu(desktop::Side side, std::vector<desktop::Widget> off) {
+        if (menu)
+            menu->close();
+        menu.reset();
+        if (!window || off.empty())
+            return;
+        // A menu of the widgets not on the bar, at the pointer, as a dropdown opens its list.
+        constexpr double itemHeight = 32;
+        const double     height     = std::min(600.0, static_cast<double>(off.size()) * (itemHeight + 4) + 12);
+        menu = Hyprtoolkit::CWindowBuilder::begin()
+                   ->type(Hyprtoolkit::HT_WINDOW_POPUP)
+                   ->parent(window)
+                   ->pos(window->cursorPos())
+                   ->preferredSize(Hyprutils::Math::Vector2D{200.0, height})
+                   ->commence();
+        if (!menu)
+            return;
+        menuClosed = menu->m_events.popupClosed.listen([this] { menu.reset(); });
+        const auto background = Hyprtoolkit::CRectangleBuilder::begin()
+                                    ->color([palette = palette] { return palette->m_colors.background; })
+                                    ->rounding(palette->m_vars.bigRounding)
+                                    ->borderColor([palette = palette] { return palette->m_colors.alternateBase; })
+                                    ->borderThickness(1)
+                                    ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
+                                    ->commence();
+        const auto items = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        items->setMargin(6);
+        for (const auto widget : off) {
+            const auto& info = *std::ranges::find(desktop::waybarWidgets(), widget, &desktop::WidgetInfo::widget);
+            items->addChild(Hyprtoolkit::CButtonBuilder::begin()
+                                ->label(std::string{info.name})
+                                ->noBorder(true)
+                                ->noBg(true)
+                                ->alignText(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
+                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, itemHeight}})
+                                ->onMainClick([this, side, widget](CSharedPointer<Hyprtoolkit::CButtonElement>) {
+                                    defer([this, side, widget] {
+                                        if (menu)
+                                            menu->close();
+                                        menu.reset();
+                                        desktop::placeWidget(selected.widgets, widget, side);
+                                        fillChoices();
+                                        updateStyle();
+                                    });
+                                })
+                                ->commence());
+        }
+        background->addChild(items);
+        menu->m_rootElement = background;
+        menu->open();
     }
 
     void BarPage::updateStyle() {

@@ -251,6 +251,7 @@ namespace ui {
             window->close();
             backend->destroy();
         };
+        bar.setWindow(window);
         window->m_events.closeRequest.listenStatic(quit);
         // Q quits too, unless it was typed into a text box: that box takes the key after the
         // window, so whether one did shows in its text once the key is handled.

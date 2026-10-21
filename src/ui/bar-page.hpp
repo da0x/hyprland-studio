@@ -13,6 +13,8 @@
 #include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
+#include <hyprtoolkit/window/Window.hpp>
+#include <hyprutils/signal/Signal.hpp>
 
 #include <array>
 #include <filesystem>
@@ -42,6 +44,9 @@ namespace ui {
         // Stops watching Waybar. Called before the event loop goes away.
         void close();
 
+        // The window the menu that adds a widget opens from.
+        void setWindow(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IWindow> window);
+
         // Draws the page again, after Lantern's colours changed.
         void restyle();
 
@@ -70,6 +75,8 @@ namespace ui {
         void                                                                   fillStyleStatus();
         // The open tab's choices: the shape, colours and border, or the widgets.
         void                                                                   fillChoices();
+        // A menu, at the pointer, of the widgets to add to `side`.
+        void                                                                   openAddMenu(desktop::Side side, std::vector<desktop::Widget> off);
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
         // card's, 2 a palette card's, 3 a border card's. An element has one parent, so each place has its own.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
@@ -99,8 +106,10 @@ namespace ui {
         std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;
         bool                                                                 showingWidgets = false;
-        // The column whose list of widgets to add is open, if one is.
-        std::optional<desktop::Side>                                         adding;
+        // Lantern's window, which the menu that adds a widget opens from, and that menu.
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IWindow>              window;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IWindow>              menu;
+        Hyprutils::Signal::CHyprSignalListener                               menuClosed;
         // The style under review and the files it would write.
         std::optional<desktop::WaybarStyle>                                  reviewing;
         std::vector<configuration::FileChange>                               changes;
