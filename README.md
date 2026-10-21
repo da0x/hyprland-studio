@@ -1,13 +1,26 @@
 # Lantern for Hyprland
 
-> Lantern is written with AI coding agents, under the direction and review of its
-> human author.
+Lantern for Hyprland is a settings app for Hyprland that makes your desktop easier to
+see, read and use, and then gets out of the way.
 
-A visual configuration and management app for [Hyprland](https://hypr.land). It is made
-for Hyprland alone: it talks to Hyprland's own sockets and reads and writes its Lua config.
+**Accessibility first.** Make text larger, raise the contrast, correct the colours for
+colour blindness across the whole desktop, calm the animations, and make the cursor easier
+to find. Each one is set where your desktop already looks for it, so GTK apps, Hyprland
+and the apps on top of it follow along.
 
-See what your compositor is doing, browse every option and keybinding, try changes
-live, and save them safely, all without giving up control of your configuration files.
+**It never takes over.** Lantern installs nothing and runs nothing with `sudo`. It shows
+every change as a diff before writing it, keeps a copy of what it replaced, and undoes it
+in one click. What it writes is plain Hyprland, Waybar and GTK configuration, with no
+markers and nothing of its own, so your desktop works the same if you stop using it.
+
+**One look, everywhere.** Pick a theme and your window borders, Waybar, the launcher,
+notifications and GTK apps all change together, and your terminal can match. Pick a
+wallpaper and see it at once. Your bar follows your windows' corners, gaps and borders.
+
+It also shows you what Hyprland is doing: every option with its documentation, every
+keybinding and where it is set, a live map of your monitors and windows, an event log, and
+a console that only reads. It is made for Hyprland alone, talking to Hyprland's own sockets
+and reading and writing its Lua config.
 
 > Lantern for Hyprland is an independent open-source project for configuring and managing
 > Hyprland. It is not affiliated with or endorsed by the Hyprland project.
@@ -210,6 +223,9 @@ release has them. Build that, install it somewhere of its own, and point Lantern
 the build takes the usual `CMAKE_BUILD_TYPE`, `CMAKE_INSTALL_PREFIX` and `DESTDIR`.
 
 ## Acknowledgements
+
+Lantern is written with AI coding agents, under the direction and review of its human
+author.
 
 Lantern learned from [Noctalia](https://github.com/noctalia-dev/noctalia), an
 MIT-licensed Wayland shell by noctalia-dev and contributors: in particular its direct use
