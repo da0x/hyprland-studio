@@ -185,7 +185,7 @@ namespace ui {
                     .label  = label,
                     .chosen = [this, member, value] { return wanted.*member == value; },
                     .select = [this, member, value] { wanted.*member = value; },
-                    .draw   = [this, draw, value, kind] { return cards.picture(std::format("{} {}", kind, value), [&] { return draw(value); }); },
+                    .draw   = [this, draw, value, kind] { return cards.picture(std::format("{} {} {}", kind, value, wanted.rounding), [&] { return draw(value); }); },
                 });
             return made;
         };
@@ -198,7 +198,10 @@ namespace ui {
                                    "corners"));
         cards.addSetting(border, "Border", "the coloured line around each window",
                          choicesOf(&desktop::WindowLook::borderSize, {{"None", 0}, {"Thin", 1}, {"Normal", 2}, {"Thick", 4}},
-                                   [colours](int border) { return cardPicture(colours.backdrop, block(colours.window, fixed(70, 38), 6, colours.active, border), 38); },
+                                   // Drawn with the corners chosen, so the two read as one window.
+                                   [this, colours](int border) {
+                                       return cardPicture(colours.backdrop, block(colours.window, fixed(70, 38), wanted.rounding * 0.8, colours.active, border), 38);
+                                   },
                                    "border"));
         std::vector<ChoiceCards::Choice> resize;
         for (const auto& [label, on] : {std::pair{"Off", false}, std::pair{"On", true}})
@@ -208,12 +211,13 @@ namespace ui {
                 .select = [this, on] { wanted.resizeOnBorder = on; },
                 .draw =
                     [this, on, colours] {
-                        return cards.picture(std::format("resize {}", on), [&] {
+                        return cards.picture(std::format("resize {} {}", on, wanted.rounding), [&] {
                             // On, a window whose highlighted edge is being dragged out to the
                             // outline of the size it will be; off, a window and nothing more.
-                            const auto outline = block(colours.backdrop, fixed(80, 38), 6, colours.content, on ? 1 : 0);
+                            const auto radius  = wanted.rounding * 0.8;
+                            const auto outline = block(colours.backdrop, fixed(80, 38), radius, colours.content, on ? 1 : 0);
                             const auto row     = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(3)->size(filling())->commence();
-                            row->addChild(block(colours.window, fixed(46, 38), 6, on ? colours.active : colours.inactive, on ? 3 : 1));
+                            row->addChild(block(colours.window, fixed(46, 38), radius, on ? colours.active : colours.inactive, on ? 3 : 1));
                             if (on) {
                                 const auto arrow = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
                                 arrow->addChild(space(8));
