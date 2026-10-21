@@ -16,7 +16,7 @@ namespace activation {
         // Hyprland's options and its window, layer and workspace rules.
         options,
         keybindings,
-        // Programs the user installed, started by the studio and stopped again.
+        // Programs the user installed, started by Lantern and stopped again.
         programs,
         // The desktop theme in dconf.
         theme,
@@ -24,7 +24,7 @@ namespace activation {
 
     inline constexpr std::array areas{Area::options, Area::keybindings, Area::programs, Area::theme};
 
-    // The word the studio's settings keep for an area, and back.
+    // The word Lantern's settings keep for an area, and back.
     [[nodiscard]] std::string_view    nameOf(Area area);
     [[nodiscard]] std::optional<Area> areaNamed(std::string_view name);
 
@@ -40,7 +40,7 @@ namespace activation {
         std::string command;
     };
 
-    // A statement the studio leaves out, and why.
+    // A statement Lantern leaves out, and why.
     struct Skipped {
         int         line = 0;
         std::string reason;
@@ -53,15 +53,15 @@ namespace activation {
         [[nodiscard]] std::vector<const Effect*> in(Area area) const;
     };
 
-    // The effects in an effects file: hl.* calls whose effect the studio can take back.
+    // The effects in an effects file: hl.* calls whose effect Lantern can take back.
     // Options and rules go away with a reload, keybindings too, and a program started by
-    // hl.exec_cmd with a plain command line is one the studio starts and stops itself.
+    // hl.exec_cmd with a plain command line is one Lantern starts and stops itself.
     // Anything else (a local, a function, hl.env, which a reload does not take back) is
     // skipped, and said so.
     [[nodiscard]] Effects readEffects(std::string_view text);
 
-    // $studioFolder/effects.lua.
-    [[nodiscard]] std::filesystem::path effectsFile(const std::filesystem::path& studioFolder);
+    // $lanternFolder/effects.lua.
+    [[nodiscard]] std::filesystem::path effectsFile(const std::filesystem::path& lanternFolder);
 
     // What a new effects file says, every example commented out.
     [[nodiscard]] std::string_view effectsTemplate();

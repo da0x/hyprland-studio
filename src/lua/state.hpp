@@ -28,7 +28,7 @@ namespace lua {
     using HostFunction = std::function<std::expected<Value, std::string>(const std::vector<Value>& arguments)>;
 
     // A Lua 5.5 state with the standard libraries open. Only trusted code runs directly in
-    // it: the studio's own chunks decide what anything they load may reach.
+    // it: Lantern's own chunks decide what anything they load may reach.
     class State {
       public:
         [[nodiscard]] static std::expected<State, std::string> create(const Limits& limits);

@@ -16,7 +16,7 @@ namespace {
 
     TEST(WindowLook, ReadsAndChangesOnlyWhatDiffers) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-windows-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-windows-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root);
         const auto lua = root / "hyprland.lua";
         std::ofstream{lua} << "hl.config({\n    general = {\n        gaps_in  = 5,\n        gaps_out = \"20 10 20 10\",\n    },\n    decoration = {\n        rounding = 10,\n    },\n})\n";
@@ -48,7 +48,7 @@ namespace {
 
     TEST(WindowLook, TheBarFollowsTheWindowsCornersAndGap) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-bar-follows-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-bar-follows-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "home/.config/waybar");
         const foundation::Environment environment{{"HOME", (root / "home").string()}};
         // A bar written before it followed the windows, with the fixed geometry.
@@ -78,7 +78,7 @@ namespace {
         ASSERT_EQ(again->size(), 1U);
         EXPECT_TRUE((*again)[0].proposed.contains("\"margin-top\": 10,"));
 
-        // A bar the studio did not write is left alone.
+        // A bar Lantern did not write is left alone.
         std::ofstream{root / "home/.config/waybar/style.css"} << "/* mine */\n";
         const auto mine = desktop::planBarFollowing(square, square, environment);
         ASSERT_TRUE(mine.has_value());
@@ -88,7 +88,7 @@ namespace {
 
     TEST(WindowLook, TheBarTakesAnActiveOrInactiveWindowsBorder) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-bar-border-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-bar-border-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "home/.config/waybar");
         const foundation::Environment environment{{"HOME", (root / "home").string()}};
         const desktop::WindowLook     square{.rounding = 0, .gapsIn = 2, .gapsOut = 10, .borderSize = 3, .resizeOnBorder = true};

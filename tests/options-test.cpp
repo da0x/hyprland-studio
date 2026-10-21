@@ -51,7 +51,7 @@ TEST(Options, ReadsABatchOfValuesInOrderEvenPastAReplyThatIsNotJson) {
 
 TEST(Options, FindsTheCallThatSetEachOptionAndWhatDiffersFromTheDefault) {
     static std::atomic<int> counter = 0;
-    const auto folder = std::filesystem::temp_directory_path() / ("hyprland-studio-options-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+    const auto folder = std::filesystem::temp_directory_path() / ("lantern-hyprland-options-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
     std::filesystem::create_directories(folder);
     std::ofstream{folder / "hyprland.lua"} << "hl.config({\n"
                                               "    general = { gaps_in = 5, col = { active_border = { colors = { \"rgba(fabd2fee)\" }, angle = 45 } } },\n"

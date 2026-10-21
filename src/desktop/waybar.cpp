@@ -9,7 +9,7 @@ namespace desktop {
 
     namespace {
 
-        // The family of the icons in the studio's Waybar config.
+        // The family of the icons in Lantern's Waybar config.
         constexpr auto iconFamily = "Symbols Nerd Font";
 
     }

@@ -46,8 +46,8 @@ namespace configuration {
     // they are now.
     [[nodiscard]] std::expected<MainConfig, std::string> mainConfig(const Launch& launch, const std::filesystem::path& systemFolder = "/etc/xdg");
 
-    // The studio's own command line and environment, for when Hyprland's cannot be read.
-    // The studio is usually started from Hyprland and inherits its environment.
-    [[nodiscard]] Launch studioLaunch();
+    // Lantern's own command line and environment, for when Hyprland's cannot be read.
+    // Lantern is usually started from Hyprland and inherits its environment.
+    [[nodiscard]] Launch lanternLaunch();
 
 }

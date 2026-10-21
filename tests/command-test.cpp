@@ -12,7 +12,7 @@
 
 namespace {
 
-    // An event loop of the studio's shape over poll, run until nothing is watched.
+    // An event loop of Lantern's shape over poll, run until nothing is watched.
     struct PollLoop {
         std::map<int, std::function<void()>> watched;
 

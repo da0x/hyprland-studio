@@ -3,7 +3,7 @@
 
 #include "application/command.hpp"
 #include "application/config-check.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "desktop/system.hpp"
 #include "configuration/main-config.hpp"
 #include "desktop/clipboard.hpp"
@@ -109,7 +109,7 @@ namespace ui {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
         root->addChild(pageTitle("Wallpaper", this->palette));
-        root->addChild(paragraph("The studio draws no wallpaper of its own. It uses hyprpaper, Hyprland's own wallpaper program, or awww, which fades between "
+        root->addChild(paragraph("Lantern draws no wallpaper of its own. It uses hyprpaper, Hyprland's own wallpaper program, or awww, which fades between "
                                  "images, and shows the images it finds for you to choose from. It never installs anything: when something is missing, it "
                                  "shows the command for you to run.",
                                  this->palette));
@@ -122,7 +122,7 @@ namespace ui {
         root->addChild(footer);
 
         const auto environment = foundation::currentEnvironment();
-        settings               = application::loadSettings(application::studioFolder(environment));
+        settings               = application::loadSettings(application::lanternFolder(environment));
         // Until the user chooses: awww if only it is installed, otherwise hyprpaper.
         if (settings.wallpaperProgram == "awww" ||
             (settings.wallpaperProgram.empty() && desktop::wallpaperRequirement(desktop::WallpaperProgram::awww, environment).met() &&
@@ -158,8 +158,8 @@ namespace ui {
         leave();
         program                   = chosen;
         settings.wallpaperProgram = chosen == desktop::WallpaperProgram::awww ? "awww" : "hyprpaper";
-        if (const auto saved = application::saveSettings(settings, application::studioFolder(foundation::currentEnvironment())); !saved)
-            outcome = std::format("The studio could not save its settings: {}.", saved.error());
+        if (const auto saved = application::saveSettings(settings, application::lanternFolder(foundation::currentEnvironment())); !saved)
+            outcome = std::format("Lantern could not save its settings: {}.", saved.error());
         if (const auto set = kept())
             selected = set;
         if (chosen == desktop::WallpaperProgram::awww && selected && selected->fit == desktop::FitMode::tile)
@@ -345,7 +345,7 @@ namespace ui {
     void WallpaperPage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
         const bool awwwChosen  = program == desktop::WallpaperProgram::awww;
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         const auto planned     = config ? desktop::planWallpaperSetup(program, *selected, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         const auto& other      = awwwChosen ? hyprpaper : awww;
@@ -364,7 +364,7 @@ namespace ui {
         if (undoable)
             away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         if (!planned)
-            status->addChild(paragraph(std::format("The studio cannot set it up: {}.", planned.error()), palette));
+            status->addChild(paragraph(std::format("Lantern cannot set it up: {}.", planned.error()), palette));
         else if (applied)
             status->addChild(markupLine(std::format("{}  Applied: {} shows it, and starts when you log in.", coloured("✓", hex(palette->m_colors.accent)),
                                                     awwwChosen ? "awww" : "hyprpaper"),
@@ -586,8 +586,8 @@ namespace ui {
                 actions->addChild(button("Dismiss", 110, false, [this] {
                     defer([this] {
                         settings.wallpaperRequirementsDismissed = true;
-                        if (const auto saved = application::saveSettings(settings, application::studioFolder(foundation::currentEnvironment())); !saved)
-                            outcome = std::format("The studio could not save its settings: {}.", saved.error());
+                        if (const auto saved = application::saveSettings(settings, application::lanternFolder(foundation::currentEnvironment())); !saved)
+                            outcome = std::format("Lantern could not save its settings: {}.", saved.error());
                         showOverview();
                     });
                 }));
@@ -609,7 +609,7 @@ namespace ui {
 
     void WallpaperPage::showReview() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         auto       planned     = config ? desktop::planWallpaperSetup(program, *selected, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
         if (!planned) {
@@ -671,7 +671,7 @@ namespace ui {
 
         if (awwwChosen) {
             settings.awwwFit = std::string{wordOf(selected->fit)};
-            (void)application::saveSettings(settings, application::studioFolder(foundation::currentEnvironment()));
+            (void)application::saveSettings(settings, application::lanternFolder(foundation::currentEnvironment()));
             if (awww.running() && awwwCommand) {
                 if (const auto arguments = desktop::awwwArguments(*selected))
                     (void)application::runCommand(loop, *awwwCommand, *arguments, [this](bool, std::string) { askAwww(); });

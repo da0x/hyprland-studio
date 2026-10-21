@@ -24,7 +24,7 @@ namespace application {
                     done(std::format("Hyprland found errors in the changed config, and the files could not be put back: {}", undone.error()));
             });
             if (!started)
-                done(std::format("The studio could not ask Hyprland whether the config has errors: {}", started.error()));
+                done(std::format("Lantern could not ask Hyprland whether the config has errors: {}", started.error()));
         });
     }
 

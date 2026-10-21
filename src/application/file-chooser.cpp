@@ -65,7 +65,7 @@ namespace application {
         for (auto& character : sender)
             if (character == '.')
                 character = '_';
-        const auto token  = std::format("hyprland_studio_{}", ++requests);
+        const auto token  = std::format("lantern_hyprland_{}", ++requests);
         const auto handle = std::format("/org/freedesktop/portal/desktop/request/{}/{}", sender, token);
 
         if (response != nullptr)

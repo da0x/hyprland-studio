@@ -41,7 +41,7 @@ namespace {
 
     TEST(Activation, KeepsTheRecordUntilItIsRemoved) {
         static std::atomic<int> counter = 0;
-        const auto folder = std::filesystem::temp_directory_path() / ("hyprland-studio-activation-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto folder = std::filesystem::temp_directory_path() / ("lantern-hyprland-activation-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         EXPECT_FALSE(activation::loadRecord(folder).has_value());
         const activation::Record record{.areas = {activation::Area::options, activation::Area::programs},
                                         .programs = {{.process = 4242, .name = "waybar", .command = "waybar"}},
@@ -75,7 +75,7 @@ namespace {
 
         // A process by that number with another name is someone else's, and left alone.
         static std::atomic<int> counter = 0;
-        const auto fake = std::filesystem::temp_directory_path() / ("hyprland-studio-proc-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto fake = std::filesystem::temp_directory_path() / ("lantern-hyprland-proc-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(fake / std::to_string(sleeping.process));
         std::ofstream{fake / std::to_string(sleeping.process) / "comm"} << "firefox\n";
         EXPECT_EQ(activation::deactivate({.areas = {activation::Area::programs}, .programs = {sleeping}, .since = {}}, std::nullopt, fake).size(), 0U);

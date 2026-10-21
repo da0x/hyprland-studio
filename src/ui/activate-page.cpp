@@ -3,7 +3,7 @@
 
 #include "activation/activator.hpp"
 #include "application/settings.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "configuration/main-config.hpp"
 #include "configuration/recording.hpp"
 #include "desktop/process.hpp"
@@ -45,7 +45,7 @@ namespace ui {
                 case activation::Area::keybindings:
                     return {"Keybindings", "hl.bind calls. Taken back by reloading Hyprland.", "\U000F030C"};
                 case activation::Area::programs:
-                    return {"Programs", "Programs you installed, from hl.exec_cmd lines. Started by the studio, and only those processes stopped again.", "\U000F08C6"};
+                    return {"Programs", "Programs you installed, from hl.exec_cmd lines. Started by Lantern, and only those processes stopped again.", "\U000F08C6"};
                 case activation::Area::theme:
                     return {"Desktop theme", "Nothing to activate yet: the Theme page writes your theme to its files instead, after you review the change.", "\U000F03D8"};
                 case activation::Area::options: break;
@@ -100,7 +100,7 @@ namespace ui {
         root->setMargin(28);
         root->addChild(pageTitle("Activate", this->palette));
         root->addChild(paragraph("Try effects on the running desktop, and take them all back in one click. Nothing is written to your config. The effects are "
-                                 "plain Hyprland Lua in the studio's effects file, which you can edit, and copy into your own config to keep.",
+                                 "plain Hyprland Lua in Lantern's effects file, which you can edit, and copy into your own config to keep.",
                                  this->palette));
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         body->setGrow(false, true);
@@ -108,11 +108,11 @@ namespace ui {
         footer = leftRow();
         root->addChild(footer);
 
-        const auto folder = application::studioFolder(foundation::currentEnvironment());
+        const auto folder = application::lanternFolder(foundation::currentEnvironment());
         for (const auto& name : application::loadSettings(folder).activationAllowed)
             if (const auto area = activation::areaNamed(name))
                 allowedAreas.push_back(*area);
-        // Left on when the studio last closed, or stopped without warning.
+        // Left on when Lantern last closed, or stopped without warning.
         active = activation::loadRecord(folder);
         readEffects();
         showOverview();
@@ -128,7 +128,7 @@ namespace ui {
 
     void ActivatePage::readEffects() {
         const auto environment = foundation::currentEnvironment();
-        const auto file        = activation::effectsFile(application::studioFolder(environment));
+        const auto file        = activation::effectsFile(application::lanternFolder(environment));
         std::error_code error;
         if (!std::filesystem::exists(file, error)) {
             std::filesystem::create_directories(file.parent_path(), error);
@@ -143,7 +143,7 @@ namespace ui {
         // The user's own bindings, read the way the Keyboard shortcuts page reads them.
         collisions.clear();
         if (!effects.in(activation::Area::keybindings).empty())
-            if (const auto config = configuration::mainConfig(configuration::studioLaunch()); config && config->lua())
+            if (const auto config = configuration::mainConfig(configuration::lanternLaunch()); config && config->lua())
                 if (const auto recording = configuration::record(config->file))
                     collisions = activation::collisions(effects, configuration::bindings(*recording));
     }
@@ -152,14 +152,14 @@ namespace ui {
         std::erase(allowedAreas, area);
         if (allowedNow)
             allowedAreas.push_back(area);
-        const auto folder   = application::studioFolder(foundation::currentEnvironment());
+        const auto folder   = application::lanternFolder(foundation::currentEnvironment());
         auto       settings = application::loadSettings(folder);
         settings.activationAllowed.clear();
         for (const auto each : activation::areas)
             if (allowed(each))
                 settings.activationAllowed.emplace_back(activation::nameOf(each));
         if (const auto saved = application::saveSettings(settings, folder); !saved)
-            outcome = std::format("The studio could not save its settings: {}.", saved.error());
+            outcome = std::format("Lantern could not save its settings: {}.", saved.error());
         showOverview();
     }
 
@@ -177,9 +177,9 @@ namespace ui {
             outcome = applying.empty() ? "Allow an area first: nothing is activated until you do." : "Nothing to activate: the allowed areas have no effects in the file.";
             return showOverview();
         }
-        const auto folder = application::studioFolder(foundation::currentEnvironment());
+        const auto folder = application::lanternFolder(foundation::currentEnvironment());
         if (const auto saved = activation::saveRecord(done.record, folder); !saved)
-            problems.push_back(std::format("The record of what is active could not be saved, so Deactivate after closing the studio will not know of it: {}.", saved.error()));
+            problems.push_back(std::format("The record of what is active could not be saved, so Deactivate after closing Lantern will not know of it: {}.", saved.error()));
         active  = std::move(done.record);
         outcome = problems.empty() ? "Activated." : "Activated, with problems.";
         showOverview();
@@ -189,7 +189,7 @@ namespace ui {
         if (!active)
             return;
         problems = activation::deactivate(*active, hyprctl());
-        activation::removeRecord(application::studioFolder(foundation::currentEnvironment()));
+        activation::removeRecord(application::lanternFolder(foundation::currentEnvironment()));
         active.reset();
         outcome = problems.empty() ? "Deactivated: the desktop is as your config says." : "Deactivated, with problems.";
         showOverview();
@@ -270,7 +270,7 @@ namespace ui {
 
         body->addChild(space(4));
         // The file, and what in it is left out.
-        const auto file = activation::effectsFile(application::studioFolder(foundation::currentEnvironment()));
+        const auto file = activation::effectsFile(application::lanternFolder(foundation::currentEnvironment()));
         const auto where = leftRow();
         const auto path  = markupLine(std::format("Effects file: <span font_family=\"monospace\">{}</span>", escapeMarkup(shortPath(file))), palette);
         path->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();

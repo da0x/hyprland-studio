@@ -11,7 +11,7 @@
 
 namespace configuration {
 
-    // A file the studio proposes to write, with what is in it now.
+    // A file Lantern proposes to write, with what is in it now.
     struct FileChange {
         std::filesystem::path      file;
         // Nothing when the file does not exist yet.
@@ -25,7 +25,7 @@ namespace configuration {
     // file is never half written. Keeps the permissions of a file that is already there.
     [[nodiscard]] std::expected<void, std::string> writeWhole(const std::filesystem::path& file, std::string_view text);
 
-    // Reads what `file` holds now. Refuses a symbolic link, which the studio never replaces
+    // Reads what `file` holds now. Refuses a symbolic link, which Lantern never replaces
     // with a real file, and anything else that is not a regular file.
     [[nodiscard]] std::expected<FileChange, std::string> planFile(const std::filesystem::path& file, std::string proposed);
 

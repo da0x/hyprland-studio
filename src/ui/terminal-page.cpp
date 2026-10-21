@@ -2,7 +2,7 @@
 #include "ui/terminal-page.hpp"
 
 #include "application/settings.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "desktop/accessibility.hpp"
 #include "desktop/clipboard.hpp"
 #include "desktop/process.hpp"
@@ -77,7 +77,7 @@ namespace ui {
             contrast = selected->contrast;
             vision   = selected->vision;
         }
-        const auto settings = application::loadSettings(application::studioFolder(environment));
+        const auto settings = application::loadSettings(application::lanternFolder(environment));
         contrast            = desktop::contrastNamed(settings.contrast).value_or(contrast);
         vision              = desktop::visionNamed(settings.vision).value_or(vision);
         if (selected == nullptr || selected->contrast != contrast || selected->vision != vision) {
@@ -175,7 +175,7 @@ namespace ui {
         lines->setMargin(large ? 16 : 7);
         // A short session, coloured as a shell and the usual tools colour their output.
         const auto in     = [](const std::string& hex, std::string_view text) { return coloured(text, hex); };
-        const auto prompt = std::format("{} {} {} ", in(colour[2], "da@studio"), in(colour[4], "~/hyprland-studio"), in(theme->foreground, "$"));
+        const auto prompt = std::format("{} {} {} ", in(colour[2], "da@studio"), in(colour[4], "~/lantern-hyprland"), in(theme->foreground, "$"));
         const std::vector<std::string> session{
             prompt + in(theme->foreground, "ls"),
             std::format("{}  {}  {}  {}  {}", in(colour[4], "build"), in(colour[4], "docs"), in(colour[4], "src"), in(theme->foreground, "README.md"), in(colour[2], "configure")),
@@ -208,7 +208,7 @@ namespace ui {
         const auto environment = foundation::currentEnvironment();
 
         if (!desktop::findProgram("kitty", foundation::variable(environment, "PATH").value_or(""))) {
-            body->addChild(paragraph("The studio themes kitty, which is not installed. Install the kitty package, then open this page again.", palette));
+            body->addChild(paragraph("Lantern themes kitty, which is not installed. Install the kitty package, then open this page again.", palette));
             setFooter(footer, {});
             return;
         }
@@ -407,7 +407,7 @@ namespace ui {
             away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         std::string note;
         if (!planned) {
-            note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
+            note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (planned->empty()) {
             note = std::format("{}  Your terminal uses {}, in {} at {:g} pt.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(fullName(*selected)),
                                escapeMarkup(desktop::kittyFontFamily(environment).value_or("kitty's default font")), fontSize);

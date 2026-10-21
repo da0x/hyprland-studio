@@ -14,7 +14,7 @@
 
 namespace application {
 
-    // An outside program the user turns on and off from the studio, such as Waybar. Off
+    // An outside program the user turns on and off from Lantern, such as Waybar. Off
     // stops every running copy, whoever started it, because the user asked for exactly
     // that; on starts it the way Hyprland would. Neither changes what starts at login.
     class OutsideProgram {

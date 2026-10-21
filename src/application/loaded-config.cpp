@@ -14,8 +14,8 @@ namespace application {
 
         auto launch = ipc::launchOf(instance);
         if (!launch) {
-            loaded.doubts.push_back(std::format("The studio could not read how Hyprland was started ({}), so it looked where Hyprland would from the studio's own environment.", launch.error()));
-            launch = configuration::studioLaunch();
+            loaded.doubts.push_back(std::format("Lantern could not read how Hyprland was started ({}), so it looked where Hyprland would from Lantern's own environment.", launch.error()));
+            launch = configuration::lanternLaunch();
         }
 
         loaded.config = configuration::mainConfig(*launch);
@@ -28,7 +28,7 @@ namespace application {
         const auto reply  = ipc::request(instance, ipc::Query::status);
         const auto format = reply ? ipc::parseConfigFormat(*reply) : std::expected<ipc::ConfigFormat, std::string>{std::unexpect, reply.error()};
         if (format && *format == ipc::ConfigFormat::hyprlang && config.lua()) {
-            loaded.config = std::unexpected{std::format("Hyprland is running a hyprland.conf, which the studio does not read yet. It would choose {} if it started now", config.file.string())};
+            loaded.config = std::unexpected{std::format("Hyprland is running a hyprland.conf, which Lantern does not read yet. It would choose {} if it started now", config.file.string())};
             return loaded;
         }
         if (format && *format == ipc::ConfigFormat::lua && !config.lua()) {
@@ -36,7 +36,7 @@ namespace application {
             return loaded;
         }
         if (!config.lua()) {
-            loaded.config = std::unexpected{std::format("Hyprland reads {}, a hyprland.conf, which the studio does not read yet", config.file.string())};
+            loaded.config = std::unexpected{std::format("Hyprland reads {}, a hyprland.conf, which Lantern does not read yet", config.file.string())};
             return loaded;
         }
 

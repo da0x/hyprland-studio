@@ -4,9 +4,9 @@
 #include "application/config-check.hpp"
 #include "application/settings.hpp"
 #include "configuration/main-config.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "configuration/diff.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "configuration/diff.hpp"
 #include "desktop/clipboard.hpp"
 #include "desktop/waybar.hpp"
@@ -61,7 +61,7 @@ namespace ui {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
         root->addChild(pageTitle("Bar", this->palette));
-        root->addChild(paragraph("The studio has no bar of its own. It recommends Waybar, the bar most Hyprland desktops use, and helps you set it up. "
+        root->addChild(paragraph("Lantern has no bar of its own. It recommends Waybar, the bar most Hyprland desktops use, and helps you set it up. "
                                  "It never installs anything: when something is missing, it shows the command for you to run.",
                                  this->palette));
 
@@ -73,7 +73,7 @@ namespace ui {
         root->addChild(footer);
 
         const auto environment = foundation::currentEnvironment();
-        settings               = application::loadSettings(application::studioFolder(environment));
+        settings               = application::loadSettings(application::lanternFolder(environment));
         selected               = desktop::currentBarStyle(environment, desktop::runningBarGeometry())
                                      .value_or(desktop::WaybarStyle{desktop::Shape::islands, &desktop::waybarPalettes().front(), desktop::runningBarGeometry()});
         // The thin line is no longer offered: a bar that has it is shown with the inactive
@@ -215,7 +215,7 @@ namespace ui {
         if (!planned)
             return planned;
         std::erase_if(*planned, [](const auto& change) { return !change.changes(); });
-        if (const auto config = configuration::mainConfig(configuration::studioLaunch())) {
+        if (const auto config = configuration::mainConfig(configuration::lanternLaunch())) {
             auto rules = desktop::planPopupRules(*config);
             if (!rules)
                 return std::unexpected{rules.error()};
@@ -243,7 +243,7 @@ namespace ui {
         if (undoable)
             away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         if (!planned) {
-            styleStatus->addChild(paragraph(std::format("The studio cannot write it: {}.", planned.error()), palette));
+            styleStatus->addChild(paragraph(std::format("Lantern cannot write it: {}.", planned.error()), palette));
         } else if (same) {
             styleStatus->addChild(markupLine(std::format("{}  Your Waybar uses {}, {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
                                                          escapeMarkup(std::string{shapeInfo(selected.shape).name})),
@@ -292,8 +292,8 @@ namespace ui {
                 actions->addChild(button("Dismiss", 110, false, [this] {
                     defer([this] {
                         settings.barRequirementsDismissed = true;
-                        if (const auto saved = application::saveSettings(settings, application::studioFolder(foundation::currentEnvironment())); !saved)
-                            outcome = std::format("The studio could not save its settings: {}.", saved.error());
+                        if (const auto saved = application::saveSettings(settings, application::lanternFolder(foundation::currentEnvironment())); !saved)
+                            outcome = std::format("Lantern could not save its settings: {}.", saved.error());
                         showOverview();
                     });
                 }));

@@ -30,7 +30,7 @@ namespace ui {
         constexpr double requestsWidth = 480;
         constexpr double typedWidth    = 420;
 
-        // Colours for when kitty's theme is not one the studio knows: a plain dark terminal.
+        // Colours for when kitty's theme is not one Lantern knows: a plain dark terminal.
         ConsolePage::Terminal fallbackTerminal() {
             return {.background = "#1c1c1c",
                     .foreground = "#d0d0d0",
@@ -118,7 +118,7 @@ namespace ui {
         body->setGrow(false, true);
         const auto left = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {scaled(requestsWidth), 1.0}})->commence();
         left->addChild(requests.element());
-        // A terminal in kitty's colours. It takes what the list leaves, like the studio's
+        // A terminal in kitty's colours. It takes what the list leaves, like Lantern's
         // panel beside its sidebar.
         screen = Hyprtoolkit::CRectangleBuilder::begin()
                      ->color([this] { return paletteColour(terminal.background); })

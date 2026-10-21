@@ -154,7 +154,7 @@ namespace ui {
             block->addChild(paragraph("Run this in a terminal, then press Check again:", palette));
             block->addChild(commandRow(command, copier, palette, defer));
             if (!copier)
-                block->addChild(paragraph("A Copy button appears here when wl-clipboard is installed; the studio copies through its wl-copy.", palette, true));
+                block->addChild(paragraph("A Copy button appears here when wl-clipboard is installed; Lantern copies through its wl-copy.", palette, true));
         } else {
             const auto where = distribution.name.empty() ? std::string{"your distribution"} : distribution.name;
             block->addChild(paragraph(std::format("Install it from {}'s packages, then press Check again. On Arch Linux the package is {}.", where, requirement.package), palette));

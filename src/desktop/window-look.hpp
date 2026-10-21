@@ -41,7 +41,7 @@ namespace desktop {
     [[nodiscard]] std::expected<std::optional<configuration::FileChange>, std::string> planWindowLook(const WindowLook& wanted, const configuration::MainConfig& config);
 
     // The bar's geometry that lines it up with windows that look like `look`: their corners
-    // and their gap from the screen's edges. The studio's defaults when there is no look.
+    // and their gap from the screen's edges. Lantern's defaults when there is no look.
     [[nodiscard]] BarGeometry barGeometry(const std::optional<WindowLook>& look);
 
     // The geometry for the config's windows as they are now.
@@ -50,14 +50,14 @@ namespace desktop {
     // The same, for the config the running Hyprland chose.
     [[nodiscard]] BarGeometry runningBarGeometry();
 
-    // The studio's style that Waybar's files hold, written with `geometry` or with the fixed
+    // Lantern's style that Waybar's files hold, written with `geometry` or with the fixed
     // one styles had before they followed the windows, given back with `geometry`: the style
     // the bar should have now.
     [[nodiscard]] std::optional<WaybarStyle> currentBarStyle(const foundation::Environment& environment, const BarGeometry& geometry);
 
-    // Waybar's files again with `wanted`'s geometry, when they hold one of the studio's styles
+    // Waybar's files again with `wanted`'s geometry, when they hold one of Lantern's styles
     // with `current`'s, or with the fixed one styles had before they followed the windows;
-    // nothing when they hold anything else, which the studio leaves alone.
+    // nothing when they hold anything else, which Lantern leaves alone.
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planBarFollowing(const WindowLook& wanted, const std::optional<WindowLook>& current,
                                                                                                      const foundation::Environment& environment);
 

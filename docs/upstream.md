@@ -1,13 +1,13 @@
 # Gaps in Hyprland's IPC
 
-Hyprland Studio talks to the running compositor only through Hyprland's IPC:
+Lantern talks to the running compositor only through Hyprland's IPC:
 
 ```
-Hyprland  →  IPC (request socket, event socket)  →  Hyprland Studio
+Hyprland  →  IPC (request socket, event socket)  →  Lantern
 ```
 
-Hyprland Studio is independent of the Hyprland project. When the studio needs something
-IPC does not give, it works around the gap itself, in one place: the studio's IPC layer.
+Lantern is independent of the Hyprland project. When Lantern needs something
+IPC does not give, it works around the gap itself, in one place: Lantern's IPC layer.
 
 This file lists those gaps, so the workarounds stay small and visible, and so anyone who
 wants to fix them in Hyprland has the details. Each entry says what is wrong, where in
@@ -53,7 +53,7 @@ Fix, adding fields only:
 - an `args` field carrying a dispatcher's arguments;
 - the same `source` field later for rules.
 
-This is the change the studio would gain most from, since without it every Lua user's
+This is the change Lantern would gain most from, since without it every Lua user's
 keybindings have to be read by running their config.
 
 ### `hyprctl -j` corrupts escaped semicolons in a batch

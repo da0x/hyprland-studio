@@ -2,7 +2,7 @@
 #include "ui/theme-page.hpp"
 
 #include "application/config-check.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "configuration/main-config.hpp"
 #include "desktop/process.hpp"
 #include "desktop/system.hpp"
@@ -115,7 +115,7 @@ namespace ui {
         root->setMargin(28);
         root->addChild(pageTitle("Theme", this->palette));
         root->addChild(paragraph("One palette for the desktop: the borders of your windows, Waybar, the launcher, notifications, GTK apps and the apps built "
-                                 "on hyprtoolkit, this studio among them. The terminal has themes of its own, on the Terminal page. Nothing is written until "
+                                 "on hyprtoolkit, Lantern among them. The terminal has themes of its own, on the Terminal page. Nothing is written until "
                                  "you review the change.",
                                  this->palette));
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
@@ -127,7 +127,7 @@ namespace ui {
         footer = leftRow();
         root->addChild(footer);
 
-        const auto config = configuration::mainConfig(configuration::studioLaunch());
+        const auto config = configuration::mainConfig(configuration::lanternLaunch());
         selected          = config ? desktop::currentTheme(*config) : nullptr;
         if (selected == nullptr)
             if (const auto style = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()))
@@ -241,7 +241,7 @@ namespace ui {
 
     void ThemePage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
         const auto planned     = config ? desktop::planTheme(*selected, bar.shape, bar.border, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
@@ -260,7 +260,7 @@ namespace ui {
             away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         std::string note;
         if (!planned) {
-            note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
+            note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (planned->empty() && gtkSame) {
             note = std::format("{}  Your desktop uses {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name));
         } else {
@@ -278,7 +278,7 @@ namespace ui {
 
     void ThemePage::showReview() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         const auto bar         = desktop::currentBarStyle(environment, desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, selected});
         auto       planned     = config ? desktop::planTheme(*selected, bar.shape, bar.border, *config, environment)
                                         : std::expected<std::vector<configuration::FileChange>, std::string>{std::unexpect, config.error()};
@@ -299,7 +299,7 @@ namespace ui {
             steps.emplace_back("Write the changes below. A copy of each file is kept first, so it can be undone.");
         for (const auto& setting : gtk)
             steps.push_back(std::format("Set GTK's {} from {} to {}, for GTK apps.", setting.key, setting.current, setting.wanted));
-        steps.emplace_back("Show the new colours at once: Hyprland's borders, this studio, Waybar, the launcher and dunst's notifications.");
+        steps.emplace_back("Show the new colours at once: Hyprland's borders, Lantern, Waybar, the launcher and dunst's notifications.");
         for (const auto& step : steps)
             body->addChild(paragraph(std::format("•  {}", step), palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
@@ -326,7 +326,7 @@ namespace ui {
         const auto changed = [this](auto test) { return std::ranges::any_of(changes, test); };
         const bool toolkit = changed([](const auto& change) { return change.file.filename() == "hyprtoolkit.conf"; });
         if (toolkit) {
-            // The studio's own colours, set before hyprtoolkit sees the file change and
+            // Lantern's own colours, set before hyprtoolkit sees the file change and
             // redraws every element with them.
             auto& colours          = palette->m_colors;
             colours.background     = paletteColour(selected->base);
@@ -345,7 +345,7 @@ namespace ui {
         const bool config  = changed([](const auto& change) { return change.file.extension() == ".lua"; });
         const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or(""));
 
-        // Waybar comes back and Hyprland checks the config while the studio keeps running;
+        // Waybar comes back and Hyprland checks the config while Lantern keeps running;
         // a problem with either is reported here.
         auto waiting  = std::make_shared<int>((bar ? 1 : 0) + (config && hyprctl ? 1 : 0));
         auto problem  = std::make_shared<std::optional<std::string>>();

@@ -14,7 +14,7 @@
 namespace application {
 
     // One option: what Hyprland says about it and its value, and the call in the config
-    // that set it, when the studio found one.
+    // that set it, when Lantern found one.
     struct OptionRow {
         ipc::OptionDescription                 description;
         std::string                            value;

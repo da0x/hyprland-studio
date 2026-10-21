@@ -10,12 +10,12 @@
 
 namespace application {
 
-    // The Lua config the running Hyprland loaded, as near as the studio can tell.
+    // The Lua config the running Hyprland loaded, as near as Lantern can tell.
     struct LoadedConfig {
         // Why there is no Lua config to read, when there is not.
         std::expected<configuration::MainConfig, std::string> config;
 
-        // What the studio could not be sure of, each a sentence.
+        // What Lantern could not be sure of, each a sentence.
         std::vector<std::string>                              doubts;
     };
 

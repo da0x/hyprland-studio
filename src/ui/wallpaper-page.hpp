@@ -26,7 +26,7 @@
 
 namespace ui {
 
-    // The wallpaper. The studio draws none of its own: it uses hyprpaper, Hyprland's own
+    // The wallpaper. Lantern draws none of its own: it uses hyprpaper, Hyprland's own
     // wallpaper program, or awww, which fades between images. It shows the images it finds
     // to choose from and tries them on the desktop. With hyprpaper it writes the choice to
     // hyprpaper.conf only after the user reviews the change; awww remembers it itself.
@@ -43,11 +43,11 @@ namespace ui {
         // Stops watching hyprpaper. Called before the event loop goes away.
         void close();
 
-        // Draws the page again, after the studio's colours changed.
+        // Draws the page again, after Lantern's colours changed.
         void restyle();
 
         // The page is no longer shown: a wallpaper tried on the desktop and not kept is
-        // replaced by the one hyprpaper.conf sets. When the studio is `closing` and the file
+        // replaced by the one hyprpaper.conf sets. When Lantern is `closing` and the file
         // sets none, it is left: restarting hyprpaper would not finish.
         void leave(bool closing = false);
 

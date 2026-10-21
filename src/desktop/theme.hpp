@@ -16,7 +16,7 @@
 namespace desktop {
 
     // One palette for the whole desktop: the windows' borders, Waybar, and hyprtoolkit's
-    // apps, the studio among them.
+    // apps, Lantern among them.
 
     // The border values hl.config gets, as Lua: a gradient of the accent and the audio
     // colour for the focused window, the raised colour for the others.
@@ -44,7 +44,7 @@ namespace desktop {
     // wofi's stylesheet for the palette.
     [[nodiscard]] std::string wofiStyle(const Palette& palette);
 
-    // The palette whose borders the Hyprland config sets now, if it is one of the studio's.
+    // The palette whose borders the Hyprland config sets now, if it is one of Lantern's.
     [[nodiscard]] const Palette* currentTheme(const configuration::MainConfig& config);
 
 }

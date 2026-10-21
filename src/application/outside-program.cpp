@@ -12,7 +12,7 @@ namespace application {
 
         using namespace std::chrono_literals;
 
-        // How long a started program has to show up before the studio says it did not.
+        // How long a started program has to show up before Lantern says it did not.
         constexpr auto startTimeout = 3s;
         constexpr auto lookEvery    = 200ms;
 
@@ -100,7 +100,7 @@ namespace application {
             lastError = started.error();
             return;
         }
-        // The program is not the studio's child, so the studio learns of it by looking.
+        // The program is not Lantern's child, so Lantern learns of it by looking.
         starting                     = true;
         const auto deadline          = std::chrono::steady_clock::now() + startTimeout;
         auto       look              = std::make_shared<std::function<void()>>();

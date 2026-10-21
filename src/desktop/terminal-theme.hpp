@@ -62,13 +62,13 @@ namespace desktop {
     [[nodiscard]] std::span<const TerminalTheme> terminalThemes();
 
     // Every bundled theme adjusted alike, in the same order. Made once for each choice and
-    // kept, so a theme's address stays the same for as long as the studio runs.
+    // kept, so a theme's address stays the same for as long as Lantern runs.
     [[nodiscard]] std::span<const TerminalTheme> terminalThemes(Contrast contrast, Vision vision);
 
     // kitty's folder: $XDG_CONFIG_HOME/kitty, or ~/.config/kitty.
     [[nodiscard]] std::filesystem::path kittyFolder(const foundation::Environment& environment);
 
-    // A font for the terminal: one installed, or one the studio recommends.
+    // A font for the terminal: one installed, or one Lantern recommends.
     struct TerminalFont {
         std::string family;
         // Its package on Arch Linux, for a recommended font; empty for one only installed.
@@ -78,7 +78,7 @@ namespace desktop {
         bool        installed = false;
     };
 
-    // The monospace fonts installed, and the open-source ones the studio recommends, which
+    // The monospace fonts installed, and the open-source ones Lantern recommends, which
     // are listed whether installed or not: the recommended first, then the rest by name.
     [[nodiscard]] std::vector<TerminalFont> terminalFonts();
 

@@ -41,7 +41,7 @@ namespace application {
         std::function<void(const std::vector<ipc::Event>&)>                               events;
     };
 
-    // Keeps the studio's picture of the running Hyprland current. It listens on the event
+    // Keeps Lantern's picture of the running Hyprland current. It listens on the event
     // socket and asks again only when an event says something changed. It never polls.
     class Session {
       public:

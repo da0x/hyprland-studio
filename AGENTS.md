@@ -1,13 +1,13 @@
 # AGENTS.md
 
-How to work on Hyprland Studio. This file is for everyone who changes the code, people
+How to work on Lantern. This file is for everyone who changes the code, people
 and assistants alike, and it is kept current: if something here is wrong, fix it in the
 same change.
 
 ## The rules that shape everything else
 
 **The mission is to enhance Hyprland in the least intrusive way possible.** This rule
-outranks every feature. The studio must never leave a user asking "what did it do to my
+outranks every feature. Lantern must never leave a user asking "what did it do to my
 system?":
 
 - It never installs a package, never runs `sudo`, and never asks for a password.
@@ -29,14 +29,14 @@ system?":
   not even a keybinding conflict.
 - It leaves nothing behind. What it writes into the user's config is plain Hyprland
   configuration: no markers, no sidecar files, no `require` lines of its own, so the config
-  works the same once the studio is gone. Everything it keeps for itself lives in
-  `~/.config/hyprland-studio/`, which the app can remove on request. Uninstalling the
+  works the same once Lantern is gone. Everything it keeps for itself lives in
+  `~/.config/lantern-hyprland/`, which the app can remove on request. Uninstalling the
   package and deleting that folder must leave the system exactly as the user's own
   choices made it.
 
-**The user's config file is the source of truth.** The studio never stores Hyprland
+**The user's config file is the source of truth.** Lantern never stores Hyprland
 settings anywhere else, never keeps a private copy of the config, and never asks the user
-to migrate to anything. It keeps three things in `~/.config/hyprland-studio/`: its own UI
+to migrate to anything. It keeps three things in `~/.config/lantern-hyprland/`: its own UI
 settings (window size, last page, which areas the user allowed), a record in `backups/` of
 each change it wrote, with copies of the files it replaced, so the change can be undone,
 and, only while the desktop-theme area is active, a restore record of the theme values it
@@ -46,7 +46,7 @@ Someone who uninstalls it must be left with a config that works and reads the wa
 wrote it.
 
 **Activation is a live layer, and every area needs the user's permission.** Activating
-applies the studio's effects to the running Hyprland and desktop; deactivating puts
+applies Lantern's effects to the running Hyprland and desktop; deactivating puts
 everything back exactly. Each area (Hyprland options and rules, keybindings, outside
 programs, desktop theme) has its own "allow" switch on its page, off until the user turns
 it on. Nothing is activated automatically, at startup or otherwise.
@@ -54,19 +54,19 @@ it on. Nothing is activated automatically, at startup or otherwise.
   config. Deactivating reloads Hyprland, which drops every runtime change, so the desktop
   is again exactly what the user's files say.
 - Outside programs are only ones the user installed; activating starts them, deactivating
-  stops exactly the processes the studio started.
+  stops exactly the processes Lantern started.
 - The one exception is a program's own On and Off switch, on its page, which the user
   presses: Off stops every running copy of it, whoever started it, and On starts it the way
-  Hyprland would, detached from the studio. Neither changes what starts at login. After the
-  studio writes that program's files, it restarts the program so it reads them, but only
+  Hyprland would, detached from Lantern. Neither changes what starts at login. After Lantern
+  writes that program's files, it restarts the program so it reads them, but only
   while it is on, and if it then does not start, the files are put back.
-- The desktop theme lives in dconf, which is on disk, so before changing a value the
-  studio writes its previous value to the restore record. Deactivating, or the next start
+- The desktop theme lives in dconf, which is on disk, so before changing a value Lantern
+  writes its previous value to the restore record. Deactivating, or the next start
   after a crash, puts every value back and deletes the record.
 
 **Edits are lossless.** A change replaces exactly the bytes of the value that changed.
 Everything else in the file, including comments, blank lines, ordering, `require` calls,
-and code the studio does not understand, stays byte for byte identical. Reading a file
+and code Lantern does not understand, stays byte for byte identical. Reading a file
 and writing it back with no edits must produce the same bytes. A test proves this for
 every fixture.
 
@@ -78,14 +78,14 @@ user code.
 **Live, reversible changes ship before ones that write files.** A change made through IPC
 is undone by one reload, so it cannot break someone's desktop for longer than a click;
 writing the config comes later. Requests that change the desktop are sent only by the
-activation layer, for an area the user allowed; every other part of the studio, the IPC
+activation layer, for an area the user allowed; every other part of Lantern, the IPC
 console included, sends read-only requests. Writing to disk always goes through a
 diff the user reviews, a timestamped backup, an atomic write, a reload and a check, with
 automatic rollback on failure.
 
 **Never start the user's programs by accident.** `Hyprland --verify-config` runs the
 whole config, including commands and file writes at its top level. Do not run it as a
-background check. Reading a config for display goes through the studio's own sandboxed
+background check. Reading a config for display goes through Lantern's own sandboxed
 interpreter, which runs nothing. See `docs/research.md`.
 
 **Never switch the user's config format.** A `hyprland.lua` on the config path wins over
@@ -93,7 +93,7 @@ any `hyprland.conf`, so creating one next to a working `.conf` changes which con
 Hyprland loads at the next reload. Only a migration the user asked for may do that.
 
 **The running compositor is reached only through IPC.** When IPC does not give
-something the studio needs, the workaround lives in the IPC layer and nowhere else, and
+something Lantern needs, the workaround lives in the IPC layer and nowhere else, and
 the gap is recorded in `docs/upstream.md`.
 
 **Live screens update from events.** Compositor state comes from Hyprland's event
@@ -109,7 +109,7 @@ because a dead connection otherwise looks exactly like a quiet compositor.
 - **Packageable as is.** A distribution, Arch Linux first, must be able to package any
   release with no patches. So the build respects the packager's flags: it works with
   `CMAKE_BUILD_TYPE=None`, adds no `-O` or `-march` of its own, and turns warnings into
-  errors only when CI asks (`HYPRLAND_STUDIO_WARNINGS_AS_ERRORS`, off by default). It
+  errors only when CI asks (`LANTERN_HYPRLAND_WARNINGS_AS_ERRORS`, off by default). It
   installs with `GNUInstallDirs` under any prefix and `DESTDIR`, downloads nothing during
   configure or build (no `FetchContent`), bundles no copy of a system library, runs its
   tests offline with `ctest`, and embeds no timestamps (`SOURCE_DATE_EPOCH` if one is ever
@@ -117,7 +117,7 @@ because a dead connection otherwise looks exactly like a quiet compositor.
   file, AppStream metainfo and hicolor icons.
 - **Mainstream libraries only.** hyprtoolkit (Hyprland's own Wayland-native toolkit,
   already present wherever Hyprland's own apps are), tree-sitter, Lua 5.5, nlohmann-json, fontconfig, sd-bus (libsystemd, for the desktop portal),
-  and the C++ standard library: things distributions package. No personal or niche libraries, so the studio builds from distribution
+  and the C++ standard library: things distributions package. No personal or niche libraries, so Lantern builds from distribution
   packages alone and stays easy to package.
 - **The latest C++ standard the shipping compilers support**, currently C++26. Modern
   code only: no raw `new` or `delete`, no C-style casts or arrays, no macros where a
@@ -147,4 +147,4 @@ because a dead connection otherwise looks exactly like a quiet compositor.
 
 - `docs/research.md`: what we know about Hyprland's config formats and IPC, and what is
   still open. Read it before touching the configuration or IPC code.
-- `docs/upstream.md`: gaps in Hyprland's IPC, and how the studio works around them.
+- `docs/upstream.md`: gaps in Hyprland's IPC, and how Lantern works around them.

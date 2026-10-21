@@ -70,7 +70,7 @@ namespace {
 
     TEST(Wallpaper, FindsImagesInTheUsualFolders) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-wallpaper-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-wallpaper-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         const auto make = [&root](const std::string& relative) {
             std::filesystem::create_directories((root / relative).parent_path());
             std::ofstream{root / relative} << "x";
@@ -113,7 +113,7 @@ namespace {
 
     TEST(Wallpaper, KeepsAddedImagesInThePicturesFolder) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-add-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-add-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         const auto write = [&root](const std::string& relative, const std::string& text) {
             std::filesystem::create_directories((root / relative).parent_path());
             std::ofstream{root / relative} << text;
@@ -150,7 +150,7 @@ namespace {
 
     TEST(Wallpaper, PlansTheWholeSetupThroughALinkedConfig) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-setup-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-setup-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "dotfiles");
         std::filesystem::create_directories(root / "home/.config/hypr");
         std::ofstream{root / "dotfiles/hyprland.lua"} << "hl.on(\"hyprland.start\", function ()\n    hl.exec_cmd(\"awww-daemon\")\nend)\n";

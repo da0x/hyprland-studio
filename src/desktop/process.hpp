@@ -18,7 +18,7 @@ namespace desktop {
     [[nodiscard]] std::vector<pid_t> findProcesses(std::string_view name, const std::filesystem::path& processRoot = "/proc");
 
     // Starts `program` the way Hyprland starts one: in a session of its own, with no
-    // terminal, and not as the studio's child, so it keeps running after the studio exits.
+    // terminal, and not as Lantern's child, so it keeps running after Lantern exits.
     [[nodiscard]] std::expected<void, std::string> startDetached(const std::filesystem::path& program);
 
     // Asks the process to exit, as closing it would.

@@ -19,7 +19,7 @@ namespace {
 
     TEST(Theme, PlansBordersWaybarAndHyprtoolkitAndRecognisesTheResult) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-theme-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-theme-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "home/.config/hypr");
         std::ofstream{root / "home/.config/hypr/hyprland.lua"} << "hl.config({\n    general = {\n        col = {\n            active_border = \"rgba(33ccffee)\",\n"
                                                                  "            inactive_border = \"rgba(595959aa)\",\n        },\n    },\n})\n";
@@ -48,7 +48,7 @@ namespace {
 
     TEST(Theme, ThemesKittyWofiAndDunstWhenInstalled) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-theme-apps-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-theme-apps-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "bin");
         for (const auto* program : {"kitty", "wofi", "dunst"}) {
             std::ofstream{root / "bin" / program} << "#!/bin/sh\n";
@@ -103,7 +103,7 @@ namespace {
 
     TEST(Terminal, WritesTheThemeFileAsKittyDoesAndRecognisesIt) {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-terminal-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-terminal-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "bin");
         std::ofstream{root / "bin" / "kitty"} << "#!/bin/sh\n";
         std::filesystem::permissions(root / "bin" / "kitty", std::filesystem::perms::owner_all);

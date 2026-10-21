@@ -2,7 +2,7 @@
 #include "ui/windows-page.hpp"
 
 #include "application/config-check.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "configuration/main-config.hpp"
 #include "desktop/system.hpp"
 #include "desktop/theme.hpp"
@@ -34,8 +34,8 @@ namespace ui {
         // Waybar's height, as the preview draws it.
         constexpr double barHeight     = 22;
 
-        // The colours windows are drawn in: the desktop's theme, if the studio set one, or
-        // the studio's own.
+        // The colours windows are drawn in: the desktop's theme, if Lantern set one, or
+        // Lantern's own.
         struct Colours {
             std::string backdrop;
             std::string window;
@@ -45,7 +45,7 @@ namespace ui {
         };
 
         Colours coloursFor(const Hyprtoolkit::CPalette& studio) {
-            if (const auto config = configuration::mainConfig(configuration::studioLaunch()))
+            if (const auto config = configuration::mainConfig(configuration::lanternLaunch()))
                 if (const auto* theme = desktop::currentTheme(*config))
                     return {theme->dark ? "#3b4252" : "#b6bccb", std::string{theme->base}, std::string{theme->raised}, std::string{theme->accent}, std::string{theme->raised}};
             return {darkTheme(studio) ? "#3b4252" : "#b6bccb", hex(studio.m_colors.base), hex(studio.m_colors.alternateBase), hex(studio.m_colors.accent),
@@ -113,7 +113,7 @@ namespace ui {
         root->addChild(body);
         footer = leftRow();
         root->addChild(footer);
-        if (const auto config = configuration::mainConfig(configuration::studioLaunch()))
+        if (const auto config = configuration::mainConfig(configuration::lanternLaunch()))
             current = desktop::currentWindowLook(*config);
         wanted = current.value_or(desktop::WindowLook{});
         showOverview();
@@ -124,7 +124,7 @@ namespace ui {
     }
 
     std::expected<std::vector<configuration::FileChange>, std::string> WindowsPage::plan() const {
-        const auto config = configuration::mainConfig(configuration::studioLaunch());
+        const auto config = configuration::mainConfig(configuration::lanternLaunch());
         if (!config)
             return std::unexpected{config.error()};
         const auto hyprland = desktop::planWindowLook(wanted, *config);
@@ -376,7 +376,7 @@ namespace ui {
             away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         std::string note;
         if (!planned) {
-            note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
+            note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (same) {
             note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your windows look like this." : outcome));
         } else {
@@ -406,7 +406,7 @@ namespace ui {
         body->addChild(heading("Review: windows", palette));
         const bool bar = std::ranges::any_of(changes, [](const auto& change) { return change.file.parent_path().filename() == "waybar"; });
         body->addChild(paragraph(std::format("Applying writes the changes below, after keeping a copy of each file so it can be undone. Hyprland reads its config at "
-                                             "once; if it reports a problem with it, the studio puts the config back.{}",
+                                             "once; if it reports a problem with it, Lantern puts the config back.{}",
                                              bar ? " Waybar's corners and its distance from the edges follow the windows', so its files change too, and it restarts to "
                                                    "read them while it is on."
                                                  : ""),
@@ -439,12 +439,12 @@ namespace ui {
                 if (!problem)
                     return;
                 outcome = *problem;
-                if (const auto config = configuration::mainConfig(configuration::studioLaunch()))
+                if (const auto config = configuration::mainConfig(configuration::lanternLaunch()))
                     current = desktop::currentWindowLook(*config);
                 if (!reviewing)
                     showOverview();
             });
-        if (const auto config = configuration::mainConfig(configuration::studioLaunch()))
+        if (const auto config = configuration::mainConfig(configuration::lanternLaunch()))
             current = desktop::currentWindowLook(*config);
         showOverview();
     }
@@ -457,7 +457,7 @@ namespace ui {
             outcome = std::format("Nothing was undone: {}.", undone.error());
         else
             outcome = "Undone.";
-        if (const auto config = configuration::mainConfig(configuration::studioLaunch()))
+        if (const auto config = configuration::mainConfig(configuration::lanternLaunch()))
             current = desktop::currentWindowLook(*config);
         wanted = current.value_or(wanted);
         showOverview();

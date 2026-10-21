@@ -21,7 +21,7 @@
 namespace ui {
 
     // What Hyprland reports as it happens, newest first, each event said in words. The
-    // log keeps the last few thousand, from when the studio started.
+    // log keeps the last few thousand, from when Lantern started.
     class EventLogPage {
       public:
         // `defer` runs a function after the current layout pass; see RowList.
@@ -34,7 +34,7 @@ namespace ui {
         // Learns the windows' names, so events that name a window by its address can say
         // which it is.
         void learnWindows(const ipc::Tree& tree);
-        // Draws the list again, after the studio's colours changed.
+        // Draws the list again, after Lantern's colours changed.
         void restyle();
 
       private:

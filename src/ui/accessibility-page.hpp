@@ -32,13 +32,13 @@ namespace ui {
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
         // What to do once settings were applied or undone, given what is now in use: show
-        // the terminal's themes in that version, and the studio's text at that size.
+        // the terminal's themes in that version, and Lantern's text at that size.
         void onApplied(std::function<void(const desktop::Accessibility&)> applied) { this->applied = std::move(applied); }
 
-        // Draws the page again, after the studio's colours changed.
+        // Draws the page again, after Lantern's colours changed.
         void restyle();
 
-        // What is in use: the desktop's settings, with the studio's own record of the
+        // What is in use: the desktop's settings, with Lantern's own record of the
         // contrast and colour vision for the terminal laid over them.
         [[nodiscard]] static desktop::Accessibility inUse();
 

@@ -81,7 +81,7 @@ namespace desktop {
     }
 
     BarGeometry runningBarGeometry() {
-        const auto config = configuration::mainConfig(configuration::studioLaunch());
+        const auto config = configuration::mainConfig(configuration::lanternLaunch());
         return config ? barGeometry(*config) : BarGeometry{};
     }
 

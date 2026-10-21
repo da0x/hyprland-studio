@@ -35,7 +35,7 @@ namespace ui {
 
         [[nodiscard]] bool                                                     running() const;
 
-        // After the studio wrote the program's files: restarts it so it reads them, if it is
+        // After Lantern wrote the program's files: restarts it so it reads them, if it is
         // on. If it then does not start, `record` is undone and it starts again with the
         // files as they were. `done` is told what happened, in a sentence.
         void                                                                   restartToRead(const std::filesystem::path& record, std::function<void(std::string)> done);

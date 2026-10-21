@@ -38,7 +38,7 @@ namespace ui {
         void clear();
         // Marks the chosen cards and draws each picture for what is wanted now.
         void update();
-        // Forgets the pictures too, after the studio's colours or sizes changed.
+        // Forgets the pictures too, after Lantern's colours or sizes changed.
         void forget();
 
         // A picture made once for each key and kept, so showing it again does not flicker

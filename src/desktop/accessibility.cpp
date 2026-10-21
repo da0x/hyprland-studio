@@ -123,7 +123,7 @@ namespace desktop {
         const auto correction = correctionFor(vision);
         const auto row        = [](const std::array<double, 3>& values) { return std::format("vec3({:.6f}, {:.6f}, {:.6f})", values[0], values[1], values[2]); };
         return std::format(R"x(#version 300 es
-// Colour correction for {}, written by Hyprland Studio.
+// Colour correction for {}, written by Lantern.
 // Colours the eye cannot tell apart are moved to colours it can: the colour as it would be
 // seen is worked out (Machado, Oliveira and Fernandes, 2009), and what is lost is added to
 // the channels that are seen.
@@ -246,7 +246,7 @@ void main() {{
             if (wanted.cursorSize != 24 || configuration::luaEnv(text, name))
                 text = configuration::withLuaEnv(text, name, std::to_string(wanted.cursorSize));
 
-        // The screen shader: the studio's, or none where the studio's was; a shader of the
+        // The screen shader: Lantern's, or none where Lantern's was; a shader of the
         // user's own is left alone unless correction is asked for.
         const bool shaded = wanted.wholeDesktop && wanted.vision != Vision::typical;
         if (shaded) {

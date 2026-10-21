@@ -32,7 +32,7 @@ namespace ui {
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
-        // Draws the page again, after the studio's colours changed.
+        // Draws the page again, after Lantern's colours changed.
         void restyle();
 
         // Shows every theme adjusted for this contrast and colour vision, set on the

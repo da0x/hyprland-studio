@@ -15,7 +15,7 @@
 
 namespace ui {
 
-    // Activate and Deactivate: the effects in the studio's effects file, applied to the
+    // Activate and Deactivate: the effects in Lantern's effects file, applied to the
     // running session in the areas the user allowed, and taken back in one click. Nothing
     // is written to the user's config.
     class ActivatePage {
@@ -25,7 +25,7 @@ namespace ui {
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
-        // Draws the page again, after the studio's colours or text size changed.
+        // Draws the page again, after Lantern's colours or text size changed.
         void restyle();
 
       private:

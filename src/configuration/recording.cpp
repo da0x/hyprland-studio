@@ -38,7 +38,7 @@ namespace configuration {
 
             const auto [inFolder, inPath] = std::ranges::mismatch(folder, path);
             if (inFolder != folder.end() && !inFolder->empty())
-                return std::unexpected{std::format("{} is outside the config folder, which is all Hyprland Studio reads", path.string())};
+                return std::unexpected{std::format("{} is outside the config folder, which is all Lantern reads", path.string())};
 
             std::error_code error;
             if (!std::filesystem::is_regular_file(path, error))

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/main-window.hpp"
 
+#include "application/lantern-folder.hpp"
 #include "application/session.hpp"
 #include "ui/bar-page.hpp"
 #include "ui/console-page.hpp"
@@ -58,6 +59,7 @@ namespace ui {
         // hyprtoolkit logs every step at debug level. Only warnings and errors, unless asked.
         Hyprutils::CLI::CLogger logger;
         logger.setLogLevel(options.verbose ? Hyprutils::CLI::LOG_DEBUG : Hyprutils::CLI::LOG_WARN);
+        application::moveOldFolder(foundation::currentEnvironment());
         Hyprtoolkit::IBackend::SBackendCreationData creation;
         creation.pLogConnection = makeShared<Hyprutils::CLI::CLoggerConnection>(logger);
 
@@ -66,14 +68,14 @@ namespace ui {
             return 1;
 
         const auto palette    = backend->getPalette();
-        // The studio's colours: hyprtoolkit's, from hyprtoolkit.conf or its defaults, until
+        // Lantern's colours: hyprtoolkit's, from hyprtoolkit.conf or its defaults, until
         // the Theme page sets new ones here and every element is made again in them.
         const auto background = [palette] { return palette->m_colors.background; };
         const auto base       = [palette] { return palette->m_colors.base; };
 
         const auto window = Hyprtoolkit::CWindowBuilder::begin()
-                                ->appTitle("Hyprland Studio")
-                                ->appClass("hyprland-studio")
+                                ->appTitle("Lantern for Hyprland")
+                                ->appClass("lantern-hyprland")
                                 // Larger with larger text, so a page still fits.
                                 ->preferredSize({scaled(960), scaled(600)})
                                 ->minSize({scaled(640), scaled(400)})
@@ -172,21 +174,21 @@ namespace ui {
             pages.emplace_back(button, std::move(page));
         };
 
-        const auto studioName = Hyprtoolkit::CTextBuilder::begin()
-                              ->text("<span weight=\"600\">Hyprland Studio</span>")
+        const auto appName = Hyprtoolkit::CTextBuilder::begin()
+                              ->text("<span weight=\"600\">Lantern</span>")
                               ->fontSize(CFontSize{CFontSize::HT_FONT_H2})
                               ->color([palette] { return palette->m_colors.text; })
                               ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1, 1}})
                               ->commence();
-        restyled(studioName, CFontSize{CFontSize::HT_FONT_H2});
+        restyled(appName, CFontSize{CFontSize::HT_FONT_H2});
         // The sidebar and its buttons grow with the text, so the pages' names still fit.
         const auto resizeSidebar = [sidebar, &pages] {
             sidebar->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {sidebarWidth(), 1.0}})->commence();
             for (const auto& [button, page] : pages)
                 button->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, scaled(34)}})->commence();
         };
-        sidebar->addChild(studioName);
+        sidebar->addChild(appName);
         sidebar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 12}})->commence());
         // Most used first: the look of the desktop, then the terminal, then what is read
         // more than changed.
@@ -269,7 +271,7 @@ namespace ui {
             restyleAll(resized, before);
         };
         theme.onRecoloured([redraw] { redraw(false); });
-        // The terminal's themes follow the contrast and colour vision; the studio's text, the size.
+        // The terminal's themes follow the contrast and colour vision; Lantern's text, the size.
         accessibility.onApplied([&terminal, palette, redraw, defer, window, loop, resizeSidebar](const desktop::Accessibility& now) {
             terminal.adjust(now.contrast, now.vision);
             auto&      sizes  = palette->m_vars;

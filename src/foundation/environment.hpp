@@ -10,7 +10,7 @@ namespace foundation {
     // Environment variables by name.
     using Environment = std::map<std::string, std::string>;
 
-    // The studio's own environment.
+    // Lantern's own environment.
     [[nodiscard]] Environment currentEnvironment();
 
     [[nodiscard]] std::optional<std::string> variable(const Environment& environment, const std::string& name);

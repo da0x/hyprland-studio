@@ -18,7 +18,7 @@ namespace {
       public:
         Folders() {
             static std::atomic<int> counter = 0;
-            root = std::filesystem::temp_directory_path() / ("hyprland-studio-main-config-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+            root = std::filesystem::temp_directory_path() / ("lantern-hyprland-main-config-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
             std::filesystem::create_directories(root);
         }
         ~Folders() { std::filesystem::remove_all(root); }

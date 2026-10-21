@@ -51,7 +51,7 @@ namespace activation {
         for (const auto& statement : syntax::luaStatements(text)) {
             const auto source = std::string{text.substr(statement.range.begin, statement.range.end - statement.range.begin)};
             if (statement.broken) {
-                read.skipped.push_back({statement.line, "the studio cannot make sense of it"});
+                read.skipped.push_back({statement.line, "Lantern cannot make sense of it"});
             } else if (among(statement.call, optionCalls)) {
                 read.effects.push_back({.area = Area::options, .source = source, .line = statement.line, .keys = {}, .command = {}});
             } else if (among(statement.call, keybindingCalls)) {
@@ -65,18 +65,18 @@ namespace activation {
             } else if (statement.call.empty()) {
                 read.skipped.push_back({statement.line, "only hl.* calls are effects"});
             } else {
-                read.skipped.push_back({statement.line, std::format("{} is not something the studio can take back", statement.call)});
+                read.skipped.push_back({statement.line, std::format("{} is not something Lantern can take back", statement.call)});
             }
         }
         return read;
     }
 
-    std::filesystem::path effectsFile(const std::filesystem::path& studioFolder) {
-        return studioFolder / "effects.lua";
+    std::filesystem::path effectsFile(const std::filesystem::path& lanternFolder) {
+        return lanternFolder / "effects.lua";
     }
 
     std::string_view effectsTemplate() {
-        return R"(-- Effects Hyprland Studio applies to the running desktop when you press Activate,
+        return R"(-- Effects Lantern applies to the running desktop when you press Activate,
 -- and takes back when you press Deactivate. Nothing here is written to your config.
 --
 -- It is plain Hyprland Lua: copy anything you like into your own config to keep it.
@@ -90,7 +90,7 @@ namespace activation {
 -- Keybindings, taken back the same way:
 -- hl.bind("SUPER + SHIFT + K", hl.dsp.exec_cmd("kitty"))
 
--- Programs you installed, started by the studio and stopped again:
+-- Programs you installed, started by Lantern and stopped again:
 -- hl.exec_cmd("waybar")
 )";
     }

@@ -91,7 +91,7 @@ namespace configuration {
         return std::unexpected{"there is no hyprland.lua or hyprland.conf in any of the folders Hyprland looks in"};
     }
 
-    Launch studioLaunch() {
+    Launch lanternLaunch() {
         Launch          launch;
         std::error_code error;
         launch.workingFolder = std::filesystem::current_path(error);

@@ -16,7 +16,7 @@ namespace configuration {
     // A table's entries, the array part first.
     using Table = std::vector<std::pair<Value, Value>>;
 
-    // A function in the config. The studio never runs it; it can only say where it is.
+    // A function in the config. Lantern never runs it; it can only say where it is.
     struct Function {
         Location definition;
 

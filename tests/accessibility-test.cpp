@@ -18,7 +18,7 @@ namespace {
 
     std::filesystem::path freshRoot() {
         static std::atomic<int> counter = 0;
-        const auto root = std::filesystem::temp_directory_path() / ("hyprland-studio-access-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-access-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
         std::filesystem::create_directories(root / "home/.config/hypr");
         return root;
     }

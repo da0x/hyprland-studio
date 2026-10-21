@@ -11,14 +11,14 @@ namespace activation {
 
     namespace {
 
-        std::filesystem::path recordFile(const std::filesystem::path& studioFolder) {
-            return studioFolder / "activation.json";
+        std::filesystem::path recordFile(const std::filesystem::path& lanternFolder) {
+            return lanternFolder / "activation.json";
         }
 
     }
 
-    std::optional<Record> loadRecord(const std::filesystem::path& studioFolder) {
-        std::ifstream stream{recordFile(studioFolder)};
+    std::optional<Record> loadRecord(const std::filesystem::path& lanternFolder) {
+        std::ifstream stream{recordFile(lanternFolder)};
         if (!stream)
             return std::nullopt;
         const auto json = nlohmann::json::parse(stream, nullptr, false);
@@ -38,20 +38,20 @@ namespace activation {
         return record;
     }
 
-    std::expected<void, std::string> saveRecord(const Record& record, const std::filesystem::path& studioFolder) {
+    std::expected<void, std::string> saveRecord(const Record& record, const std::filesystem::path& lanternFolder) {
         nlohmann::json json{{"since", record.since}, {"areas", nlohmann::json::array()}, {"programs", nlohmann::json::array()}};
         for (const auto area : record.areas)
             json["areas"].push_back(std::string{nameOf(area)});
         for (const auto& program : record.programs)
             json["programs"].push_back({{"process", program.process}, {"name", program.name}, {"command", program.command}});
         std::error_code error;
-        std::filesystem::create_directories(studioFolder, error);
-        return configuration::writeWhole(recordFile(studioFolder), json.dump(4) + "\n");
+        std::filesystem::create_directories(lanternFolder, error);
+        return configuration::writeWhole(recordFile(lanternFolder), json.dump(4) + "\n");
     }
 
-    void removeRecord(const std::filesystem::path& studioFolder) {
+    void removeRecord(const std::filesystem::path& lanternFolder) {
         std::error_code error;
-        std::filesystem::remove(recordFile(studioFolder), error);
+        std::filesystem::remove(recordFile(lanternFolder), error);
     }
 
 }

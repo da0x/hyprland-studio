@@ -13,7 +13,7 @@ namespace desktop {
     [[nodiscard]] std::optional<std::filesystem::path> findProgram(std::string_view name, std::string_view path);
 
     // Whether fontconfig has a font of this family. It rescans the font folders first, so a
-    // font installed while the studio runs is found.
+    // font installed while Lantern runs is found.
     [[nodiscard]] bool hasFontFamily(const std::string& family);
 
     // The families of the monospace fonts fontconfig has, rescanning the font folders first.
@@ -28,7 +28,7 @@ namespace desktop {
         // The distributions it is derived from (ID_LIKE).
         std::vector<std::string> like;
 
-        // Arch Linux or one built on it, whose packages and pacman the studio can name.
+        // Arch Linux or one built on it, whose packages and pacman Lantern can name.
         [[nodiscard]] bool       arch() const;
     };
 

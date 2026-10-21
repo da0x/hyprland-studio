@@ -24,7 +24,7 @@ namespace activation {
     [[nodiscard]] Activated activate(const Effects& effects, const std::vector<Area>& allowed, const std::optional<std::filesystem::path>& hyprctl, std::string since);
 
     // Takes back what `record` says is active: Hyprland reloads its config, which drops every
-    // change made at run time, and each program the studio started is stopped, only if the
+    // change made at run time, and each program Lantern started is stopped, only if the
     // process still has the name it had. Says what went wrong, a sentence each.
     [[nodiscard]] std::vector<std::string> deactivate(const Record& record, const std::optional<std::filesystem::path>& hyprctl, const std::filesystem::path& processRoot = "/proc");
 

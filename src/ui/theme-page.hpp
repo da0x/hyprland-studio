@@ -24,7 +24,7 @@
 namespace ui {
 
     // One palette for the whole desktop: the windows' borders, Waybar, and the apps built on
-    // hyprtoolkit, the studio among them. Written only after the user reviews the change.
+    // hyprtoolkit, Lantern among them. Written only after the user reviews the change.
     class ThemePage {
       public:
         // `defer` runs a function after the current layout pass; see RowList.
@@ -35,10 +35,10 @@ namespace ui {
         // Stops watching Waybar. Called before the event loop goes away.
         void close();
 
-        // Draws the page again, after the studio's text size changed.
+        // Draws the page again, after Lantern's text size changed.
         void restyle();
 
-        // What to redraw once the studio's palette has new colours.
+        // What to redraw once Lantern's palette has new colours.
         void onRecoloured(std::function<void()> recoloured) { this->recoloured = std::move(recoloured); }
 
       private:

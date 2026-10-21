@@ -40,7 +40,7 @@ namespace desktop {
         bool operator==(const Wallpaper&) const = default;
     };
 
-    // The programs the studio can draw the wallpaper with.
+    // The programs Lantern can draw the wallpaper with.
     enum class WallpaperProgram {
         // Hyprland's own, set through hyprpaper.conf.
         hyprpaper,

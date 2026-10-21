@@ -63,14 +63,14 @@ namespace desktop {
 
     // How round the bar is and how far it sits from the screen's edges: the windows' own,
     // set on the Windows page, so that the bar lines up with them. The defaults are what
-    // the studio's styles had before they followed the windows.
+    // Lantern's styles had before they followed the windows.
     struct BarGeometry {
         // The corners of the bar, or of its islands; the workspace buttons' follow.
         int rounding = 10;
         // From the sides, and from the top.
         int edgeGap  = 20;
         // From the top: the edge gap when the bar follows the windows; half of it in
-        // files the studio wrote before.
+        // files Lantern wrote before.
         int topGap   = 10;
         // The windows' border width, for a bar with their border.
         int border   = 1;
@@ -97,12 +97,12 @@ namespace desktop {
         bool operator==(const WaybarStyle&) const = default;
     };
 
-    // Waybar's config and stylesheet for the style: plain Waybar files with nothing of the
-    // studio's in them.
+    // Waybar's config and stylesheet for the style: plain Waybar files with nothing of Lantern's
+    // in them.
     [[nodiscard]] std::string waybarConfigText(const WaybarStyle& style);
     [[nodiscard]] std::string waybarStyleText(const WaybarStyle& style);
 
-    // The folder the studio writes Waybar's files to: the user's folder Waybar reads now,
+    // The folder Lantern writes Waybar's files to: the user's folder Waybar reads now,
     // or, when it reads the system's example, $XDG_CONFIG_HOME/waybar or ~/.config/waybar.
     [[nodiscard]] std::filesystem::path waybarUserFolder(const foundation::Environment& environment, const std::filesystem::path& systemFolder = "/etc/xdg");
 
@@ -110,7 +110,7 @@ namespace desktop {
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planWaybarStyle(const WaybarStyle& style, const foundation::Environment& environment,
                                                                                                     const std::filesystem::path& systemFolder = "/etc/xdg");
 
-    // The studio's style that Waybar's files hold now, if they hold one exactly, with
+    // Lantern's style that Waybar's files hold now, if they hold one exactly, with
     // either border.
     // Only styles with `geometry` are looked for, since the files hold it too.
     [[nodiscard]] std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry = {},

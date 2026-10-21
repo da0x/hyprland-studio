@@ -14,8 +14,8 @@
 
 namespace ui {
 
-    // hyprtoolkit takes an element's colour when it is made or rebuilt, so after the
-    // studio's palette changes, every element made in the old colours is rebuilt. The
+    // hyprtoolkit takes an element's colour when it is made or rebuilt, so after Lantern's
+    // palette changes, every element made in the old colours is rebuilt. The
     // places that make long-lived elements register them here.
 
     // What a registered element is asked to do.

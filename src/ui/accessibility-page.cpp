@@ -3,7 +3,7 @@
 
 #include "application/config-check.hpp"
 #include "application/settings.hpp"
-#include "application/studio-folder.hpp"
+#include "application/lantern-folder.hpp"
 #include "configuration/main-config.hpp"
 #include "desktop/process.hpp"
 #include "desktop/system.hpp"
@@ -30,8 +30,8 @@ namespace ui {
         using Hyprutils::Memory::CSharedPointer;
 
         constexpr auto   changeName  = "Accessibility";
-        // The record of a change keeps the studio's own settings as they were, for Undo.
-        constexpr auto   studioKept  = "studio-settings";
+        // The record of a change keeps Lantern's own settings as they were, for Undo.
+        constexpr auto   settingsKept  = "studio-settings";
         // Taller than other pages' pictures, so the largest cursor fits.
         constexpr double pictureHeight = 72;
 
@@ -142,12 +142,12 @@ namespace ui {
 
     desktop::Accessibility AccessibilityPage::inUse() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         auto       found       = config ? desktop::currentAccessibility(*config, environment) : desktop::Accessibility{};
-        const auto settings    = application::loadSettings(application::studioFolder(environment));
+        const auto settings    = application::loadSettings(application::lanternFolder(environment));
         if (const auto contrast = desktop::contrastNamed(settings.contrast))
             found.contrast = *contrast;
-        // A shader in use says the colour vision; without one, the studio's record does.
+        // A shader in use says the colour vision; without one, Lantern's record does.
         if (!found.wholeDesktop)
             if (const auto vision = desktop::visionNamed(settings.vision))
                 found.vision = *vision;
@@ -257,7 +257,7 @@ namespace ui {
                         });
                     },
             });
-        cards.addSetting(right, "Text size", "GTK apps, and hyprtoolkit's, this studio among them", std::move(textSize));
+        cards.addSetting(right, "Text size", "GTK apps, and hyprtoolkit's, Lantern among them", std::move(textSize));
 
         // Cursor size: an arrow at each size.
         std::vector<ChoiceCards::Choice> cursor;
@@ -317,7 +317,7 @@ namespace ui {
 
     void AccessibilityPage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         const auto planned     = config ? desktop::planAccessibility(wanted, *config, environment)
                                         : std::expected<desktop::AccessibilityPlan, std::string>{std::unexpect, config.error()};
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
@@ -333,7 +333,7 @@ namespace ui {
             away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
         std::string note;
         if (!planned) {
-            note = escapeMarkup(std::format("The studio cannot apply it: {}.", planned.error()));
+            note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (same) {
             note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your desktop uses these settings." : outcome));
         } else {
@@ -351,7 +351,7 @@ namespace ui {
 
     void AccessibilityPage::showReview() {
         const auto environment = foundation::currentEnvironment();
-        const auto config      = configuration::mainConfig(configuration::studioLaunch());
+        const auto config      = configuration::mainConfig(configuration::lanternLaunch());
         auto       planned     = config ? desktop::planAccessibility(wanted, *config, environment)
                                         : std::expected<desktop::AccessibilityPlan, std::string>{std::unexpect, config.error()};
         if (!planned) {
@@ -393,10 +393,10 @@ namespace ui {
             return showOverview();
         }
         desktop::setGsettings(plan.settings, *record, environment);
-        // The studio's own record of contrast and colour vision, kept as it was for Undo.
-        const auto folder   = application::studioFolder(environment);
+        // Lantern's own record of contrast and colour vision, kept as it was for Undo.
+        const auto folder   = application::lanternFolder(environment);
         auto       settings = application::loadSettings(folder);
-        std::ofstream{*record / studioKept} << "contrast\t" << settings.contrast << "\nvision\t" << settings.vision << '\n';
+        std::ofstream{*record / settingsKept} << "contrast\t" << settings.contrast << "\nvision\t" << settings.vision << '\n';
         settings.contrast = std::string{desktop::nameOf(wanted.contrast)};
         settings.vision   = std::string{desktop::nameOf(wanted.vision)};
         (void)application::saveSettings(settings, folder);
@@ -434,9 +434,9 @@ namespace ui {
             return showOverview();
         }
         desktop::restoreGsettings(*latest, environment);
-        const auto folder   = application::studioFolder(environment);
+        const auto folder   = application::lanternFolder(environment);
         auto       settings = application::loadSettings(folder);
-        std::ifstream kept{*latest / studioKept};
+        std::ifstream kept{*latest / settingsKept};
         for (std::string line; std::getline(kept, line);) {
             const auto tab = line.find('\t');
             if (tab == std::string::npos)

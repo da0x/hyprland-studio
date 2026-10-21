@@ -21,7 +21,7 @@ TEST(Launch, ReadsAProcessFromProc) {
 }
 
 TEST(Launch, FindsHyprlandsProcessInItsLockFile) {
-    const auto folder = std::filesystem::temp_directory_path() / ("hyprland-studio-lock-" + std::to_string(::getpid()));
+    const auto folder = std::filesystem::temp_directory_path() / ("lantern-hyprland-lock-" + std::to_string(::getpid()));
     std::filesystem::create_directories(folder);
     const ipc::Instance instance{.folder = folder, .requestSocket = folder / ".socket.sock", .eventSocket = folder / ".socket2.sock"};
 

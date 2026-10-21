@@ -15,10 +15,10 @@ int main(int argc, char** argv) {
         } else if (argument == "--page" && index + 1 < arguments.size()) {
             options.page = arguments[++index];
         } else if (argument == "--help") {
-            std::println("Usage: hyprland-studio [--verbose] [--page TITLE]");
+            std::println("Usage: lantern-hyprland [--verbose] [--page TITLE]");
             return 0;
         } else {
-            std::println(stderr, "hyprland-studio: unknown option {}", argument);
+            std::println(stderr, "lantern-hyprland: unknown option {}", argument);
             return 2;
         }
     }

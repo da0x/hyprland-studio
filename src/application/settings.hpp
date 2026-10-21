@@ -8,7 +8,7 @@
 
 namespace application {
 
-    // The studio's own settings, kept in settings.json in its folder.
+    // Lantern's own settings, kept in settings.json in its folder.
     struct Settings {
         // The user has seen that everything the bar needs is installed, and hid the list.
         bool barRequirementsDismissed       = false;
@@ -31,9 +31,9 @@ namespace application {
     };
 
     // Missing or unreadable settings are the defaults.
-    [[nodiscard]] Settings loadSettings(const std::filesystem::path& studioFolder);
+    [[nodiscard]] Settings loadSettings(const std::filesystem::path& lanternFolder);
 
     // Keeps any setting in the file that this version does not know.
-    [[nodiscard]] std::expected<void, std::string> saveSettings(const Settings& settings, const std::filesystem::path& studioFolder);
+    [[nodiscard]] std::expected<void, std::string> saveSettings(const Settings& settings, const std::filesystem::path& lanternFolder);
 
 }

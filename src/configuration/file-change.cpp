@@ -80,7 +80,7 @@ namespace configuration {
         if (struct stat existing{}; ::stat(file.c_str(), &existing) == 0)
             mode = existing.st_mode & 07777;
 
-        const auto temporary  = file.parent_path() / std::format(".{}.hyprland-studio-{}", file.filename().string(), ::getpid());
+        const auto temporary  = file.parent_path() / std::format(".{}.lantern-hyprland-{}", file.filename().string(), ::getpid());
         const int  descriptor = ::open(temporary.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, mode); // NOLINT(cppcoreguidelines-pro-type-vararg): POSIX
         if (descriptor < 0)
             return std::unexpected{std::format("cannot write {}: {}", temporary.string(), errorText(errno))};
@@ -111,7 +111,7 @@ namespace configuration {
         std::error_code error;
         const auto      status = std::filesystem::symlink_status(file, error);
         if (status.type() == std::filesystem::file_type::symlink)
-            return std::unexpected{std::format("{} is a link, which the studio does not replace", file.string())};
+            return std::unexpected{std::format("{} is a link, which Lantern does not replace", file.string())};
         if (status.type() == std::filesystem::file_type::not_found)
             return FileChange{file, std::nullopt, std::move(proposed)};
         if (status.type() != std::filesystem::file_type::regular)
@@ -192,7 +192,7 @@ namespace configuration {
             const auto written = readWhole(copyOf(record, index, "after"));
             const auto now     = readWhole(entries[index].file);
             if (!written || !now || *written != *now)
-                return std::unexpected{std::format("{} was changed after the studio wrote it, so it is left as it is", entries[index].file.string())};
+                return std::unexpected{std::format("{} was changed after Lantern wrote it, so it is left as it is", entries[index].file.string())};
         }
         for (std::size_t index = 0; index < entries.size(); ++index) {
             std::error_code error;

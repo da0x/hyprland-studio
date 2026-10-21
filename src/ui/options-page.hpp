@@ -31,7 +31,7 @@ namespace ui {
 
         void showConnection(application::Connection connection, const std::string& reason);
         void showOptions(const std::expected<application::Options, std::string>& options);
-        // Draws the list again, after the studio's colours changed: its cells carry colours.
+        // Draws the list again, after Lantern's colours changed: its cells carry colours.
         void restyle();
 
       private:

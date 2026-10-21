@@ -29,7 +29,7 @@ namespace ui {
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
-        // Draws the page again, after the studio's colours or text size changed.
+        // Draws the page again, after Lantern's colours or text size changed.
         void restyle();
 
         // Stops watching Waybar. Called before the event loop goes away.

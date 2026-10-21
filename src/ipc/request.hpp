@@ -12,7 +12,7 @@
 
 namespace ipc {
 
-    // Every request the studio may send outside the activation layer. Each one only reads,
+    // Every request Lantern may send outside the activation layer. Each one only reads,
     // and nothing else can be expressed here: a request that changes Hyprland belongs to
     // the activation layer and does not go through this function.
     enum class Query {

@@ -24,7 +24,7 @@
 
 namespace ui {
 
-    // The bar at the top of the screen. The studio ships no bar of its own: it checks what
+    // The bar at the top of the screen. Lantern ships no bar of its own: it checks what
     // Waybar needs and shows the command that installs anything missing, turns Waybar on
     // and off, and offers styles for it, written only after the user reviews the change.
     class BarPage {
@@ -40,7 +40,7 @@ namespace ui {
         // Stops watching Waybar. Called before the event loop goes away.
         void close();
 
-        // Draws the page again, after the studio's colours changed.
+        // Draws the page again, after Lantern's colours changed.
         void restyle();
 
       private:
@@ -81,7 +81,7 @@ namespace ui {
         ProgramSwitch                                                        waybar;
 
         application::Settings                                                settings;
-        // The style shown in the big preview: Waybar's own at first, if it is one of the studio's.
+        // The style shown in the big preview: Waybar's own at first, if it is one of Lantern's.
         desktop::WaybarStyle                                                 selected;
         std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;

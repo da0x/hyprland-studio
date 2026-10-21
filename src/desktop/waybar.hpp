@@ -15,7 +15,7 @@
 
 namespace desktop {
 
-    // Something the bar needs that the studio does not install, with how to get it.
+    // Something the bar needs that Lantern does not install, with how to get it.
     struct Requirement {
         std::string                name;
         // Why the bar needs it.
@@ -30,7 +30,7 @@ namespace desktop {
     };
 
     // The command that installs it, for the user to run. Empty on a distribution whose
-    // packages the studio does not know.
+    // packages Lantern does not know.
     [[nodiscard]] std::string installCommand(const Requirement& requirement, const Distribution& distribution);
 
     // Waybar itself, and the font its icons come from.
@@ -41,7 +41,7 @@ namespace desktop {
     // $XDG_CONFIG_HOME/waybar, ~/.config/waybar, ~/waybar and `systemFolder`/waybar.
     // A window the bar opens when one of its parts is clicked, such as the volume control.
     struct Popup {
-        // The rule's name in the Hyprland config, which is how the studio finds it again.
+        // The rule's name in the Hyprland config, which is how Lantern finds it again.
         std::string_view rule;
         std::string_view program;
         // The class its window has, as a regular expression for the rule.

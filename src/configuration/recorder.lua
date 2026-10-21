@@ -138,13 +138,13 @@ end
 
 ---------------------------------------------------------------------------------------
 -- The `hl` stand-in, written out by hand from Hyprland's own type stubs
--- (/usr/share/hypr/stubs/hl.meta.lua). A name that is not here is an error, so a call the
--- studio does not know about is reported instead of silently recorded as something else.
+-- (/usr/share/hypr/stubs/hl.meta.lua). A name that is not here is an error, so a call Lantern
+-- does not know about is reported instead of silently recorded as something else.
 
 local function strict(name, contents)
     return setmetatable(contents, {
         __index = function(_, key)
-            error(("%s.%s is not part of Hyprland's Lua API as Hyprland Studio knows it"):format(name, tostring(key)), 2)
+            error(("%s.%s is not part of Hyprland's Lua API as Lantern knows it"):format(name, tostring(key)), 2)
         end,
         __metatable = false,
     })
@@ -308,7 +308,7 @@ end
 local function openForReading(path, mode)
     if mode ~= nil and mode ~= "r" and mode ~= "rb" then
         refuse(("io.open(%q, %q)"):format(tostring(path), tostring(mode)))
-        return nil, "Hyprland Studio does not let a config write files while reading it"
+        return nil, "Lantern does not let a config write files while reading it"
     end
     local ok, resolved = pcall(host.resolve, tostring(path))
     if not ok then
@@ -320,7 +320,7 @@ end
 local function blockedFunction(name)
     return function()
         refuse(name)
-        return nil, "Hyprland Studio does not run this while reading a config"
+        return nil, "Lantern does not run this while reading a config"
     end
 end
 
@@ -350,7 +350,7 @@ local function sandboxRequire(name)
         return loaded[name]
     end
     if name:find("*", 1, true) then
-        error(("require(%q): Hyprland Studio does not follow globs yet"):format(name), 2)
+        error(("require(%q): Lantern does not follow globs yet"):format(name), 2)
     end
 
     local candidates

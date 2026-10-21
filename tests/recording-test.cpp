@@ -21,7 +21,7 @@ namespace {
       public:
         explicit Scratch(const std::string& config) {
             static std::atomic<int> counter = 0;
-            folder = std::filesystem::temp_directory_path() / ("hyprland-studio-test-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+            folder = std::filesystem::temp_directory_path() / ("lantern-hyprland-test-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
             std::filesystem::create_directories(folder);
             std::ofstream{folder / "hyprland.lua"} << config;
         }

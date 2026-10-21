@@ -23,7 +23,7 @@ namespace ui {
         using Hyprtoolkit::CFontSize;
         using Hyprutils::Memory::CSharedPointer;
 
-        // Waybar's sizes in the studio's config, in pixels.
+        // Waybar's sizes in Lantern's config, in pixels.
         constexpr double barHeight      = 38;
         constexpr double fullHeight     = 34;
         // The gap above the bar, kept as drawn whatever the windows' gap is, since the

@@ -19,7 +19,7 @@ BUILD_TYPE ?= RelWithDebInfo
 BUILD      ?= build/release
 GENERATOR  ?= $(if $(shell command -v ninja),Ninja,Unix Makefiles)
 HYPRTOOLKIT_PREFIX ?=
-TOOLKIT    := $(if $(HYPRTOOLKIT_PREFIX),-DCMAKE_PREFIX_PATH=$(HYPRTOOLKIT_PREFIX) -DHYPRLAND_STUDIO_FIXED_HYPRTOOLKIT=ON,-DHYPRLAND_STUDIO_FIXED_HYPRTOOLKIT=OFF)
+TOOLKIT    := $(if $(HYPRTOOLKIT_PREFIX),-DCMAKE_PREFIX_PATH=$(HYPRTOOLKIT_PREFIX) -DLANTERN_HYPRLAND_FIXED_HYPRTOOLKIT=ON,-DLANTERN_HYPRLAND_FIXED_HYPRTOOLKIT=OFF)
 
 .PHONY: all configure test install uninstall clean
 
@@ -35,7 +35,7 @@ test: all
 # Installs what make built, and builds nothing: run as root, building would leave files
 # in the source tree that only root can remove.
 install:
-	@test -f $(BUILD)/src/hyprland-studio || { echo "Run make first, as yourself."; exit 1; }
+	@test -f $(BUILD)/src/lantern-hyprland || { echo "Run make first, as yourself."; exit 1; }
 	cmake --install $(BUILD) --prefix $(PREFIX)
 
 uninstall:

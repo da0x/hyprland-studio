@@ -36,7 +36,7 @@ namespace desktop {
         friend bool operator==(const Accessibility&, const Accessibility&) = default;
     };
 
-    // The words the studio's settings keep for each choice, and back.
+    // The words Lantern's settings keep for each choice, and back.
     [[nodiscard]] std::string_view           nameOf(Contrast contrast);
     [[nodiscard]] std::string_view           nameOf(Vision vision);
     [[nodiscard]] std::optional<Contrast>    contrastNamed(std::string_view name);
@@ -48,14 +48,14 @@ namespace desktop {
     [[nodiscard]] std::string           colourVisionShader(Vision vision);
     // What the shader makes of one colour, for drawing it: the same sums, done here.
     [[nodiscard]] Colour                corrected(const Colour& colour, Vision vision);
-    // Where the studio keeps it: $XDG_CONFIG_HOME/hypr/shaders, or ~/.config/hypr/shaders.
+    // Where Lantern keeps it: $XDG_CONFIG_HOME/hypr/shaders, or ~/.config/hypr/shaders.
     [[nodiscard]] std::filesystem::path colourVisionShaderFile(Vision vision, const foundation::Environment& environment);
 
     // hyprtoolkit.conf's text sizes, its defaults scaled.
     [[nodiscard]] std::vector<std::pair<std::string, std::string>> toolkitTextSizes(double scale);
 
-    // The desktop as it is now. Contrast is GTK's setting and the colour vision is the
-    // studio's shader, if Hyprland uses one; the studio keeps its own record of both too,
+    // The desktop as it is now. Contrast is GTK's setting and the colour vision is Lantern's
+    // shader, if Hyprland uses one; Lantern keeps its own record of both too,
     // for the terminal, which the caller lays over these.
     [[nodiscard]] Accessibility currentAccessibility(const configuration::MainConfig& config, const foundation::Environment& environment);
 

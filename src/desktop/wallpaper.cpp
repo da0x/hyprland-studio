@@ -58,7 +58,7 @@ namespace desktop {
         };
 
         // hyprpaper.conf is hyprlang: `key = value` lines, `#` comments, and named blocks.
-        // Only what the studio needs is read: the wallpaper blocks' keys.
+        // Only what Lantern needs is read: the wallpaper blocks' keys.
         Parsed parse(std::string_view config) {
             Parsed                parsed;
             std::optional<Block>  open;
@@ -238,7 +238,7 @@ namespace desktop {
     std::expected<std::string, std::string> withFallbackWallpaper(std::string_view config, const Wallpaper& wallpaper) {
         const auto parsed = parse(config);
         if (parsed.oldFormat)
-            return std::unexpected{"hyprpaper.conf is written in the format from before hyprpaper 0.8 (wallpaper = monitor,path), which the studio does not change"};
+            return std::unexpected{"hyprpaper.conf is written in the format from before hyprpaper 0.8 (wallpaper = monitor,path), which Lantern does not change"};
 
         std::string_view fitWord = "cover";
         for (const auto& info : fits)

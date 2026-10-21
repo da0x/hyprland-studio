@@ -46,7 +46,7 @@ folder with links followed (`src/main.cpp:120-145`); the other paths are used as
 
 **Hyprland chooses once, at startup.** The path is cached, and only safe mode ending or
 `hyprctl reload full-reset` chooses again (`Jeremy.cpp:15`, `src/debug/HyprCtl.cpp:1267`).
-So the studio follows the same rule with what the running Hyprland was started with: its
+So Lantern follows the same rule with what the running Hyprland was started with: its
 process ID is the first line of `hyprland.lock` in the instance folder, followed by the
 Wayland socket name (`src/Compositor.cpp:765-772`), and its command line, starting
 environment and working folder are in `/proc/<pid>/`. Files created or removed since
@@ -55,12 +55,12 @@ or `hyprlang`) partly catches. After a crash, `--safe-mode` runs `recoverycfg.lu
 instance folder until the user loads their config from Hyprland's dialog, and nothing
 reports which of the two is running.
 
-So **a `hyprland.lua` anywhere on the search path beats any `hyprland.conf`.** The studio
+So **a `hyprland.lua` anywhere on the search path beats any `hyprland.conf`.** Lantern
 must never create a `hyprland.lua` next to a working `hyprland.conf` by accident. Doing
 that switches the user's desktop to a different config at the next reload.
 
 `hyprctl -j status` reports which parser is running (`"configProvider": "hyprlang"` or
-the Lua one), so the studio can tell without guessing.
+the Lua one), so Lantern can tell without guessing.
 
 There is no `.conf` to `.lua` migration tool in Hyprland. Many users, including the
 development machine, still run `.conf`.
@@ -77,7 +77,7 @@ development machine, still run `.conf`.
   `src/config/shared/inotify/ConfigWatcher.cpp:32-57`).
 
 So **a config is a set of files, not one file.** Writing any of them reloads Hyprland.
-The studio must write each file once, atomically, and expect a reload to follow.
+Lantern must write each file once, atomically, and expect a reload to follow.
 
 ## Which Lua, and is it sandboxed?
 
@@ -112,7 +112,7 @@ Lua by turning `:` into `.` and `-` into `_` (`src/config/lua/ConfigManager.cpp:
 `curve`, `animation`, `env`, `window_rule`, `layer_rule`, `workspace_rule`, `permission`,
 `plugin.load`, `unbind`.
 
-**Calls that can take functions** (read-only to the studio): `bind` (its action is an
+**Calls that can take functions** (read-only to Lantern): `bind` (its action is an
 opaque `hl.dsp.*` value or a function), `on`, `timer`, `define_submap`, `gesture`,
 `layout.register`, `dispatch`. There is no `exec_once`; startup programs go in
 `hl.on("hyprland.start", function () ... end)`.
@@ -177,16 +177,16 @@ popular dotfiles distribution is what many users actually run.
   interpreter's sandbox cannot simply remove `io`: it needs read-only file access inside
   the config folder, and `os.getenv`, with writes and process starts stubbed out.
 - **Some files are generated.** `colors.lua` is rewritten by a theme tool (matugen) when
-  the wallpaper changes. The studio should show such values read-only, or its edits will
+  the wallpaper changes. Lantern should show such values read-only, or its edits will
   be overwritten. How to detect a generated file is open: a header comment, a known tool,
-  or the file changing without the studio.
+  or the file changing without Lantern.
 - **It loads HyprMod's file too.** The last line is `require("hyprland-gui")`, HyprMod's
   sidecar file, shipped empty. A distribution has already adopted the sidecar approach.
 - **Every binding has a `description`.** That is the only part of a Lua binding the
   running Hyprland reports back, so well-described configs show up readably even without
   the interpreter.
 - **The whole config folder is a link.** `~/.config/hypr` points into
-  `~/.mydotfiles/com.ml4w.dotfiles.stable/.config/hypr`. The studio has to follow it when
+  `~/.mydotfiles/com.ml4w.dotfiles.stable/.config/hypr`. Lantern has to follow it when
   reading and write through it, never replace the link with a real folder.
 
 ## How do we edit a Lua file without losing anything?
@@ -222,12 +222,12 @@ What it catches, tested:
 - a missing `require`d file.
 
 It reports **every** bad value, not only the first. But **the line it gives is the line
-where the `hl.config(` call starts, not the line of the bad key.** The studio has to map
+where the `hl.config(` call starts, not the line of the bad key.** Lantern has to map
 each error to its key using the option name in the message.
 
 **It runs the config for real.** Tested with a config containing
 `hl.exec_cmd("touch …")` and `io.open(…, "w")` at the top level: both files were
-created. Only `hl.on("hyprland.start", …)` callbacks are skipped. So the studio must not
+created. Only `hl.on("hyprland.start", …)` callbacks are skipped. So Lantern must not
 run `--verify-config` as a quiet background check. It starts the user's programs every
 time.
 
@@ -321,7 +321,7 @@ to its default and runs the files again (`src/config/lua/ConfigManager.cpp:714-7
 reverting everything tried in a session is one reload.
 
 **Hyprland does not keep the previous value.** `set` becomes true for any change,
-including one from `eval`, and nothing records what the file had set. The studio reads
+including one from `eval`, and nothing records what the file had set. Lantern reads
 the value with `getoption` before changing it, and keeps it for its own undo.
 
 **Open, to test on a throwaway Lua instance (not a live desktop):** whether a reload
@@ -388,19 +388,22 @@ Where it goes further than we will:
   files to delete by hand, and its uninstall page does not list the generated files.
 - Plugins are trusted code with no sandbox.
 
-So the difference to highlight is cleanup: Hyprland Studio keeps everything it owns in
+So the difference to highlight is cleanup: Lantern keeps everything it owns in
 one folder and can remove it, and writes nothing into other programs' configs.
 
-## Can the project be called "Hyprland Studio"?
+## The project is called "Lantern for Hyprland"
 
-**Unresolved, and needs a decision.** The hypr.land footer says: "The name "Hyprland" and
-the logo are registered trademarks of Hyprland Development." It was added in December 2025.
-There is no published usage policy (`/trademark`, `/brand` and `/legal` return 404), and
-the registration could not be confirmed.
+It was called Hyprland Studio until 0.1. The hypr.land footer says: "The name "Hyprland"
+and the logo are registered trademarks of Hyprland Development." It was added in December
+2025. There is no published usage policy (`/trademark`, `/brand` and `/legal` return 404),
+and the registration could not be confirmed.
 
-In practice about 46 AUR packages are named `hyprland-*`, and hyprwm's own utilities use
-`hyprland-guiutils` and `hyprland-qtutils`. No other project is called Hyprland Studio.
-Two unrelated empty or web-design repositories are called HyprStudio.
+A name that starts with Hyprland reads as the Hyprland project's own, and so does one that
+starts with `hypr`, the prefix of hyprwm's tools. "Lantern for Hyprland" names Hyprland
+only to say what it is for, and the README keeps the statement that this project is
+independent and not endorsed.
 
-The safe course is to ask upstream before the first release, and keep the README's
-statement that this project is independent and not endorsed.
+The plain name is taken: Lantern, the censorship-circumvention tool, is in the AUR as
+`lantern-bin` with a `lantern` command. So the package, the command, the window class and
+the settings folder are all `lantern-hyprland`. No AUR package or GitHub repository was
+found under that name.

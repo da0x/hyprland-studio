@@ -11,8 +11,8 @@ namespace application {
 
     namespace {
 
-        nlohmann::json readFile(const std::filesystem::path& studioFolder) {
-            std::ifstream stream{studioFolder / "settings.json"};
+        nlohmann::json readFile(const std::filesystem::path& lanternFolder) {
+            std::ifstream stream{lanternFolder / "settings.json"};
             if (!stream)
                 return nlohmann::json::object();
             auto json = nlohmann::json::parse(stream, nullptr, false);
@@ -21,8 +21,8 @@ namespace application {
 
     }
 
-    Settings loadSettings(const std::filesystem::path& studioFolder) {
-        const auto json = readFile(studioFolder);
+    Settings loadSettings(const std::filesystem::path& lanternFolder) {
+        const auto json = readFile(lanternFolder);
         Settings   settings;
         if (const auto bar = json.find("bar"); bar != json.end() && bar->is_object())
             settings.barRequirementsDismissed = bar->value("requirementsDismissed", false);
@@ -43,8 +43,8 @@ namespace application {
         return settings;
     }
 
-    std::expected<void, std::string> saveSettings(const Settings& settings, const std::filesystem::path& studioFolder) {
-        auto json = readFile(studioFolder);
+    std::expected<void, std::string> saveSettings(const Settings& settings, const std::filesystem::path& lanternFolder) {
+        auto json = readFile(lanternFolder);
         for (const auto* page : {"bar", "wallpaper", "accessibility", "activation"})
             if (!json[page].is_object())
                 json[page] = nlohmann::json::object();
@@ -55,7 +55,7 @@ namespace application {
         json["accessibility"]["contrast"]          = settings.contrast;
         json["accessibility"]["vision"]            = settings.vision;
         json["activation"]["allowed"]              = settings.activationAllowed;
-        return configuration::writeWhole(studioFolder / "settings.json", json.dump(4) + "\n");
+        return configuration::writeWhole(lanternFolder / "settings.json", json.dump(4) + "\n");
     }
 
 }

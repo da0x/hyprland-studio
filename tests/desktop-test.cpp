@@ -23,7 +23,7 @@ namespace {
       public:
         Folder() {
             static std::atomic<int> counter = 0;
-            root = std::filesystem::temp_directory_path() / ("hyprland-studio-desktop-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+            root = std::filesystem::temp_directory_path() / ("lantern-hyprland-desktop-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
             std::filesystem::create_directories(root);
         }
         ~Folder() { std::filesystem::remove_all(root); }
@@ -76,7 +76,7 @@ namespace {
     }
 
     TEST(Desktop, DoesNotFindAFontThatDoesNotExist) {
-        EXPECT_FALSE(desktop::hasFontFamily("No Such Font Family For Hyprland Studio"));
+        EXPECT_FALSE(desktop::hasFontFamily("No Such Font Family For Lantern"));
     }
 
     TEST(Desktop, FindsWaybarsConfigInWaybarsOrder) {
@@ -159,7 +159,7 @@ namespace {
         for (int wait = 0; wait < 100 && !std::filesystem::exists(started); ++wait)
             ::usleep(20'000);
         ASSERT_TRUE(std::filesystem::exists(started));
-        // Not the studio's child.
+        // Not Lantern's child.
         std::string parent;
         std::ifstream{started} >> parent;
         EXPECT_NE(parent, std::to_string(::getpid()));

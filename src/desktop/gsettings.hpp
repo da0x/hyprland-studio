@@ -11,7 +11,7 @@
 namespace desktop {
 
     // A desktop setting in dconf, which GTK apps and the desktop portal read: what it is now
-    // and what the studio wants, both as gsettings prints them ('prefer-dark', 1.25, true).
+    // and what Lantern wants, both as gsettings prints them ('prefer-dark', 1.25, true).
     struct GSetting {
         std::string schema;
         std::string key;

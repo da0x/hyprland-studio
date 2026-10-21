@@ -25,7 +25,7 @@ namespace configuration {
         [[nodiscard]] Location location() const { return stack.empty() ? Location{} : stack.front(); }
     };
 
-    // Something the config tried that the studio does not do while reading it, such as
+    // Something the config tried that Lantern does not do while reading it, such as
     // starting a program or writing a file.
     struct Refusal {
         std::string           what;

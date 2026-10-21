@@ -20,7 +20,7 @@ namespace {
       public:
         Folder() {
             static std::atomic<int> counter = 0;
-            root = std::filesystem::temp_directory_path() / ("hyprland-studio-file-change-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+            root = std::filesystem::temp_directory_path() / ("lantern-hyprland-file-change-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
             std::filesystem::create_directories(root);
         }
         ~Folder() { std::filesystem::remove_all(root); }

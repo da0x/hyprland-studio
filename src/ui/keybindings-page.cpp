@@ -375,7 +375,7 @@ namespace ui {
             return made;
         }
 
-        // A function: its own text from the file, when the studio can find it.
+        // A function: its own text from the file, when Lantern can find it.
         const auto*                     function = action.function();
         const application::SourceFile* file     = function != nullptr ? source(function->definition.file) : nullptr;
         const auto                      range    = file != nullptr ? syntax::luaFunctionAt(file->text, function->definition.line) : std::nullopt;
