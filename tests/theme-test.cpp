@@ -111,20 +111,20 @@ namespace {
         const auto&                   nord = *std::ranges::find(desktop::terminalThemes(), std::string{"Nord"}, &desktop::TerminalTheme::name);
 
         EXPECT_EQ(desktop::currentTerminal(environment), nullptr);
-        const auto planned = desktop::planTerminal(nord, 11.0, std::nullopt, environment);
+        const auto planned = desktop::planTerminal(nord, 11.0, std::nullopt, 1.0, environment);
         ASSERT_TRUE(planned.has_value()) << planned.error();
         ASSERT_EQ(planned->size(), 2U);
         EXPECT_EQ((*planned)[0].proposed, nord.file);
         EXPECT_EQ((*planned)[1].proposed, "include current-theme.conf\n");
         ASSERT_TRUE(configuration::applyChanges(*planned, root / "backups", "Terminal").has_value());
         EXPECT_EQ(desktop::currentTerminal(environment), &nord);
-        const auto again = desktop::planTerminal(nord, 11.0, std::nullopt, environment);
+        const auto again = desktop::planTerminal(nord, 11.0, std::nullopt, 1.0, environment);
         ASSERT_TRUE(again.has_value());
         EXPECT_TRUE(again->empty());
 
         // A bigger font: only font_size is added to kitty.conf, and then read back.
         EXPECT_EQ(desktop::kittyFontSize(environment), 11.0);
-        const auto bigger = desktop::planTerminal(nord, 13.0, std::nullopt, environment);
+        const auto bigger = desktop::planTerminal(nord, 13.0, std::nullopt, 1.0, environment);
         ASSERT_TRUE(bigger.has_value());
         ASSERT_EQ(bigger->size(), 1U);
         EXPECT_EQ((*bigger)[0].proposed, "include current-theme.conf\nfont_size 13\n");
@@ -133,17 +133,32 @@ namespace {
 
         // A font family: font_family is set, and read back.
         EXPECT_FALSE(desktop::kittyFontFamily(environment).has_value());
-        const auto family = desktop::planTerminal(nord, 13.0, std::string{"JetBrains Mono"}, environment);
+        const auto family = desktop::planTerminal(nord, 13.0, std::string{"JetBrains Mono"}, 1.0, environment);
         ASSERT_TRUE(family.has_value());
         ASSERT_EQ(family->size(), 1U);
         EXPECT_EQ((*family)[0].proposed, "include current-theme.conf\nfont_size 13\nfont_family JetBrains Mono\n");
         ASSERT_TRUE(configuration::applyChanges(*family, root / "backups", "Terminal").has_value());
         EXPECT_EQ(desktop::kittyFontFamily(environment), std::optional<std::string>{"JetBrains Mono"});
 
+        // A see-through background: background_opacity, and the dynamic opacity a running
+        // kitty needs to take it on reload, each written once.
+        EXPECT_EQ(desktop::kittyOpacity(environment), 1.0);
+        const auto glass = desktop::planTerminal(nord, 13.0, std::string{"JetBrains Mono"}, 0.85, environment);
+        ASSERT_TRUE(glass.has_value());
+        ASSERT_EQ(glass->size(), 1U);
+        EXPECT_EQ((*glass)[0].proposed, "include current-theme.conf\nfont_size 13\nfont_family JetBrains Mono\nbackground_opacity 0.85\ndynamic_background_opacity yes\n");
+        ASSERT_TRUE(configuration::applyChanges(*glass, root / "backups", "Terminal").has_value());
+        EXPECT_EQ(desktop::kittyOpacity(environment), 0.85);
+        const auto solid = desktop::planTerminal(nord, 13.0, std::string{"JetBrains Mono"}, 1.0, environment);
+        ASSERT_TRUE(solid.has_value());
+        ASSERT_EQ(solid->size(), 1U);
+        EXPECT_EQ((*solid)[0].proposed, "include current-theme.conf\nfont_size 13\nfont_family JetBrains Mono\nbackground_opacity 1\ndynamic_background_opacity yes\n");
+        ASSERT_TRUE(configuration::applyChanges(*solid, root / "backups", "Terminal").has_value());
+
         // An adjusted theme is recognised as itself, from the same set each time.
         const auto  index = static_cast<std::size_t>(&nord - desktop::terminalThemes().data());
         const auto& high  = desktop::terminalThemes(desktop::Contrast::high, desktop::Vision::blueYellow)[index];
-        const auto  adjusted = desktop::planTerminal(high, 13.0, std::string{"JetBrains Mono"}, environment);
+        const auto  adjusted = desktop::planTerminal(high, 13.0, std::string{"JetBrains Mono"}, 1.0, environment);
         ASSERT_TRUE(adjusted.has_value());
         ASSERT_TRUE(configuration::applyChanges(*adjusted, root / "backups", "Terminal").has_value());
         EXPECT_EQ(desktop::currentTerminal(environment), &high);

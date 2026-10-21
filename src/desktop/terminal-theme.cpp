@@ -193,8 +193,37 @@ namespace desktop {
         return 11.0;
     }
 
+    std::span<const TerminalOpacity> terminalOpacities() {
+        static constexpr std::array opacities{
+            TerminalOpacity{.value = 1.0, .name = "Solid"},
+            TerminalOpacity{.value = 0.95, .name = "Slight"},
+            TerminalOpacity{.value = 0.85, .name = "Glass"},
+            TerminalOpacity{.value = 0.7, .name = "Clear"},
+        };
+        return opacities;
+    }
+
+    double kittyOpacity(const foundation::Environment& environment) {
+        std::ifstream     stream{kittyFolder(environment) / "kitty.conf"};
+        std::stringstream text;
+        text << stream.rdbuf();
+        if (const auto value = configuration::spacedValue(text.str(), "background_opacity")) {
+            double opacity = 0;
+            if (const auto [end, failed] = std::from_chars(value->data(), value->data() + value->size(), opacity); failed == std::errc{} && opacity >= 0 && opacity <= 1)
+                return opacity;
+        }
+        return 1.0;
+    }
+
+    bool kittyDynamicOpacity(const foundation::Environment& environment) {
+        std::ifstream     stream{kittyFolder(environment) / "kitty.conf"};
+        std::stringstream text;
+        text << stream.rdbuf();
+        return configuration::spacedValue(text.str(), "dynamic_background_opacity") == "yes";
+    }
+
     std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, double fontSize, const std::optional<std::string>& fontFamily,
-                                                                                   const foundation::Environment& environment) {
+                                                                                   double opacity, const foundation::Environment& environment) {
         std::vector<configuration::FileChange> changes;
         if (!findProgram("kitty", foundation::variable(environment, "PATH").value_or("")))
             return changes;
@@ -202,7 +231,7 @@ namespace desktop {
         // kitty's own convention, as `kitten themes` follows it: the colours in
         // current-theme.conf, which kitty.conf includes.
         for (auto planned : {configuration::planEdit(folder / "current-theme.conf", [&theme](std::string_view) { return theme.file; }),
-                             configuration::planEdit(folder / "kitty.conf", [fontSize, &fontFamily, &environment](std::string_view text) {
+                             configuration::planEdit(folder / "kitty.conf", [fontSize, &fontFamily, opacity, &environment](std::string_view text) {
                                  std::string result{text};
                                  if (!configuration::hasLine(result, "include current-theme.conf")) {
                                      if (!result.empty() && !result.ends_with('\n'))
@@ -214,6 +243,10 @@ namespace desktop {
                                      result = configuration::withSpacedValue(result, "font_size", std::format("{:g}", fontSize));
                                  if (fontFamily && fontFamily != kittyFontFamily(environment))
                                      result = configuration::withSpacedValue(result, "font_family", *fontFamily);
+                                 if (opacity != kittyOpacity(environment))
+                                     result = configuration::withSpacedValue(result, "background_opacity", std::format("{:g}", opacity));
+                                 if (opacity < 1 && configuration::spacedValue(result, "dynamic_background_opacity") != "yes")
+                                     result = configuration::withSpacedValue(result, "dynamic_background_opacity", "yes");
                                  return result;
                              })}) {
             if (!planned)

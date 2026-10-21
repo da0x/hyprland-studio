@@ -7,6 +7,7 @@
 #include "desktop/clipboard.hpp"
 #include "desktop/process.hpp"
 #include "desktop/system.hpp"
+#include "desktop/wallpaper.hpp"
 #include "foundation/environment.hpp"
 #include "ui/bar-preview.hpp"
 #include "ui/markup.hpp"
@@ -15,6 +16,7 @@
 #include "ui/widgets.hpp"
 
 #include <hyprtoolkit/element/Combobox.hpp>
+#include <hyprtoolkit/element/Image.hpp>
 #include <hyprtoolkit/element/Null.hpp>
 #include <hyprtoolkit/element/ScrollArea.hpp>
 
@@ -32,6 +34,8 @@ namespace ui {
 
         constexpr auto        changeName = "Terminal";
         constexpr std::size_t perRow     = 4;
+        // The desktop's image around the large preview.
+        constexpr double      desktopMargin = 18;
         constexpr std::size_t perPage    = 2 * perRow;
         constexpr double      cardShare  = 0.24;
         // A card: the session, its name, and the margins and gap around them.
@@ -69,6 +73,8 @@ namespace ui {
         const auto environment = foundation::currentEnvironment();
         fontSize               = desktop::kittyFontSize(environment);
         fontFamily             = desktop::kittyFontFamily(environment);
+        opacity                = desktop::kittyOpacity(environment);
+        wallpaperImage         = desktop::shownWallpaperImage(environment);
         fonts                  = desktop::terminalFonts();
         // The adjustments are those chosen on the Accessibility page; before any were, those
         // of the theme in use, so the page opens on what kitty shows.
@@ -157,12 +163,13 @@ namespace ui {
     CSharedPointer<Hyprtoolkit::IElement> TerminalPage::sessionOf(const desktop::TerminalTheme* theme, bool large) {
         // The large one is drawn at the font size chosen, so it shows what kitty will.
         const auto family = large ? usableFamily().value_or("monospace") : std::string{"monospace"};
-        auto&      made   = sessions[{theme, large, large ? fontSize : 0.0, family}];
+        auto&      made   = sessions[{theme, large, large ? fontSize : 0.0, family, large ? opacity : 1.0}];
         if (made)
             return made;
         const auto& colour = theme->colours;
+        // The large one is see-through as kitty will be, over the desktop's own image.
         const auto  frame  = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([c = paletteColour(theme->background)] { return c; })
+                               ->color([c = paletteColour(theme->background, large ? static_cast<float>(opacity) : 1.F)] { return c; })
                                ->rounding(large ? 10 : 6)
                                ->borderColor([c = paletteColour(colour[8])] { return c; })
                                ->borderThickness(1)
@@ -175,7 +182,7 @@ namespace ui {
         lines->setMargin(large ? 16 : 7);
         // A short session, coloured as a shell and the usual tools colour their output.
         const auto in     = [](const std::string& hex, std::string_view text) { return coloured(text, hex); };
-        const auto prompt = std::format("{} {} {} ", in(colour[2], "da@studio"), in(colour[4], "~/lantern-hyprland"), in(theme->foreground, "$"));
+        const auto prompt = std::format("{} {} {} ", in(colour[2], "you@hyprland"), in(colour[4], "~/lantern-hyprland"), in(theme->foreground, "$"));
         const std::vector<std::string> session{
             prompt + in(theme->foreground, "ls"),
             std::format("{}  {}  {}  {}  {}", in(colour[4], "build"), in(colour[4], "docs"), in(colour[4], "src"), in(theme->foreground, "README.md"), in(colour[2], "configure")),
@@ -197,6 +204,19 @@ namespace ui {
         }
         frame->addChild(lines);
         made = frame;
+        if (large && wallpaperImage) {
+            const auto desktop = Hyprtoolkit::CImageBuilder::begin()
+                                     ->path(wallpaperImage->string())
+                                     ->fitMode(Hyprtoolkit::IMAGE_FIT_MODE_COVER)
+                                     ->rounding(10)
+                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 200.0 + 2 * desktopMargin}})
+                                     ->commence();
+            const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
+            inside->setMargin(desktopMargin);
+            inside->addChild(frame);
+            desktop->addChild(inside);
+            made = desktop;
+        }
         return made;
     }
 
@@ -264,11 +284,39 @@ namespace ui {
         top->addChild(letterButton("A", 8.F, palette, defer, [size] { size(-1); }));
         top->addChild(fontText);
         top->addChild(letterButton("A", 14.F, palette, defer, [size] { size(1); }));
+        // How see-through the background is; a value of kitty.conf's own is kept as a choice.
+        std::vector<std::string> levels;
+        std::size_t              level = 0;
+        for (const auto& [value, name] : desktop::terminalOpacities()) {
+            if (value == opacity)
+                level = levels.size();
+            levels.emplace_back(name);
+        }
+        const bool ownLevel = std::ranges::none_of(desktop::terminalOpacities(), [this](const auto& known) { return known.value == opacity; });
+        if (ownLevel) {
+            level = levels.size();
+            levels.push_back(std::format("Yours, {:g}", opacity));
+        }
+        top->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {16.0, 1.0}})->commence());
+        top->addChild(Hyprtoolkit::CComboboxBuilder::begin()
+                          ->items(std::move(levels))
+                          ->currentItem(level)
+                          ->onChanged([this, own = opacity](CSharedPointer<Hyprtoolkit::CComboboxElement>, std::size_t index) {
+                              defer([this, index, own] {
+                                  const auto known = desktop::terminalOpacities();
+                                  opacity          = index < known.size() ? known[index].value : own;
+                                  updateSelection();
+                              });
+                          })
+                          ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(130.0), scaled(34.0)}})
+                          ->commence());
         top->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {24.0, 1.0}})->commence());
         body->addChild(top);
         fontHint = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         body->addChild(fontHint);
         showFontHint();
+        opacityNote = markupLine(" ", palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.7F);
+        body->addChild(opacityNote);
 
         largePreview = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         body->addChild(largePreview);
@@ -377,6 +425,10 @@ namespace ui {
     void TerminalPage::updateSelection() {
         largePreview->clearChildren();
         largePreview->addChild(sessionOf(selected, true));
+        opacityNote->rebuild()
+            ->text(contrast == desktop::Contrast::high && opacity < 1 ? escapeMarkup("High contrast is on, and a see-through background lowers it: Solid reads best.")
+                                                                       : std::string{" "})
+            ->commence();
         fillStatus();
         for (auto& [theme, made] : cards) {
             const bool chosen = theme == selected;
@@ -392,10 +444,11 @@ namespace ui {
 
     void TerminalPage::fillStatus() {
         const auto environment = foundation::currentEnvironment();
-        const auto planned     = desktop::planTerminal(*selected, fontSize, usableFamily(), environment);
+        const auto planned     = desktop::planTerminal(*selected, fontSize, usableFamily(), opacity, environment);
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         inUse                  = desktop::currentTerminal(environment);
-        const auto shown = std::format("{}|{}|{}|{}|{}|{}|{}", fullName(*selected), fontSize, usableFamily().value_or(""), planned ? planned->empty() : false, planned ? "" : planned.error(), undoable, outcome);
+        const auto shown = std::format("{}|{}|{}|{}|{}|{}|{}|{}", fullName(*selected), fontSize, usableFamily().value_or(""), opacity, planned ? planned->empty() : false,
+                                       planned ? "" : planned.error(), undoable, outcome);
         if (shown == statusShown)
             return;
         statusShown = shown;
@@ -425,7 +478,8 @@ namespace ui {
     }
 
     void TerminalPage::showReview() {
-        auto planned = desktop::planTerminal(*selected, fontSize, usableFamily(), foundation::currentEnvironment());
+        const auto environment = foundation::currentEnvironment();
+        auto       planned     = desktop::planTerminal(*selected, fontSize, usableFamily(), opacity, environment);
         if (!planned) {
             outcome = planned.error();
             return showOverview();
@@ -440,6 +494,11 @@ namespace ui {
         body->addChild(paragraph("Applying will:", palette));
         body->addChild(paragraph("•  Write the changes below. A copy of each file is kept first, so it can be undone.", palette, true));
         body->addChild(paragraph("•  Show the new colours and font size in every open kitty window at once.", palette, true));
+        // kitty takes a new opacity on reload only if it started with dynamic opacity on.
+        if (opacity != desktop::kittyOpacity(environment) && !desktop::kittyDynamicOpacity(environment))
+            body->addChild(paragraph("•  Give new kitty windows the new background. Windows open now keep theirs until they are opened again; after that, "
+                                     "changes reach them at once.",
+                                     palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
         diff.setRows(diffRows(changes, *palette));
         body->addChild(diff.element());

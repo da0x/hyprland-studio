@@ -98,6 +98,10 @@ namespace desktop {
     // The fallback wallpaper hyprpaper.conf sets now.
     [[nodiscard]] std::optional<Wallpaper> currentWallpaper(const foundation::Environment& environment);
 
+    // The image on the desktop now: the one awww shows, or the one hyprpaper.conf sets. It
+    // asks awww, so it waits as long as `awww query` takes.
+    [[nodiscard]] std::optional<std::filesystem::path> shownWallpaperImage(const foundation::Environment& environment);
+
     // Where the user's wallpapers are kept: Wallpapers in the pictures folder, which
     // ~/.config/user-dirs.dirs may name (XDG_PICTURES_DIR), or ~/Pictures.
     [[nodiscard]] std::filesystem::path wallpaperFolder(const foundation::Environment& environment);

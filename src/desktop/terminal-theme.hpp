@@ -88,11 +88,29 @@ namespace desktop {
     // kitty's font size in points: kitty.conf's font_size, or kitty's default, 11.
     [[nodiscard]] double kittyFontSize(const foundation::Environment& environment);
 
-    // What gives kitty the theme and the font: the theme's file as current-theme.conf, and in
-    // kitty.conf the line that includes it, font_size, and font_family when one is given.
-    // Empty when kitty is not installed or already has them all.
+    // How much of the desktop shows through kitty's background, from solid to clear. The
+    // text stays solid, and Hyprland blurs what shows through when its blur is on.
+    struct TerminalOpacity {
+        // kitty.conf's background_opacity: one is solid.
+        double           value;
+        std::string_view name;
+    };
+
+    [[nodiscard]] std::span<const TerminalOpacity> terminalOpacities();
+
+    // kitty's background opacity: kitty.conf's background_opacity, or kitty's default, 1.
+    [[nodiscard]] double kittyOpacity(const foundation::Environment& environment);
+
+    // Whether kitty.conf turns on dynamic_background_opacity.
+    [[nodiscard]] bool kittyDynamicOpacity(const foundation::Environment& environment);
+
+    // What gives kitty the theme, the font and the opacity: the theme's file as
+    // current-theme.conf, and in kitty.conf the line that includes it, font_size,
+    // font_family when one is given, and background_opacity. A see-through background also
+    // turns on dynamic_background_opacity, without which a running kitty keeps its opacity
+    // when it reloads. Empty when kitty is not installed or already has them all.
     [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planTerminal(const TerminalTheme& theme, double fontSize,
-                                                                                                  const std::optional<std::string>& fontFamily,
+                                                                                                  const std::optional<std::string>& fontFamily, double opacity,
                                                                                                   const foundation::Environment& environment);
 
     // The bundled theme kitty's current-theme.conf holds, if it holds one exactly.

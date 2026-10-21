@@ -13,6 +13,7 @@
 #include <hyprtoolkit/palette/Palette.hpp>
 
 #include <cstddef>
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <optional>
@@ -72,10 +73,13 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> grid;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         position;
         std::vector<std::pair<const desktop::TerminalTheme*, Card>>          cards;
-        std::map<std::tuple<const desktop::TerminalTheme*, bool, double, std::string>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> sessions;
+        std::map<std::tuple<const desktop::TerminalTheme*, bool, double, std::string, double>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> sessions;
         // Under the filters: how to install the font chosen, when it is not installed.
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> fontHint;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         fontText;
+        // Under the filters: that a see-through background lowers the contrast, when high
+        // contrast is on.
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         opacityNote;
         RowList                                                              diff;
 
         const desktop::TerminalTheme*                                        selected = nullptr;
@@ -92,6 +96,10 @@ namespace ui {
         // The font family to give kitty, or nothing for kitty's own; and the fonts to choose from.
         std::optional<std::string>                                           fontFamily;
         std::vector<desktop::TerminalFont>                                   fonts;
+        // How much of the desktop shows through kitty's background; kitty's own until changed.
+        double                                                               opacity  = 1;
+        // The desktop's image, drawn behind the large preview so its opacity shows.
+        std::optional<std::filesystem::path>                                 wallpaperImage;
         // The font family the plan and the preview use: the one chosen, if it is installed.
         [[nodiscard]] std::optional<std::string>                             usableFamily() const;
         void                                                                 showFontHint();

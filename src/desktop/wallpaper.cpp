@@ -3,6 +3,7 @@
 
 #include "configuration/autostart.hpp"
 #include "configuration/lua-edit.hpp"
+#include "desktop/process.hpp"
 #include "desktop/system.hpp"
 
 #include <nlohmann/json.hpp>
@@ -444,6 +445,16 @@ namespace desktop {
         if (error)
             return std::unexpected{std::format("cannot copy {} to {}: {}", image.string(), target.string(), error.message())};
         return target;
+    }
+
+    std::optional<std::filesystem::path> shownWallpaperImage(const foundation::Environment& environment) {
+        if (const auto awww = findProgram("awww", foundation::variable(environment, "PATH").value_or("")))
+            if (const auto reply = readCommand(*awww, {"query", "-j"}))
+                if (auto image = awwwImage(*reply))
+                    return image;
+        if (const auto wallpaper = currentWallpaper(environment))
+            return wallpaper->image;
+        return std::nullopt;
     }
 
 }
