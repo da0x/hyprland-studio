@@ -141,12 +141,10 @@ namespace ui {
     CSharedPointer<Hyprtoolkit::IElement> BarPage::styleSection() {
         const auto section = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
 
-        // The chosen style at Waybar's own size, then what applying it would do.
+        // The chosen style at Waybar's own size; what applying it would do is in the footer.
         largePreview = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-        styleStatus  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         styleStatusShown.clear();
         section->addChild(largePreview);
-        section->addChild(styleStatus);
 
         // The look of the bar, and what is on it, each on a tab of its own.
         const auto tabs = leftRow();
@@ -310,23 +308,29 @@ namespace ui {
         if (shown == styleStatusShown)
             return;
         styleStatusShown = shown;
-        styleStatus->clearChildren();
+
+        // Everything said here sits in the footer, so that saying it moves nothing above.
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
         if (undoable)
             away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undo(); }); }));
+        std::string note;
         if (!planned) {
-            styleStatus->addChild(paragraph(std::format("Lantern cannot write it: {}.", planned.error()), palette));
+            note = escapeMarkup(std::format("Lantern cannot write it: {}.", planned.error()));
         } else if (same) {
-            styleStatus->addChild(markupLine(std::format("{}  Your Waybar uses {}, {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
-                                                         escapeMarkup(std::string{shapeInfo(selected.shape).name})),
-                                             palette));
+            note = std::format("{}  Your Waybar uses {}, {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
+                               escapeMarkup(std::string{shapeInfo(selected.shape).name}));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(selected); }); }));
+            note = escapeMarkup(outcome);
         }
-        setFooter(footer, buttons, nullptr, away);
-        if (!outcome.empty())
-            styleStatus->addChild(paragraph(outcome, palette));
+        CSharedPointer<Hyprtoolkit::IElement> noteText;
+        if (!note.empty()) {
+            const auto made = markupLine(note, palette);
+            made->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            noteText = made;
+        }
+        setFooter(footer, buttons, noteText, away);
     }
 
     void BarPage::showOverview() {

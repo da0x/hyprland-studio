@@ -89,7 +89,6 @@ namespace ui {
         desktop::WaybarStyle                                                 selected;
         std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border, std::set<desktop::Widget>>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
-        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> styleStatus;
         // What the status shows now, so that it is made anew only when that changes.
         std::string                                                          styleStatusShown;
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
