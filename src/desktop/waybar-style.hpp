@@ -8,7 +8,7 @@
 #include <expected>
 #include <filesystem>
 #include <optional>
-#include <map>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -132,11 +132,24 @@ namespace desktop {
 
     [[nodiscard]] std::span<const WidgetInfo> waybarWidgets();
 
-    // The widgets a new bar has, each on its own side.
-    [[nodiscard]] std::map<Widget, Side> standardWidgets();
+    // The widgets on each side of the bar, indexed by Side, in the order they are shown.
+    using WidgetSides = std::array<std::vector<Widget>, 3>;
 
-    // The widgets a Waybar config shows, by the modules it lists, and the side of each.
-    [[nodiscard]] std::map<Widget, Side> widgetsIn(std::string_view config);
+    // The widgets a new bar has, each on its own side.
+    [[nodiscard]] WidgetSides standardWidgets();
+
+    // The side a widget is on, if it is on the bar.
+    [[nodiscard]] std::optional<Side> sideOf(const WidgetSides& sides, Widget widget);
+
+    // Takes a widget off the bar.
+    void removeWidget(WidgetSides& sides, Widget widget);
+
+    // Puts a widget on `side`, before `before` when that is there, or at the end; from
+    // wherever it was.
+    void placeWidget(WidgetSides& sides, Widget widget, Side side, std::optional<Widget> before = std::nullopt);
+
+    // The widgets a Waybar config shows, by the modules it lists, on their sides in order.
+    [[nodiscard]] WidgetSides widgetsIn(std::string_view config);
 
     // A complete style: the shape, the palette, the geometry, the border, and the widgets.
     struct WaybarStyle {
@@ -144,7 +157,7 @@ namespace desktop {
         const Palette* palette  = nullptr;
         BarGeometry    geometry = {};
         Border         border   = Border::thin;
-        std::map<Widget, Side> widgets  = standardWidgets();
+        WidgetSides    widgets  = standardWidgets();
 
         bool operator==(const WaybarStyle&) const = default;
     };

@@ -439,16 +439,35 @@ window#waybar {
         return widgets;
     }
 
-    std::map<Widget, Side> standardWidgets() {
-        std::map<Widget, Side> standard;
+    WidgetSides standardWidgets() {
+        WidgetSides standard;
         for (const auto& info : widgets)
             if (info.standard)
-                standard[info.widget] = info.side;
+                standard[static_cast<std::size_t>(info.side)].push_back(info.widget);
         return standard;
     }
 
-    std::map<Widget, Side> widgetsIn(std::string_view config) {
-        std::map<Widget, Side> found;
+    std::optional<Side> sideOf(const WidgetSides& sides, Widget widget) {
+        for (std::size_t side = 0; side < sides.size(); ++side)
+            if (std::ranges::contains(sides[side], widget))
+                return static_cast<Side>(side);
+        return std::nullopt;
+    }
+
+    void removeWidget(WidgetSides& sides, Widget widget) {
+        for (auto& side : sides)
+            std::erase(side, widget);
+    }
+
+    void placeWidget(WidgetSides& sides, Widget widget, Side side, std::optional<Widget> before) {
+        removeWidget(sides, widget);
+        auto&      list = sides[static_cast<std::size_t>(side)];
+        const auto at   = before ? std::ranges::find(list, *before) : list.end();
+        list.insert(at, widget);
+    }
+
+    WidgetSides widgetsIn(std::string_view config) {
+        WidgetSides found;
         const auto       parsed = nlohmann::json::parse(config, nullptr, false, true);
         if (parsed.is_discarded() || !parsed.is_object())
             return found;
@@ -458,8 +477,8 @@ window#waybar {
             for (const auto& module : parsed[key])
                 if (module.is_string())
                     for (const auto& info : widgets)
-                        if (module.get<std::string>() == info.module)
-                            found[info.widget] = side;
+                        if (module.get<std::string>() == info.module && !sideOf(found, info.widget))
+                            found[static_cast<std::size_t>(side)].push_back(info.widget);
         }
         return found;
     }
@@ -467,16 +486,17 @@ window#waybar {
     std::string waybarConfigText(const WaybarStyle& style) {
         const auto& palette  = *style.palette;
         const bool  floating = style.shape != Shape::fullWidth;
-        // Each side lists its widgets in the order of Widget, which puts the workspaces and the
-        // clock first and the sound, the network and the tray last, as they always were.
-        std::vector<std::string_view> left;
-        std::vector<std::string_view> centre;
-        std::vector<std::string_view> right;
-        std::string                   blocks;
-        for (const auto& [widget, side] : style.widgets) {
-            (side == Side::left ? left : side == Side::centre ? centre : right).push_back(widgetInfo(widget).module);
-            blocks += widgetBlock(widget);
-        }
+        // Each side lists its widgets in the order chosen. Their settings follow in the order
+        // of Widget, so that moving one changes only the lists.
+        std::array<std::vector<std::string_view>, 3> lists;
+        for (std::size_t side = 0; side < lists.size(); ++side)
+            for (const auto widget : style.widgets[side])
+                lists[side].push_back(widgetInfo(widget).module);
+        const auto& [left, centre, right] = lists;
+        std::string blocks;
+        for (const auto& info : widgets)
+            if (sideOf(style.widgets, info.widget))
+                blocks += widgetBlock(info.widget);
         return std::format(R"({{
     "layer": "top",
     "position": "top",
@@ -570,8 +590,9 @@ window#waybar {
                                       palette.text, palette.accent, palette.audio, palette.network, palette.alert);
         text += shapeRules(style.shape);
         text += moduleRules;
-        for (const auto& [widget, side] : style.widgets)
-            text += widgetRules(widget);
+        for (const auto& info : widgets)
+            if (sideOf(style.widgets, info.widget))
+                text += widgetRules(info.widget);
         // The radii written above are the default geometry's: the bar's 10 and the
         // workspace buttons' 7, which keep that proportion to it.
         const auto replaced = [&text](std::string_view from, int pixels) {
@@ -628,17 +649,17 @@ window#waybar {
 
     std::optional<WaybarStyle> currentWaybarStyle(const foundation::Environment& environment, const BarGeometry& geometry, const std::filesystem::path& systemFolder) {
         // The widgets are read from the config, rather than tried in every combination.
-        std::map<Widget, Side> widgets;
+        WidgetSides placed;
         if (const auto config = waybarConfig(environment, systemFolder)) {
             std::ifstream     stream{*config, std::ios::binary};
             std::stringstream text;
             text << stream.rdbuf();
-            widgets = widgetsIn(text.str());
+            placed = widgetsIn(text.str());
         }
         for (const auto& info : shapes) {
             for (const auto& palette : palettes) {
                 for (const auto border : {Border::thin, Border::inactive, Border::active}) {
-                    const WaybarStyle style{info.shape, &palette, geometry, border, widgets};
+                    const WaybarStyle style{info.shape, &palette, geometry, border, placed};
                     const auto        planned = planWaybarStyle(style, environment, systemFolder);
                     if (planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); }))
                         return style;

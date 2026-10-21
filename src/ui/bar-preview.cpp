@@ -169,17 +169,15 @@ namespace ui {
         // The widgets on one side, in a row as wide as they are.
         double sideWidth(const desktop::WaybarStyle& style, desktop::Side side, double scale) {
             double width = 0;
-            for (const auto& [shown, at] : style.widgets)
-                if (at == side)
-                    width += widgetWidth(shown);
+            for (const auto shown : style.widgets[static_cast<std::size_t>(side)])
+                width += widgetWidth(shown);
             return width * scale;
         }
 
         CSharedPointer<Hyprtoolkit::IElement> group(const desktop::WaybarStyle& style, desktop::Side side, double scale, double height) {
             const auto made = row(std::max(1.0, sideWidth(style, side, scale)), height);
-            for (const auto& [shown, at] : style.widgets)
-                if (at == side)
-                    made->addChild(widget(style, shown, scale, height));
+            for (const auto shown : style.widgets[static_cast<std::size_t>(side)])
+                made->addChild(widget(style, shown, scale, height));
             return made;
         }
 

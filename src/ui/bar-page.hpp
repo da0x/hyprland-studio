@@ -14,6 +14,7 @@
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
+#include <array>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -69,6 +70,11 @@ namespace ui {
         void                                                                   fillStyleStatus();
         // The open tab's choices: the shape, colours and border, or the widgets.
         void                                                                   fillChoices();
+        // Puts each widget's card in its column, in order.
+        void                                                                   arrangeWidgets();
+        void                                                                   colourWidgetCards();
+        // Does what a drag that just ended asks.
+        void                                                                   dropWidget();
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
         // card's, 2 a palette card's, 3 a border card's. An element has one parent, so each place has its own.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> previewOf(int kind, const desktop::WaybarStyle& style);
@@ -87,24 +93,27 @@ namespace ui {
         application::Settings                                                settings;
         // The style shown in the big preview: Waybar's own at first, if it is one of Lantern's.
         desktop::WaybarStyle                                                 selected;
-        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border, std::map<desktop::Widget, desktop::Side>>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
+        std::map<std::tuple<int, desktop::Shape, const desktop::Palette*, desktop::Border, desktop::WidgetSides>, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement>> previews;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
         // What the status shows now, so that it is made anew only when that changes.
         std::string                                                          styleStatusShown;
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
         std::vector<std::pair<desktop::Border, Card>>                        borderCards;
-        // A row of the widgets' table: highlighted while the widget is on, with a button for
-        // each side, the one it is on in the accent.
-        struct WidgetRow {
-            desktop::Widget                                                                  widget;
-            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>                frame;
-            Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>                     name;
-            std::string                                                                      title;
-            std::string                                                                      summary;
-            std::vector<std::pair<desktop::Side, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>>> sides;
+        // The widgets' cards, kept and moved between the columns as the order changes, so
+        // their text is not drawn again; the columns are Left, Center, Right and Off the bar.
+        std::map<desktop::Widget, Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>> widgetCards;
+        std::array<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement>, 4>     widgetColumns;
+        // A drag: the card pressed, the card under the pointer, and where it was let go: on a
+        // side, or off the bar for none; before a card, or at the end.
+        struct Drop {
+            std::optional<desktop::Side>   side;
+            std::optional<desktop::Widget> before;
+            bool                           onCard = false;
         };
-        std::vector<WidgetRow>                                               widgetRows;
+        std::optional<desktop::Widget>                                       dragging;
+        std::optional<desktop::Widget>                                       target;
+        std::optional<Drop>                                                  drop;
         // The Style and Widgets tabs, and what the one open shows.
         std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;
