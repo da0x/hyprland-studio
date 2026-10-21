@@ -283,6 +283,60 @@ label.dim-label {{
 .error {{
     color: @alert;
 }}
+
+/* What a high-contrast theme draws light whatever the palette. */
+toolbar,
+.toolbar,
+.inline-toolbar,
+actionbar,
+actionbar > revealer > box,
+statusbar,
+searchbar,
+searchbar > revealer > box {{
+    background: @base;
+    color: @text;
+    border-color: @raised;
+}}
+
+toolbar button,
+.inline-toolbar button,
+actionbar button {{
+    background: transparent;
+    border-color: transparent;
+    color: @text;
+}}
+
+toolbar button:hover,
+.inline-toolbar button:hover,
+actionbar button:hover {{
+    background: @surface;
+}}
+
+frame > border,
+.frame,
+scrolledwindow,
+viewport {{
+    border-color: @raised;
+}}
+
+separator {{
+    background: @raised;
+}}
+
+scrollbar,
+scrollbar trough {{
+    background: transparent;
+    border-color: transparent;
+}}
+
+scrollbar slider {{
+    background: @raised;
+}}
+
+image,
+label {{
+    color: inherit;
+}}
 )",
                            palette.name, palette.base, palette.onAccent, palette.surface, palette.raised, palette.subtle, palette.text, palette.accent, palette.alert);
     }
