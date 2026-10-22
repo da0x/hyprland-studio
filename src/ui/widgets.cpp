@@ -136,19 +136,23 @@ namespace ui {
 
     CSharedPointer<Hyprtoolkit::IElement> requirementBlock(const desktop::Requirement& requirement, const desktop::Distribution& distribution,
                                                            const std::optional<std::filesystem::path>& copier, const CSharedPointer<Hyprtoolkit::CPalette>& palette,
-                                                           const std::function<void(std::function<void()>)>& defer) {
+                                                           const std::function<void(std::function<void()>)>& defer, const std::string& problem) {
         const bool dark  = darkTheme(*palette);
         const auto green = dark ? std::string{"#a6e3a1"} : std::string{"#2f7d32"};
         const auto red   = dark ? std::string{"#f38ba8"} : std::string{"#c62828"};
 
         const auto block = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-        const auto mark  = requirement.met() ? coloured("✓", green) : coloured("✗", red);
+        const auto amber = dark ? std::string{"#f9e2af"} : std::string{"#a15c00"};
+        const auto mark  = !requirement.met() ? coloured("✗", red) : problem.empty() ? coloured("✓", green) : coloured("!", amber);
         const auto state = requirement.met() ? escapeMarkup(*requirement.found) : coloured("not installed", red);
         block->addChild(markupLine(std::format("{}  <span weight=\"600\">{}</span>   {}", mark, escapeMarkup(requirement.name), state), palette));
         block->addChild(paragraph(requirement.purpose, palette, true));
         block->addChild(markupLine(coloured(requirement.upstream, hex(palette->m_colors.linkText)), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
-        if (requirement.met())
+        if (requirement.met()) {
+            if (!problem.empty())
+                block->addChild(markupLine(coloured(escapeMarkup(problem), amber), palette));
             return block;
+        }
 
         block->addChild(space(4));
         if (const auto command = desktop::installCommand(requirement, distribution); !command.empty()) {

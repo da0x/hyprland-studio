@@ -73,6 +73,11 @@ Each page does one thing:
 - **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
   distribution's with the command that installs one.
 - **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
+- **Essentials:** checks for what a Hyprland desktop needs beside Hyprland: the portals for
+  screen sharing and file dialogs, a polkit agent for password prompts, a notification
+  daemon, fonts for text and emoji, and Qt's Wayland support. Each one missing shows why it
+  matters and the command that installs it; Lantern installs nothing. A polkit agent that
+  is installed but not running can be started, now and with Hyprland.
 - **Keyboard shortcuts:** every binding, what it does, where in your config it is set,
   and which keys are bound more than once, with a search.
 - **Options:** every Hyprland option with its value, default and description, and which
@@ -125,6 +130,9 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Keyboard and mouse page:** the keyboard layouts xkeyboard-config lists in
   `/usr/share/X11/xkb/rules/evdev.lst`, and whether udev has found a touchpad, from
   `/run/udev/data`.
+- **Essentials page:** the portals in `/usr/share/xdg-desktop-portal/portals`, the D-Bus
+  services in `/usr/share/dbus-1/services`, the polkit agents and Qt plugins installed,
+  your running programs, and fontconfig's fonts.
 - **Cursors page:** the cursor themes in your icon folders and the system's, and their
   cursor files, to draw them.
 - **Its own colours:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
@@ -169,6 +177,8 @@ writes the file it points to, and the review says which one.
   Hyprland config, the shader itself in `~/.config/hypr/shaders/`, the text sizes in
   `hyprtoolkit.conf`, and the desktop's contrast, motion, text size and cursor size
   settings.
+- **Essentials:** only when you start a polkit agent from it: a line in your Hyprland
+  config's start that runs the agent after you log in.
 
 Desktop settings are changed through `gsettings`, and their old values are kept so Undo
 can restore them. After any change to your Hyprland config, Lantern asks Hyprland whether

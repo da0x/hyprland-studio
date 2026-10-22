@@ -48,11 +48,13 @@ namespace ui {
                                                                                       const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette,
                                                                                       const std::function<void(std::function<void()>)>& defer, const std::string& lead = {});
 
-    // One thing a page needs: whether it is installed, why it is needed, and how to install it.
+    // One thing a page needs: whether it is installed, why it is needed, and how to install it;
+    // and `problem`, what is wrong with it although it is installed.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> requirementBlock(const desktop::Requirement& requirement, const desktop::Distribution& distribution,
                                                                                             const std::optional<std::filesystem::path>&                     copier,
                                                                                             const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette,
-                                                                                            const std::function<void(std::function<void()>)>&               defer);
+                                                                                            const std::function<void(std::function<void()>)>&               defer,
+                                                                                            const std::string&                                              problem = {});
 
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement> button(std::string label, double width, bool accent, std::function<void()> clicked);
 
