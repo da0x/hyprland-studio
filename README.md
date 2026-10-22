@@ -65,7 +65,7 @@ Each page does one thing. The sidebar groups them by what they are for.
   and gaps follow the windows'.
 - **Bar:** a Waybar style that matches the theme, with a border like your windows', the
   widgets you choose on the left, centre or right, such as the weather, media and
-  processor, and a switch to start or stop it. Its Pop-ups tab turns on swayosd's volume
+  processor, in the order you put them with the arrows, and a switch to start or stop it. Its Pop-ups tab turns on swayosd's volume
   and brightness pop-ups, drawn in the bar's colours.
 - **Terminal:** a colour scheme, font, text size and background opacity for kitty.
 - **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the

@@ -467,6 +467,18 @@ window#waybar {
         list.insert(at, widget);
     }
 
+    void moveWidget(WidgetSides& sides, Widget widget, int by) {
+        for (auto& list : sides) {
+            const auto at = std::ranges::find(list, widget);
+            if (at == list.end())
+                continue;
+            const auto to = std::clamp<std::ptrdiff_t>((at - list.begin()) + by, 0, static_cast<std::ptrdiff_t>(list.size()) - 1);
+            list.erase(at);
+            list.insert(list.begin() + to, widget);
+            return;
+        }
+    }
+
     WidgetSides widgetsIn(std::string_view config) {
         WidgetSides found;
         const auto       parsed = nlohmann::json::parse(config, nullptr, false, true);

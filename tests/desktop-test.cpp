@@ -255,6 +255,14 @@ namespace {
         EXPECT_EQ(placedConfig["modules-center"], (nlohmann::json{"cpu"}));
         EXPECT_EQ(placedConfig["modules-right"], (nlohmann::json{"pulseaudio", "clock"}));
 
+        // A widget moves along its side, and stops at either end.
+        desktop::moveWidget(moved, Widget::clock, -1);
+        EXPECT_EQ(moved[static_cast<std::size_t>(Side::right)], (std::vector<Widget>{Widget::clock, Widget::sound}));
+        desktop::moveWidget(moved, Widget::clock, -1);
+        EXPECT_EQ(moved[static_cast<std::size_t>(Side::right)], (std::vector<Widget>{Widget::clock, Widget::sound}));
+        desktop::moveWidget(moved, Widget::clock, 5);
+        EXPECT_EQ(moved[static_cast<std::size_t>(Side::right)], (std::vector<Widget>{Widget::sound, Widget::clock}));
+
         const Folder                  folder;
         const auto                    system = folder.root / "etc";
         const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};

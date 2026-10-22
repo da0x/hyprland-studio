@@ -352,6 +352,30 @@ namespace ui {
                 remove->setPositionFlag(Hyprtoolkit::IElement::HT_POSITION_FLAG_VCENTER, true);
                 remove->setAbsolutePosition({-6, 0});
                 row->addChild(remove);
+                // Up and down along the column, beside it, for a widget that can go there.
+                const auto& list  = selected.widgets[column];
+                const auto  place = std::ranges::find(list, widget) - list.begin();
+                double      right = -40;
+                for (const auto& [label, by] : {std::pair{"\u2193", 1}, std::pair{"\u2191", -1}}) {
+                    const bool can = by < 0 ? place > 0 : place + 1 < static_cast<std::ptrdiff_t>(list.size());
+                    if (!can) {
+                        right -= 34;
+                        continue;
+                    }
+                    const auto move = button(label, 30, false, [this, widget, by] {
+                        defer([this, widget, by] {
+                            desktop::moveWidget(selected.widgets, widget, by);
+                            fillChoices();
+                            updateStyle();
+                        });
+                    });
+                    move->setPositionMode(Hyprtoolkit::IElement::HT_POSITION_ABSOLUTE);
+                    move->setPositionFlag(Hyprtoolkit::IElement::HT_POSITION_FLAG_RIGHT, true);
+                    move->setPositionFlag(Hyprtoolkit::IElement::HT_POSITION_FLAG_VCENTER, true);
+                    move->setAbsolutePosition({right, 0.0});
+                    row->addChild(move);
+                    right -= 34;
+                }
                 inside->addChild(row);
             }
             area->addChild(inside);

@@ -148,6 +148,10 @@ namespace desktop {
     // wherever it was.
     void placeWidget(WidgetSides& sides, Widget widget, Side side, std::optional<Widget> before = std::nullopt);
 
+    // Moves a widget `by` places along its side, towards the start when negative, and no
+    // further than either end.
+    void moveWidget(WidgetSides& sides, Widget widget, int by);
+
     // The widgets a Waybar config shows, by the modules it lists, on their sides in order.
     [[nodiscard]] WidgetSides widgetsIn(std::string_view config);
 
