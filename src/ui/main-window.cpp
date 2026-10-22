@@ -13,6 +13,7 @@
 #include "ui/options-page.hpp"
 #include "ui/restyle.hpp"
 #include "ui/screenshots-page.hpp"
+#include "ui/system-info-page.hpp"
 #include "ui/tabbed-page.hpp"
 #include "ui/terminal-page.hpp"
 #include "ui/cursors-page.hpp"
@@ -184,19 +185,27 @@ namespace ui {
         ConsolePage     console{palette, defer};
         // Pages that belong together, as tabs of one: the displays with the night light that
         // tints them, and the three that only look at the running Hyprland.
+        SystemInfoPage  systemInfo{palette, defer, loop};
         displays.embed();
+        terminal.embed();
         nightLight.embed();
         liveTree.embed();
         eventLog.embed();
         console.embed();
         TabbedPage screens{palette, defer, "Displays", {{"Screens", displays.element(), ""}, {"Night light", nightLight.element(), "Night light"}}};
+        TabbedPage terminalTabs{palette, defer, "Terminal", {{"Colours", terminal.element(), ""}, {"System info", systemInfo.element(), "System info"}}};
         TabbedPage inspect{palette, defer, "Inspect",
                            {{"Tree", liveTree.element(), "Live tree"}, {"Events", eventLog.element(), "Event log"}, {"Console", console.element(), "Console"}}};
         // A wallpaper tried on the desktop and not kept goes back when its page is left; a
         // page in a tab counts as open while its tab is.
         opening = [&wallpaper, &displays, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots, &screens,
-                   &inspect](const CSharedPointer<Hyprtoolkit::IElement>& opened) {
-            const auto page = opened == screens.element() ? screens.current() : opened == inspect.element() ? inspect.current() : opened;
+                   &inspect, &terminalTabs, &systemInfo](const CSharedPointer<Hyprtoolkit::IElement>& opened) {
+            const auto page = opened == screens.element()        ? screens.current()
+                            : opened == inspect.element()        ? inspect.current()
+                            : opened == terminalTabs.element()   ? terminalTabs.current()
+                                                                 : opened;
+            if (page == systemInfo.element())
+                systemInfo.refresh();
             if (page != wallpaper.element())
                 wallpaper.leave();
             if (page != nightLight.element())
@@ -277,7 +286,7 @@ namespace ui {
         addPageButton("Wallpaper", wallpaper.element());
         addPageButton("Windows", windows.element());
         addPageButton("Bar", bar.element());
-        addPageButton("Terminal", terminal.element());
+        addPageButton("Terminal", terminalTabs.element());
         addPageButton("Cursors", cursors.element());
         addGroup("Devices", false);
         addPageButton("Displays", screens.element());
@@ -297,6 +306,7 @@ namespace ui {
         addPageButton("Activate", activate.element());
         screens.onSwitched([&opening, &screens] { opening(screens.element()); });
         inspect.onSwitched([&opening, &inspect] { opening(inspect.element()); });
+        terminalTabs.onSwitched([&opening, &terminalTabs] { opening(terminalTabs.element()); });
         // The page asked for by --page: one of the sidebar's, or a tab of one.
         CSharedPointer<Hyprtoolkit::IElement> firstPage = theme.element();
         if (const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first); first != titles.end())
@@ -305,6 +315,8 @@ namespace ui {
             firstPage = screens.element();
         else if (inspect.select(options.page))
             firstPage = inspect.element();
+        else if (terminalTabs.select(options.page))
+            firstPage = terminalTabs.element();
         show(firstPage);
         // Lantern opened on a page further down has its button in view, in the middle.
         if (scrolled && firstPage != theme.element()) {
@@ -376,7 +388,7 @@ namespace ui {
         });
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &input, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots, &accessibility, &windows, &activate, &console](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &systemInfo, &cursors, &displays, &input, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -388,6 +400,7 @@ namespace ui {
             liveTree.restyle();
             eventLog.restyle();
             terminal.restyle();
+            systemInfo.restyle();
             cursors.restyle();
             displays.restyle();
             input.restyle();

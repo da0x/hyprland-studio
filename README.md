@@ -68,7 +68,9 @@ Each page does one thing. The sidebar groups them by what they are for.
   widgets you choose on the left, centre or right, such as the weather, media and
   processor, in the order you put them with the arrows, and a switch to start or stop it. Its Pop-ups tab turns on swayosd's volume
   and brightness pop-ups, drawn in the bar's colours.
-- **Terminal:** a colour scheme, font, text size and background opacity for kitty.
+- **Terminal:** a colour scheme, font, text size and background opacity for kitty. Its
+  System info tab sets up fastfetch's summary of the system: the logo, a colour from the
+  terminal's scheme, how much it shows, and whether each new terminal opens with it.
 - **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
   distribution's with the command that installs one.
 
@@ -247,6 +249,8 @@ writes the file it points to, and the review says which one.
 - **Default apps:** the `[Default Applications]` lines for each kind's file types in
   `~/.config/mimeapps.list`, or in `hyprland-mimeapps.list` when you have one, and the
   terminal at the top of `~/.config/xdg-terminals.list`.
+- **System info:** fastfetch's `~/.config/fastfetch/config.jsonc`, written whole, and,
+  for new terminals to open with it, a line at the end of `~/.bashrc`.
 - **Screenshots and clipboard:** the three screenshot keys, as `hl.bind` lines, in your
   Hyprland config; and for the history, a start line for `wl-paste --watch cliphist
   store` and the key that opens it, which takes the place of a key bound to something

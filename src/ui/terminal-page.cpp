@@ -60,7 +60,8 @@ namespace ui {
              20} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
-        root->addChild(pageTitle("Terminal", this->palette));
+        title = pageTitle("Terminal", this->palette);
+        root->addChild(title);
         root->addChild(paragraph("Colour schemes for kitty, chosen apart from the desktop's: terminal themes are their own family, and many are best dark "
                                  "whatever the desktop is. They come from kitty's own collection, kitty-themes. Nothing is written until you review the change.",
                                  this->palette));
@@ -530,6 +531,11 @@ namespace ui {
             outcome = "Undone.";
         }
         showOverview();
+    }
+
+    void TerminalPage::embed() {
+        root->removeChild(title);
+        root->setMargin(0);
     }
 
 }

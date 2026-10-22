@@ -33,6 +33,9 @@ namespace ui {
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
+        // Without its title and margin, as a tab of a page that has them; see TabbedPage.
+        void embed();
+
         // Draws the page again, after Lantern's colours changed.
         void restyle();
 
@@ -67,6 +70,7 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
         std::function<void(std::function<void()>)>                           defer;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         title;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> largePreview;
