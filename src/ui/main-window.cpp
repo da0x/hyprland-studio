@@ -12,6 +12,7 @@
 #include "ui/live-tree-page.hpp"
 #include "ui/options-page.hpp"
 #include "ui/restyle.hpp"
+#include "ui/screenshots-page.hpp"
 #include "ui/terminal-page.hpp"
 #include "ui/cursors-page.hpp"
 #include "ui/devices-page.hpp"
@@ -173,12 +174,13 @@ namespace ui {
         DevicesPage     devices{palette, defer, loop};
         AutostartPage   autostart{palette, defer, loop};
         DefaultAppsPage defaultApps{palette, defer, loop};
+        ScreenshotsPage screenshots{palette, defer, loop};
         AccessibilityPage accessibility{palette, defer, loop};
         WindowsPage     windows{palette, defer, loop};
         ActivatePage    activate{palette, defer};
         ConsolePage     console{palette, defer};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
-        opening = [&wallpaper, &displays, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+        opening = [&wallpaper, &displays, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
                 wallpaper.leave();
             if (page != nightLight.element())
@@ -197,6 +199,8 @@ namespace ui {
                 autostart.refresh();
             if (page == defaultApps.element())
                 defaultApps.refresh();
+            if (page == screenshots.element())
+                screenshots.refresh();
         };
 
         const auto addPageButton = [&pageList, &show, &pages, &titles, defer](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
@@ -267,6 +271,7 @@ namespace ui {
         addGroup("System", false);
         addPageButton("Essentials", essentialsPage.element());
         addPageButton("Default apps", defaultApps.element());
+        addPageButton("Screenshots and clipboard", screenshots.element());
         addPageButton("Autostart", autostart.element());
         addPageButton("Idle and lock", idle.element());
         addPageButton("Accessibility", accessibility.element());
@@ -349,7 +354,7 @@ namespace ui {
         });
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &input, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &accessibility, &windows, &activate, &console](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &input, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -370,6 +375,7 @@ namespace ui {
             devices.restyle();
             autostart.restyle();
             defaultApps.restyle();
+            screenshots.restyle();
             bar.restyle();
             wallpaper.restyle();
             accessibility.restyle();

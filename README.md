@@ -96,6 +96,10 @@ Each page does one thing. The sidebar groups them by what they are for.
   viewer, video and music players, among the apps installed that say they open them, with
   what the system picks while none is chosen; and the terminal that apps which run in one
   open in, through xdg-terminal-exec.
+- **Screenshots and clipboard:** the keys that take screenshots with grim and slurp
+  (Print for an area, Shift+Print for every screen, Ctrl+Print for the window in focus),
+  the folder they go to, whether each is copied too and whether it opens in satty to draw
+  on first; and a clipboard history kept by cliphist, with the key that opens it.
 - **Autostart:** what starts when you log in: the programs your Hyprland config starts,
   and the autostart files other programs leave, each switched on or off, and a program
   added. Hyprland does not read autostart files by itself, so the page says what starts
@@ -166,6 +170,8 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Essentials page:** the portals in `/usr/share/xdg-desktop-portal/portals`, the D-Bus
   services in `/usr/share/dbus-1/services`, the polkit agents and Qt plugins installed,
   your running programs, and fontconfig's fonts.
+- **Screenshots and clipboard page:** the `hl.bind` lines in your Hyprland config, to find
+  the Print key's folder and the history's key, and its start lines.
 - **Autostart page:** the start lines in your Hyprland config, the `.desktop` files in
   `~/.config/autostart` and `/etc/xdg/autostart`, and `systemctl --user is-active` for
   whether systemd starts them.
@@ -234,6 +240,10 @@ writes the file it points to, and the review says which one.
 - **Default apps:** the `[Default Applications]` lines for each kind's file types in
   `~/.config/mimeapps.list`, or in `hyprland-mimeapps.list` when you have one, and the
   terminal at the top of `~/.config/xdg-terminals.list`.
+- **Screenshots and clipboard:** the three screenshot keys, as `hl.bind` lines, in your
+  Hyprland config; and for the history, a start line for `wl-paste --watch cliphist
+  store` and the key that opens it, which takes the place of a key bound to something
+  else if you choose one.
 
 Desktop settings are changed through `gsettings`, and their old values are kept so Undo
 can restore them. After any change to your Hyprland config, Lantern asks Hyprland whether
