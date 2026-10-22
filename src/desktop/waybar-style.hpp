@@ -148,7 +148,7 @@ namespace desktop {
     // wherever it was.
     void placeWidget(WidgetSides& sides, Widget widget, Side side, std::optional<Widget> before = std::nullopt);
 
-    // Moves a widget `by` places along its side, towards the start when negative, and no
+    // Moves a widget `by` places along its side, toward the start when negative, and no
     // further than either end.
     void moveWidget(WidgetSides& sides, Widget widget, int by);
 

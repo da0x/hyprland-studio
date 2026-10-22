@@ -33,8 +33,8 @@ namespace desktop {
     // Back to sRGB; a color outside it loses chroma until it fits.
     [[nodiscard]] Color colorOf(const Lch& lch);
 
-    // The color with the least change of lightness, towards white on a dark background and
-    // towards black on a light one, that has at least `ratio` contrast with `background`.
+    // The color with the least change of lightness, toward white on a dark background and
+    // toward black on a light one, that has at least `ratio` contrast with `background`.
     [[nodiscard]] Color withContrast(const Color& color, const Color& background, double ratio);
 
 }
