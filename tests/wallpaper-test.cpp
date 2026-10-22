@@ -86,7 +86,7 @@ namespace {
         const std::array system{root / "share" / "hypr", root / "share" / "backgrounds"};
         const auto       found = desktop::findWallpapers({{"HOME", (root / "home").string()}}, system);
         const std::vector<std::filesystem::path> expected{
-            root / "home/Pictures/Wallpapers/b.png", root / "home/Pictures/Wallpapers/forest/a.JPG", root / "home/Pictures/photo.webp",
+            root / "home/Pictures/Wallpapers/b.png", root / "home/Pictures/Wallpapers/forest/a.JPG",
             root / "share/hypr/wall0.png",           root / "share/backgrounds/sway/blue.png",
         };
         EXPECT_EQ(found, expected);

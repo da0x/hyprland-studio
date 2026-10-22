@@ -7,6 +7,7 @@
 #include "desktop/system.hpp"
 #include "configuration/main-config.hpp"
 #include "desktop/clipboard.hpp"
+#include "desktop/trash.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
 #include "ui/toolkit.hpp"
@@ -316,11 +317,39 @@ namespace ui {
             fits->addChild(made);
         }
         side->addChild(fits);
+        const auto remove = leftRow();
+        remove->addChild(button("Move to trash", 150, false, [this] { defer([this] { trashSelected(); }); }));
+        side->addChild(remove);
         status = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(5)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         statusShown.clear();
         side->addChild(status);
         whole->addChild(side);
         return whole;
+    }
+
+    void WallpaperPage::trashSelected() {
+        if (!selected)
+            return;
+        const auto environment = foundation::currentEnvironment();
+        const auto image       = selected->image;
+        const auto home        = std::filesystem::path{foundation::variable(environment, "HOME").value_or("/nonexistent")};
+        const auto inside      = image.lexically_relative(home);
+        const auto set         = kept();
+        if (inside.empty() || inside.native().starts_with(".."))
+            outcome = "Only your own pictures can go to the trash; this one came with the system.";
+        else if (set && set->image == image)
+            outcome = "It is your wallpaper now. Keep another one first, and then it can go to the trash.";
+        else if (const auto moved = desktop::moveToTrash(image, desktop::trashFolder(environment)); !moved)
+            outcome = std::format("{} was not moved to the trash: {}.", image.filename().string(), moved.error());
+        else {
+            outcome = std::format("{} is in the trash, where your file manager can put it back.", image.filename().string());
+            std::erase(wallpapers, image);
+            // The desktop goes back to the kept wallpaper if it was trying this one.
+            if (tried)
+                leave(false);
+            selected = set ? set : wallpapers.empty() ? std::nullopt : std::optional{desktop::Wallpaper{wallpapers.front(), desktop::FitMode::cover}};
+        }
+        showOverview();
     }
 
     void WallpaperPage::updateSelection() {

@@ -111,9 +111,9 @@ namespace desktop {
     // copy is there, is not copied again.
     [[nodiscard]] std::expected<std::filesystem::path, std::string> addWallpaper(const std::filesystem::path& image, const std::filesystem::path& folder);
 
-    // Images in the folders wallpapers are usually kept in: ~/Pictures/Wallpapers,
-    // ~/Pictures, ~/.local/share/backgrounds, and then `systemFolders` and the folders in
-    // them. In a folder called hypr only Hyprland's own wall*.png count.
+    // Images in the folders wallpapers are kept in: the user's wallpaper folder (see
+    // wallpaperFolder) and ~/.local/share/backgrounds, and then `systemFolders` and the
+    // folders in them. Other pictures, such as screenshots, are not wallpapers until added. In a folder called hypr only Hyprland's own wall*.png count.
     [[nodiscard]] std::vector<std::filesystem::path> findWallpapers(const foundation::Environment&     environment,
                                                                     std::span<const std::filesystem::path> systemFolders);
 

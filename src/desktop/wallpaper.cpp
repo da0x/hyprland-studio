@@ -392,7 +392,6 @@ namespace desktop {
         if (!home.empty()) {
             const auto folder = wallpaperFolder(environment);
             look(folder, true);
-            look(folder.parent_path(), false);
             look(home / ".local" / "share" / "backgrounds", true);
         }
         for (const auto& folder : systemFolders)

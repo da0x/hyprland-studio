@@ -58,8 +58,9 @@ Each page does one thing. The sidebar groups them by what they are for.
   desktop as it would look. Start a theme of your own from any of them, change its
   colours by their hex values, or pick them from the screen with hyprpicker, and keep
   it beside the built-in ones.
-- **Wallpaper:** pick a picture, see it on the desktop at once, and keep it with
-  hyprpaper or awww.
+- **Wallpaper:** pick a picture from your Wallpapers folder or the system's, see it on
+  the desktop at once, and keep it with hyprpaper or awww. A picture of yours you no
+  longer want goes to the trash, where your file manager can bring it back.
 - **Windows:** corners, gaps, border thickness, whether dragging a border resizes, and
   whether open and save dialogs float, with a preview of your screen. The bar's corners
   and gaps follow the windows'.
@@ -157,7 +158,7 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Bar page:** whether Waybar is installed, whether its icon font is, which config
   Waybar would read, and `/etc/os-release`, to show the install command for your
   distribution.
-- **Wallpaper page:** the pictures in your Wallpapers and Pictures folders,
+- **Wallpaper page:** the pictures in your Wallpapers folder (`~/Pictures/Wallpapers`),
   `~/.local/share/backgrounds`, `/usr/share/hypr` and `/usr/share/backgrounds`, and
   `hyprpaper.conf`, or which picture awww shows.
 - **Terminal page and the Inspect page's Console:** kitty's `kitty.conf` and `current-theme.conf`. For the

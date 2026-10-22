@@ -70,6 +70,8 @@ namespace ui {
         // Shows the chosen wallpaper on the desktop through hyprpaper, writing nothing.
         void                                                                   tryOnDesktop();
         void                                                                   undo();
+        // Moves the chosen image to the trash, unless it is the system's or the kept wallpaper.
+        void                                                                   trashSelected();
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> chooser();
         // After a click on an image or a fit: changes only what shows the selection, so
         // nothing else is made anew. hyprtoolkit draws a new text or image a frame or two
