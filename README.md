@@ -63,8 +63,9 @@ Each page does one thing:
   when a display is scaled. A change is put back after 15 seconds unless
   you keep it, so a display that goes dark fixes itself.
 - **Keyboard and mouse:** keyboard layouts and the keys that switch them, what Caps Lock
-  does, how held keys repeat, Num Lock at start, and the pointer's speed, acceleration and
-  buttons.
+  does, how held keys repeat, Num Lock at start, the pointer's speed, acceleration,
+  buttons and scroll direction, and the touchpad's tap to click, right click, pause while
+  typing, scrolling and three-finger swipe between workspaces.
 - **Bar:** a Waybar style that matches the theme, with a border like your windows', the
   widgets you choose on the left, centre or right, such as the weather, media and
   processor, and a switch to start or stop it.
@@ -122,7 +123,8 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Displays page:** each display Hyprland knows, with the modes it offers, from
   `hyprctl monitors all`.
 - **Keyboard and mouse page:** the keyboard layouts xkeyboard-config lists in
-  `/usr/share/X11/xkb/rules/evdev.lst`.
+  `/usr/share/X11/xkb/rules/evdev.lst`, and whether udev has found a touchpad, from
+  `/run/udev/data`.
 - **Cursors page:** the cursor themes in your icon folders and the system's, and their
   cursor files, to draw them.
 - **Its own colours:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
@@ -151,8 +153,9 @@ writes the file it points to, and the review says which one.
   keeps its settings on another port. Keeping X11 apps sharp sets XWayland's
   `force_zero_scaling` and, at a scale of 2 or more, `GDK_SCALE`.
 - **Keyboard and mouse:** the layouts, variants, xkb options, key repeat, Num Lock,
-  pointer speed, acceleration and left-handed buttons in your Hyprland config's `input`
-  table. xkb options Lantern has no choice for are kept as they are.
+  pointer speed, acceleration, left-handed buttons, scroll direction and touchpad settings
+  in your Hyprland config's `input` table, and the `hl.gesture` call for a three-finger
+  swipe between workspaces. xkb options Lantern has no choice for are kept as they are.
 - **Bar:** Waybar's `config.jsonc` and `style.css`, and rules in your Hyprland config that
   float the volume control and network settings the bar opens. The weather widget, when
   you turn it on, has Waybar ask the website wttr.in for the temperature every half hour,

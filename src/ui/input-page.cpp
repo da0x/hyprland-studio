@@ -70,8 +70,8 @@ namespace ui {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
         root->addChild(pageTitle("Keyboard and mouse", this->palette));
-        root->addChild(paragraph("Your keyboard's layouts and the keys that switch between them, what Caps Lock does, how held keys repeat, and how the pointer "
-                                 "moves. Nothing is written until you review the change, and Hyprland uses it at once.",
+        root->addChild(paragraph("Your keyboard's layouts and the keys that switch between them, what Caps Lock does, how held keys repeat, how the pointer "
+                                 "moves, and how the touchpad clicks and scrolls. Nothing is written until you review the change, and Hyprland uses it at once.",
                                  this->palette));
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         body->setGrow(false, true);
@@ -86,6 +86,7 @@ namespace ui {
     void InputPage::reread() {
         const auto config = configuration::mainConfig(configuration::lanternLaunch());
         current           = config ? desktop::currentInput(*config) : std::nullopt;
+        touchpad          = desktop::touchpadConnected();
     }
 
     void InputPage::restyle() {
@@ -114,6 +115,7 @@ namespace ui {
         body->addChild(columns);
         fillKeyboard(keyboard);
         fillMouse(mouse);
+        fillTouchpad(mouse);
         fillStatus();
     }
 
@@ -265,14 +267,42 @@ namespace ui {
                                              showOverview();
                                          },
                                          palette, defer));
-        column->addChild(optionRow<bool>("Buttons", "which button clicks and which opens menus",
-                                         {{"Left clicks, for the right hand", false}, {"Right clicks, for the left hand", true}}, wanted.leftHanded,
-                                         [](const bool&) { return std::string{}; },
-                                         [this](const bool& left) {
-                                             wanted.leftHanded = left;
-                                             showOverview();
-                                         },
-                                         palette, defer));
+        column->addChild(choice("Buttons", "which button clicks and which opens menus", "Left clicks, for the right hand", "Right clicks, for the left hand",
+                                &desktop::InputSettings::leftHanded));
+        column->addChild(choice("Scrolling", "which way the wheel moves the page", "Down moves the page down", "Natural, as on a phone",
+                                &desktop::InputSettings::mouseNatural));
+    }
+
+    void InputPage::fillTouchpad(const CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column) {
+        column->addChild(space(scaled(10.0)));
+        column->addChild(heading("Touchpad", palette));
+        if (!touchpad)
+            column->addChild(markupLine("No touchpad is connected. These take effect when one is.", palette));
+        column->addChild(choice("Tap to click", "whether a tap is a click", "Off, press to click", "On", &desktop::InputSettings::tapToClick));
+        column->addChild(choice("Right click", "how to open a menu", "Press the bottom-right corner", "Press with two fingers", &desktop::InputSettings::twoFingerClick));
+        column->addChild(choice("While typing", "whether a palm on the touchpad moves the pointer", "Keeps working", "Pauses for a moment",
+                                &desktop::InputSettings::typingDisables));
+        column->addChild(choice("Scrolling", "which way two fingers move the page", "Down moves the page down", "Natural, as on a phone",
+                                &desktop::InputSettings::touchpadNatural));
+        column->addChild(optionRow<double>("Scroll speed", "how far the page moves for the same swipe",
+                                           {{"Slower", 0.5}, {"Slow", 0.75}, {"As the touchpad reports it", 1.0}, {"Fast", 1.5}, {"Faster", 2.0}}, wanted.touchpadScroll,
+                                           [](const double& factor) { return std::format("Yours: {:g}", factor); },
+                                           [this](const double& factor) {
+                                               wanted.touchpadScroll = factor;
+                                               showOverview();
+                                           },
+                                           palette, defer));
+        column->addChild(choice("Three fingers sideways", "a swipe to the next workspace", "Do nothing", "Switch workspaces", &desktop::InputSettings::swipeWorkspaces));
+    }
+
+    CSharedPointer<Hyprtoolkit::IElement> InputPage::choice(const std::string& name, const std::string& about, const std::string& off, const std::string& on,
+                                                            bool desktop::InputSettings::*setting) {
+        return optionRow<bool>(name, about, {{off, false}, {on, true}}, wanted.*setting, [](const bool&) { return std::string{}; },
+                               [this, setting](const bool& value) {
+                                   wanted.*setting = value;
+                                   showOverview();
+                               },
+                               palette, defer);
     }
 
     void InputPage::fillStatus() {

@@ -55,6 +55,60 @@ namespace {
         std::filesystem::remove_all(root);
     }
 
+    TEST(Input, SetsTheTouchpadAndTheSwipe) {
+        static std::atomic<int> counter = 0;
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-touchpad-" + std::to_string(::getpid()) + "-" + std::to_string(counter++));
+        std::filesystem::create_directories(root);
+        const auto lua = root / "hyprland.lua";
+        std::ofstream{lua} << "hl.config({\n    input = {\n        touchpad = {\n            natural_scroll = false,\n        },\n    },\n})\n\n"
+                              "hl.gesture({\n    fingers   = 3,\n    direction = \"horizontal\",\n    action    = \"workspace\",\n})\n\n"
+                              "hl.gesture({ fingers = 4, direction = \"up\", action = \"fullscreen\" })\n";
+        const configuration::MainConfig config{.file = lua, .choice = configuration::Choice::search, .safeMode = false};
+
+        const auto read = desktop::currentInput(config);
+        ASSERT_TRUE(read.has_value());
+        EXPECT_TRUE(read->swipeWorkspaces);
+        EXPECT_TRUE(read->tapToClick);
+        EXPECT_FALSE(read->touchpadNatural);
+
+        // Without the swipe, only the other gesture is left.
+        auto wanted            = *read;
+        wanted.touchpadNatural = true;
+        wanted.tapToClick      = false;
+        wanted.swipeWorkspaces = false;
+        const auto planned     = desktop::planInput(wanted, config);
+        ASSERT_TRUE(planned.has_value() && planned->has_value());
+        const auto& text = (*planned)->proposed;
+        EXPECT_TRUE(text.contains("            natural_scroll = true,\n")) << text;
+        EXPECT_TRUE(text.contains("tap_to_click = false")) << text;
+        EXPECT_FALSE(text.contains("\"workspace\"")) << text;
+        EXPECT_TRUE(text.contains("})\n\nhl.gesture({ fingers = 4, direction = \"up\", action = \"fullscreen\" })\n")) << text;
+        EXPECT_FALSE(text.contains("\n\n\n")) << text;
+        ASSERT_TRUE(configuration::applyChanges({**planned}, root / "backups", "Touchpad").has_value());
+        EXPECT_EQ(desktop::currentInput(config), wanted);
+
+        // And back: the swipe is added after the other gesture.
+        wanted.swipeWorkspaces = true;
+        const auto again       = desktop::planInput(wanted, config);
+        ASSERT_TRUE(again.has_value() && again->has_value());
+        EXPECT_TRUE((*again)->proposed.contains("\"fullscreen\" })\n\nhl.gesture({\n    fingers   = 3,\n    direction = \"horizontal\",\n    action    = \"workspace\",\n})\n"))
+            << (*again)->proposed;
+        ASSERT_TRUE(configuration::applyChanges({**again}, root / "backups", "Touchpad").has_value());
+        EXPECT_EQ(desktop::currentInput(config), wanted);
+        std::filesystem::remove_all(root);
+    }
+
+    TEST(Input, FindsATouchpadByWhatUdevKnows) {
+        const auto root = std::filesystem::temp_directory_path() / ("lantern-hyprland-udev-" + std::to_string(::getpid()));
+        std::filesystem::create_directories(root);
+        std::ofstream{root / "c13:64"} << "E:ID_INPUT=1\nE:ID_INPUT_MOUSE=1\n";
+        EXPECT_FALSE(desktop::touchpadConnected(root));
+        std::ofstream{root / "c13:65"} << "E:ID_INPUT=1\nE:ID_INPUT_TOUCHPAD=1\n";
+        EXPECT_TRUE(desktop::touchpadConnected(root));
+        EXPECT_FALSE(desktop::touchpadConnected(root / "missing"));
+        std::filesystem::remove_all(root);
+    }
+
     TEST(Input, ReadsXkbsLayoutsAndTheirVariants) {
         const auto layouts = desktop::parseLayouts("! model\n  pc105           Generic 105-key PC\n\n! layout\n  us              English (US)\n  ara             Arabic\n\n"
                                                    "! variant\n  chr             us: Cherokee\n  qwerty          ara: Arabic (QWERTY)\n\n! option\n  grp                  Switching\n");

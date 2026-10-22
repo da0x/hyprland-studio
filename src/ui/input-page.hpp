@@ -19,7 +19,8 @@
 namespace ui {
 
     // The keyboard's layouts and the keys that switch them, what Caps Lock does, how held
-    // keys repeat, and the mouse's speed and buttons. Written to the Hyprland config only
+    // keys repeat, the mouse's speed and buttons, and how the touchpad clicks, scrolls and
+    // swipes. Written to the Hyprland config only
     // after the user reviews the change.
     class InputPage {
       public:
@@ -38,6 +39,10 @@ namespace ui {
         void undo();
         void fillKeyboard(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column);
         void fillMouse(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column);
+        void fillTouchpad(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column);
+        // A dropdown of two choices for a setting that is on or off.
+        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> choice(const std::string& name, const std::string& about, const std::string& off, const std::string& on,
+                                                                                      bool desktop::InputSettings::*setting);
         void fillStatus();
         [[nodiscard]] std::expected<std::optional<configuration::FileChange>, std::string> plan() const;
         void reread();
@@ -54,6 +59,7 @@ namespace ui {
         std::vector<desktop::KnownLayout>                                    known;
         // What the config sets now, and what is chosen; nothing when it cannot be read.
         std::optional<desktop::InputSettings>                                current;
+        bool                                                                 touchpad = false;
         desktop::InputSettings                                               wanted;
         bool                                                                 reviewing = false;
         configuration::FileChange                                            change;

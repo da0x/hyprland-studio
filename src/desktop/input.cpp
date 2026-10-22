@@ -9,14 +9,15 @@
 #include <format>
 #include <fstream>
 #include <map>
+#include <ranges>
 #include <sstream>
 
 namespace desktop {
 
     namespace {
 
-        std::optional<std::string> luaValue(std::string_view config, std::string_view name) {
-            const auto found = syntax::luaCallField(config, "hl.config", {"input", name});
+        std::optional<std::string> luaValue(std::string_view config, std::string_view name, std::string_view table = {}) {
+            const auto found = table.empty() ? syntax::luaCallField(config, "hl.config", {"input", name}) : syntax::luaCallField(config, "hl.config", {"input", table, name});
             if (!found)
                 return std::nullopt;
             return std::string{config.substr(found->begin, found->end - found->begin)};
@@ -86,6 +87,56 @@ namespace desktop {
             return options.empty() ? std::string{} : joined(options);
         }
 
+        constexpr auto gestureCall = "hl.gesture";
+
+        // The hl.gesture calls that switch workspaces with three fingers swiped sideways.
+        std::vector<syntax::Range> workspaceSwipes(std::string_view config) {
+            std::vector<syntax::Range> found;
+            for (const auto& statement : syntax::luaStatements(config)) {
+                if (statement.broken || statement.call != gestureCall)
+                    continue;
+                const auto text  = config.substr(statement.range.begin, statement.range.end - statement.range.begin);
+                const auto field = [text](std::string_view name) {
+                    const auto value = syntax::luaCallField(text, gestureCall, {name});
+                    return value ? std::string{text.substr(value->begin, value->end - value->begin)} : std::string{};
+                };
+                if (field("fingers") == "3" && field("direction") == "\"horizontal\"" && field("action") == "\"workspace\"" && field("mods").empty())
+                    found.push_back(statement.range);
+            }
+            return found;
+        }
+
+        std::string withWorkspaceSwipe(std::string_view config, bool on) {
+            auto       text   = std::string{config};
+            const auto swipes = workspaceSwipes(config);
+            if (!on) {
+                for (const auto& swipe : swipes | std::views::reverse) {
+                    auto end = swipe.end;
+                    if (end < text.size() && text[end] == '\n')
+                        ++end;
+                    // The blank line that set it apart goes with it.
+                    if (end < text.size() && text[end] == '\n' && std::string_view{text}.substr(0, swipe.begin).ends_with("\n\n"))
+                        ++end;
+                    text.erase(swipe.begin, end - swipe.begin);
+                }
+                return text;
+            }
+            if (!swipes.empty())
+                return text;
+            constexpr std::string_view swipe = "hl.gesture({\n    fingers   = 3,\n    direction = \"horizontal\",\n    action    = \"workspace\",\n})\n";
+            std::optional<std::size_t> after;
+            for (const auto& statement : syntax::luaStatements(config))
+                if (!statement.broken && statement.call == gestureCall)
+                    after = statement.range.end;
+            if (after) {
+                text.insert(*after, "\n\n" + std::string{swipe.substr(0, swipe.size() - 1)});
+                return text;
+            }
+            if (!text.empty() && !text.ends_with('\n'))
+                text += '\n';
+            return text + "\n" + std::string{swipe};
+        }
+
         InputSettings inputIn(std::string_view config) {
             InputSettings settings;
             if (const auto codes = textOf(luaValue(config, "kb_layout")); codes && !codes->empty()) {
@@ -104,12 +155,19 @@ namespace desktop {
                     else if (!option.empty())
                         settings.otherOptions.push_back(std::move(option));
                 }
-            settings.repeatRate  = numberOf<int>(luaValue(config, "repeat_rate")).value_or(settings.repeatRate);
-            settings.repeatDelay = numberOf<int>(luaValue(config, "repeat_delay")).value_or(settings.repeatDelay);
-            settings.sensitivity = numberOf<double>(luaValue(config, "sensitivity")).value_or(settings.sensitivity);
-            settings.flat        = textOf(luaValue(config, "accel_profile")) == "flat";
-            settings.leftHanded  = luaValue(config, "left_handed") == "true";
-            settings.numLock     = luaValue(config, "numlock_by_default") == "true";
+            settings.repeatRate      = numberOf<int>(luaValue(config, "repeat_rate")).value_or(settings.repeatRate);
+            settings.repeatDelay     = numberOf<int>(luaValue(config, "repeat_delay")).value_or(settings.repeatDelay);
+            settings.sensitivity     = numberOf<double>(luaValue(config, "sensitivity")).value_or(settings.sensitivity);
+            settings.flat            = textOf(luaValue(config, "accel_profile")) == "flat";
+            settings.leftHanded      = luaValue(config, "left_handed") == "true";
+            settings.numLock         = luaValue(config, "numlock_by_default") == "true";
+            settings.mouseNatural    = luaValue(config, "natural_scroll") == "true";
+            settings.touchpadNatural = luaValue(config, "natural_scroll", "touchpad") == "true";
+            settings.tapToClick      = luaValue(config, "tap_to_click", "touchpad") != "false";
+            settings.typingDisables  = luaValue(config, "disable_while_typing", "touchpad") != "false";
+            settings.twoFingerClick  = luaValue(config, "clickfinger_behavior", "touchpad") == "true";
+            settings.touchpadScroll  = numberOf<double>(luaValue(config, "scroll_factor", "touchpad")).value_or(settings.touchpadScroll);
+            settings.swipeWorkspaces = !workspaceSwipes(config).empty();
             return settings;
         }
 
@@ -151,6 +209,18 @@ namespace desktop {
             set("accel_profile", inQuotes(wanted.flat ? "flat" : "adaptive"), now.flat != wanted.flat);
             set("left_handed", wanted.leftHanded ? "true" : "false", now.leftHanded != wanted.leftHanded);
             set("numlock_by_default", wanted.numLock ? "true" : "false", now.numLock != wanted.numLock);
+            set("natural_scroll", wanted.mouseNatural ? "true" : "false", now.mouseNatural != wanted.mouseNatural);
+            const auto touchpad = [&text](std::string_view name, const std::string& value, bool differs) {
+                if (differs)
+                    text = configuration::withLuaConfigValueSet(text, {"input", "touchpad", name}, value);
+            };
+            touchpad("natural_scroll", wanted.touchpadNatural ? "true" : "false", now.touchpadNatural != wanted.touchpadNatural);
+            touchpad("tap_to_click", wanted.tapToClick ? "true" : "false", now.tapToClick != wanted.tapToClick);
+            touchpad("disable_while_typing", wanted.typingDisables ? "true" : "false", now.typingDisables != wanted.typingDisables);
+            touchpad("clickfinger_behavior", wanted.twoFingerClick ? "true" : "false", now.twoFingerClick != wanted.twoFingerClick);
+            touchpad("scroll_factor", std::format("{:g}", wanted.touchpadScroll), now.touchpadScroll != wanted.touchpadScroll);
+            if (now.swipeWorkspaces != wanted.swipeWorkspaces)
+                text = withWorkspaceSwipe(text, wanted.swipeWorkspaces);
             return text;
         });
     }
@@ -189,6 +259,20 @@ namespace desktop {
                 layout.variants = std::move(found->second);
         std::ranges::sort(layouts, {}, &KnownLayout::name);
         return layouts;
+    }
+
+    bool touchpadConnected(const std::filesystem::path& data) {
+        std::error_code error;
+        for (const auto& entry : std::filesystem::directory_iterator{data, error}) {
+            // Input devices are character devices with the major number 13.
+            if (!entry.path().filename().string().starts_with("c13:"))
+                continue;
+            std::ifstream stream{entry.path()};
+            for (std::string line; std::getline(stream, line);)
+                if (line == "E:ID_INPUT_TOUCHPAD=1")
+                    return true;
+        }
+        return false;
     }
 
     std::vector<KnownLayout> installedLayouts(const std::filesystem::path& list) {
