@@ -68,6 +68,10 @@ Each page does one thing:
   does, how held keys repeat, Num Lock at start, the pointer's speed, acceleration,
   buttons and scroll direction, and the touchpad's tap to click, right click, pause while
   typing, scrolling and three-finger swipe between workspaces.
+- **Sound, Bluetooth and network:** whether PipeWire, BlueZ and NetworkManager are running,
+  the output and its volume, the connections in use, and buttons that open the volume
+  control, Hyprland's sound centre, the Bluetooth manager and the network connections,
+  with the command that installs a missing one.
 - **Bar:** a Waybar style that matches the theme, with a border like your windows', the
   widgets you choose on the left, centre or right, such as the weather, media and
   processor, and a switch to start or stop it.
@@ -136,6 +140,9 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Keyboard and mouse page:** the keyboard layouts xkeyboard-config lists in
   `/usr/share/X11/xkb/rules/evdev.lst`, and whether udev has found a touchpad, from
   `/run/udev/data`.
+- **Sound, Bluetooth and network page:** `wpctl` for the output and its volume, `nmcli`
+  for the connections, `systemctl is-active` for the Bluetooth and NetworkManager
+  services, and `/sys/class/bluetooth` for the adapters. It writes nothing.
 - **Essentials page:** the portals in `/usr/share/xdg-desktop-portal/portals`, the D-Bus
   services in `/usr/share/dbus-1/services`, the polkit agents and Qt plugins installed,
   your running programs, and fontconfig's fonts.
