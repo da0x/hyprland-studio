@@ -39,15 +39,15 @@ namespace ui {
         // Draws the page again, after Lantern's text size changed.
         void restyle();
 
-        // What to redraw once Lantern's palette has new colours.
-        void onRecoloured(std::function<void()> recoloured) { this->recoloured = std::move(recoloured); }
+        // What to redraw once Lantern's palette has new colors.
+        void onRecolored(std::function<void()> recolored) { this->recolored = std::move(recolored); }
 
       private:
         void showOverview();
         // The editor of a theme of the user's own: a new one started from `from`, or the
         // one in `file`.
         void showEditor(const desktop::Palette& from, std::optional<std::filesystem::path> file);
-        // After a colour or the name changed: the preview, the swatches and the footer.
+        // After a color or the name changed: the preview, the swatches and the footer.
         void updateEditor();
         void saveDraft();
         void deleteDraft();
@@ -96,7 +96,7 @@ namespace ui {
         std::vector<configuration::FileChange>                               changes;
         std::vector<desktop::GSetting>                                       gtk;
         std::string                                                          outcome;
-        std::function<void()>                                                recoloured;
+        std::function<void()>                                                recolored;
 
         // The theme being edited, the file it is kept in once saved, and what shows it.
         bool                                                                 editing = false;

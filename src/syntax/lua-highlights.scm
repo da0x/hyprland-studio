@@ -1,5 +1,5 @@
 ; SPDX-License-Identifier: GPL-3.0-or-later
-; What each part of a Lua source is, for colouring. Where two patterns capture the same
+; What each part of a Lua source is, for coloring. Where two patterns capture the same
 ; text, the earlier one wins; where one capture lies inside another, the inner one wins.
 
 (comment) @comment

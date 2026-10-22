@@ -32,7 +32,7 @@ namespace ui {
 
         void showConnection(application::Connection connection, const std::string& reason);
         void showTree(const std::expected<ipc::Tree, std::string>& tree);
-        // Draws the map and the tree again, after Lantern's colours changed.
+        // Draws the map and the tree again, after Lantern's colors changed.
         void restyle();
 
       private:

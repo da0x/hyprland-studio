@@ -16,7 +16,7 @@
 
 namespace desktop {
 
-    // The colours of a Waybar style, as #rrggbb. Each comes from a published palette.
+    // The colors of a Waybar style, as #rrggbb. Each comes from a published palette.
     struct Palette {
         std::string_view name;
         bool             dark = true;
@@ -39,7 +39,7 @@ namespace desktop {
         std::string_view network;
         // Urgent workspaces, no network, and today in the calendar.
         std::string_view alert;
-        // The nearest of GNOME's accent colours, for GTK apps.
+        // The nearest of GNOME's accent colors, for GTK apps.
         std::string_view                 gnomeAccent;
     };
 
@@ -79,7 +79,7 @@ namespace desktop {
         friend bool operator==(const BarGeometry&, const BarGeometry&) = default;
     };
 
-    // The bar's border, as wide as the windows' and in the colour of an inactive or of the
+    // The bar's border, as wide as the windows' and in the color of an inactive or of the
     // focused window's. `thin` is the faint line styles had before, still read in files
     // written then.
     enum class Border {
@@ -113,7 +113,7 @@ namespace desktop {
     // Where a widget sits on the bar.
     enum class Side {
         left,
-        centre,
+        center,
         right,
     };
 

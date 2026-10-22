@@ -236,7 +236,7 @@ namespace ui {
             if (chosen)
                 label = std::format("<span weight=\"600\">{}</span>", label);
             if (made.name == inUse)
-                label += std::format("  {}", coloured("· in use", hex(palette->m_colors.accent)));
+                label += std::format("  {}", colored("· in use", hex(palette->m_colors.accent)));
             made.title->rebuild()->text(std::move(label))->commence();
         }
         showInstallHint();
@@ -266,7 +266,7 @@ namespace ui {
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (same) {
             const auto title = found != themes.end() ? found->title : selected;
-            note             = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? std::format("Your cursor is {}.", title) : outcome));
+            note             = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? std::format("Your cursor is {}.", title) : outcome));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);

@@ -204,7 +204,7 @@ namespace {
         }
     }
 
-    TEST(Desktop, RecognisesTheStyleWaybarUses) {
+    TEST(Desktop, RecognizesTheStyleWaybarUses) {
         const Folder                  folder;
         const auto                    system = folder.root / "etc";
         const foundation::Environment environment{{"HOME", (folder.root / "home").string()}};
@@ -217,7 +217,7 @@ namespace {
         EXPECT_EQ(desktop::currentWaybarStyle(environment, {}, system), style);
     }
 
-    TEST(Desktop, PutsTheWidgetsOnTheBarAndRecognisesThem) {
+    TEST(Desktop, PutsTheWidgetsOnTheBarAndRecognizesThem) {
         using desktop::Side;
         using desktop::Widget;
         // A new bar has Waybar's usual five.
@@ -243,7 +243,7 @@ namespace {
 
         // Widgets go where they are put, in that order, and one can be left off.
         desktop::WidgetSides moved = desktop::standardWidgets();
-        desktop::placeWidget(moved, Widget::cpu, Side::centre);
+        desktop::placeWidget(moved, Widget::cpu, Side::center);
         desktop::placeWidget(moved, Widget::clock, Side::right);
         desktop::placeWidget(moved, Widget::sound, Side::right, Widget::clock);
         desktop::removeWidget(moved, Widget::network);

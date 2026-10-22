@@ -37,7 +37,7 @@ namespace ui {
         auto& list  = registered();
         auto  first = list.begin();
         auto  last  = list.begin() + static_cast<std::ptrdiff_t>(std::min(upTo, list.size()));
-        list.erase(std::remove_if(first, last, [resized](const auto& entry) { return !entry(resized ? Restyle::resize : Restyle::recolour); }), last);
+        list.erase(std::remove_if(first, last, [resized](const auto& entry) { return !entry(resized ? Restyle::resize : Restyle::recolor); }), last);
     }
 
 }

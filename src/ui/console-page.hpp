@@ -21,11 +21,11 @@ namespace ui {
     // that read: what may be asked is the list beside the reply.
     class ConsolePage {
       public:
-        // The colours the reply is drawn in, kitty's when its theme is one Lantern knows.
+        // The colors the reply is drawn in, kitty's when its theme is one Lantern knows.
         struct Terminal {
             std::string                 background;
             std::string                 foreground;
-            std::array<std::string, 16> colours;
+            std::array<std::string, 16> colors;
         };
 
         using Ask = std::function<void(std::string typed, std::function<void(const std::expected<std::string, std::string>&)> answered)>;
@@ -40,7 +40,7 @@ namespace ui {
 
         // How requests reach Hyprland, once the session is there.
         void onAsk(Ask ask);
-        // Draws the lists again, after Lantern's colours changed.
+        // Draws the lists again, after Lantern's colors changed.
         void restyle();
 
       private:

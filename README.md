@@ -3,8 +3,8 @@
 Lantern for Hyprland is a settings app for Hyprland that makes your desktop easier to
 see, read and use, and then gets out of the way.
 
-**Accessibility first.** Make text larger, raise the contrast, correct the colours for
-colour blindness across the whole desktop, calm the animations, and make the cursor easier
+**Accessibility first.** Make text larger, raise the contrast, correct the colors for
+color blindness across the whole desktop, calm the animations, and make the cursor easier
 to find. Each one is set where your desktop already looks for it, so GTK apps, Hyprland
 and the apps on top of it follow along.
 
@@ -56,7 +56,7 @@ Each page does one thing. The sidebar groups them by what they are for.
 - **Theme:** one palette for the whole desktop: window borders, the bar, the app
   launcher, notifications, GTK apps and Lantern itself, shown on a picture of your
   desktop as it would look. Start a theme of your own from any of them, change its
-  colours by their hex values, or pick them from the screen with hyprpicker, and keep
+  colors by their hex values, or pick them from the screen with hyprpicker, and keep
   it beside the built-in ones.
 - **Wallpaper:** pick a picture from your Wallpapers folder or the system's, see it on
   the desktop at once, and keep it with hyprpaper or awww. A picture of yours you no
@@ -65,11 +65,11 @@ Each page does one thing. The sidebar groups them by what they are for.
   whether open and save dialogs float, with a preview of your screen. The bar's corners
   and gaps follow the windows'.
 - **Bar:** a Waybar style that matches the theme, with a border like your windows', the
-  widgets you choose on the left, centre or right, such as the weather, media and
+  widgets you choose on the left, center or right, such as the weather, media and
   processor, in the order you put them with the arrows, and a switch to start or stop it. Its Pop-ups tab turns on swayosd's volume
-  and brightness pop-ups, drawn in the bar's colours.
-- **Terminal:** a colour scheme, font, text size and background opacity for kitty. Its
-  System info tab sets up fastfetch's summary of the system: the logo, a colour from the
+  and brightness pop-ups, drawn in the bar's colors.
+- **Terminal:** a color scheme, font, text size and background opacity for kitty. Its
+  System info tab sets up fastfetch's summary of the system: the logo, a color from the
   terminal's scheme, how much it shows, and whether each new terminal opens with it.
 - **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
   distribution's with the command that installs one.
@@ -88,7 +88,7 @@ Each page does one thing. The sidebar groups them by what they are for.
   typing, scrolling and three-finger swipe between workspaces.
 - **Sound, Bluetooth and network:** whether PipeWire, BlueZ and NetworkManager are running,
   the output and its volume, the connections in use, and buttons that open the volume
-  control, Hyprland's sound centre, the Bluetooth manager and the network connections,
+  control, Hyprland's sound center, the Bluetooth manager and the network connections,
   with the command that installs a missing one.
 
 **System**
@@ -111,10 +111,10 @@ Each page does one thing. The sidebar groups them by what they are for.
   added. Hyprland does not read autostart files by itself, so the page says what starts
   them, if anything, and offers dex.
 - **Idle and lock:** dim, lock, turn the screens off and suspend after a time you choose,
-  through hypridle; lock before sleeping; a lock screen in the theme's colours through
+  through hypridle; lock before sleeping; a lock screen in the theme's colors through
   hyprlock; and the power mode and brightness, when power-profiles-daemon and
   brightnessctl are installed.
-- **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
+- **Accessibility:** text size, contrast, color blindness, motion, and cursor size.
 
 **Hyprland**
 
@@ -186,7 +186,7 @@ This is everything Lantern touches. Nothing else is read, written or started.
   `mimeinfo.cache`, and `~/.config/xdg-terminals.list`.
 - **Cursors page:** the cursor themes in your icon folders and the system's, and their
   cursor files, to draw them.
-- **Its own colours:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
+- **Its own colors:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
 
 Reading your config never runs it. Lantern reads it in a sandbox of its own, where
 commands, file writes and startup programs are noted but never carried out.
@@ -196,11 +196,11 @@ commands, file writes and startup programs are noted but never carried out.
 Only after you review the change line by line. When your config is a link, Lantern
 writes the file it points to, and the review says which one.
 
-- **Theme:** the window border colours in your Hyprland config, Waybar's files, the
-  colours in `hyprtoolkit.conf`, wofi's `style.css` and dunst's `dunstrc` if you have
+- **Theme:** the window border colors in your Hyprland config, Waybar's files, the
+  colors in `hyprtoolkit.conf`, wofi's `style.css` and dunst's `dunstrc` if you have
   them, a `gtk.css` for GTK 3 and one for GTK 4 that give GTK apps the palette, GTK 3's
   dark or light preference in `settings.ini`, and GTK's dark or light preference and
-  accent colour in GNOME's settings.
+  accent color in GNOME's settings.
 - **Wallpaper:** `hyprpaper.conf`, and the lines in your Hyprland config that start the
   wallpaper program at login and turn off Hyprland's own wallpaper. A picture you add
   is copied into your wallpapers folder under a new random name.
@@ -222,13 +222,13 @@ writes the file it points to, and the review says which one.
   which lets that site see roughly where you are. The pop-ups, when you turn them on: a
   start line for `swayosd-server` and the volume, mute and brightness keys in your
   Hyprland config, and `~/.config/swayosd/style.css`, which a new bar style writes again
-  in its colours. Turned off, the keys go back to `wpctl` and `brightnessctl`.
+  in its colors. Turned off, the keys go back to `wpctl` and `brightnessctl`.
 - **Terminal:** kitty's `current-theme.conf`, and the font, text size, opacity and theme
   lines in `kitty.conf`.
 - **Cursors:** `XCURSOR_THEME` in your Hyprland config, `~/.icons/default/index.theme`,
   which X11 apps read, and GTK's cursor theme in GNOME's settings. Hyprland shows the new
   cursor at once.
-- **Accessibility:** animations, the cursor size and the colour-correction shader in your
+- **Accessibility:** animations, the cursor size and the color-correction shader in your
   Hyprland config, the shader itself in `~/.config/hypr/shaders/`, the text sizes in
   `hyprtoolkit.conf`, and the desktop's contrast, motion, text size and cursor size
   settings.
@@ -272,7 +272,7 @@ deletes it for you:
 - `activation.json`: what is active right now, so Deactivate works even after Lantern
   was closed.
 - `backups/`: a record of each change, with copies of the files it replaced, for Undo.
-- `themes/`: the themes you made, one file each, a line for each colour, which you can
+- `themes/`: the themes you made, one file each, a line for each color, which you can
   share or edit by hand.
 
 There are no caches and no exports. Copying goes to the clipboard.
@@ -326,7 +326,7 @@ Research is in [`docs/research.md`](docs/research.md), the design in
    - Widgets for the bar, each on the side you choose: the window title, weather, media,
      privacy, processor, memory, temperature, keep awake, Bluetooth and battery, as well
      as the workspaces, clock, sound, network and tray.
-   - A cursor theme page, a see-through terminal, and GTK apps in the theme's colours.
+   - A cursor theme page, a see-through terminal, and GTK apps in the theme's colors.
    - The settings a plain Hyprland install still lacks: displays, keyboard and touchpad,
      idle and lock, night light, a check for the desktop's essentials, autostart and
      default apps.
@@ -379,9 +379,9 @@ MIT-licensed Wayland shell by noctalia-dev and contributors: in particular its d
 of Hyprland's sockets, and its rule of never managing the user's compositor config. No
 Noctalia code is included.
 
-The Terminal page's themes are kitty's own colour schemes from
+The Terminal page's themes are kitty's own color schemes from
 [kitty-themes](https://github.com/kovidgoyal/kitty-themes) (GPL-3.0), bundled unchanged in
-`src/desktop/terminal-themes/`, each with its author and, for most, its MIT licence in its
+`src/desktop/terminal-themes/`, each with its author and, for most, its MIT license in its
 header.
 
 ## License

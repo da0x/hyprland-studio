@@ -43,9 +43,9 @@ namespace ui {
             bool                     marked = false;
         };
 
-        // `textColour` replaces the palette's text colour, for a list drawn on a background of its own.
+        // `textColor` replaces the palette's text color, for a list drawn on a background of its own.
         RowList(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, std::vector<Column> columns,
-                double rowHeight, std::function<Hyprtoolkit::CHyprColor()> textColour = {});
+                double rowHeight, std::function<Hyprtoolkit::CHyprColor()> textColor = {});
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
@@ -68,13 +68,13 @@ namespace ui {
         void                                                                 fill();
         [[nodiscard]] std::size_t                                            lastFirst() const;
         Shown                                                                makeRow(std::size_t index);
-        [[nodiscard]] Hyprtoolkit::CHyprColor                                rowColour(std::size_t index) const;
+        [[nodiscard]] Hyprtoolkit::CHyprColor                                rowColor(std::size_t index) const;
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
         std::function<void(std::function<void()>)>                           defer;
         std::vector<Column>                                                  columns;
         double                                                               rowHeight;
-        std::function<Hyprtoolkit::CHyprColor()>                             textColour;
+        std::function<Hyprtoolkit::CHyprColor()>                             textColor;
         std::function<void(std::size_t)>                                     clicked;
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;

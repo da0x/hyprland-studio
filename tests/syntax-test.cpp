@@ -32,7 +32,7 @@ namespace {
 
 }
 
-TEST(Syntax, ColoursEachPartOfAConfig) {
+TEST(Syntax, ColorsEachPartOfAConfig) {
     const auto source = readFixture();
     const auto spans  = syntax::highlightLua(source);
 
@@ -61,7 +61,7 @@ TEST(Syntax, SpansAreInOrderAndApart) {
     }
 }
 
-TEST(Syntax, ColoursWhatItCanOfABrokenSource) {
+TEST(Syntax, ColorsWhatItCanOfABrokenSource) {
     // A bracket left open, the kind of mistake made while editing.
     const std::string source = "hl.bind(\"SUPER + Q\", hl.dsp.exec_cmd(\"kitty\")\n-- next\nlocal gaps = 5\n";
     const auto        spans  = syntax::highlightLua(source);

@@ -12,7 +12,7 @@
 
 namespace desktop {
 
-    // A palette as the user edits it, each colour as #rrggbb.
+    // A palette as the user edits it, each color as #rrggbb.
     struct ThemeDraft {
         std::string name;
         bool        dark = true;
@@ -31,17 +31,17 @@ namespace desktop {
         bool        operator==(const ThemeDraft&) const = default;
     };
 
-    // Each colour of a draft: its member, its name and what it colours.
-    struct DraftColour {
+    // Each color of a draft: its member, its name and what it colors.
+    struct DraftColor {
         std::string ThemeDraft::* member;
         std::string_view          name;
         std::string_view          about;
     };
-    [[nodiscard]] std::span<const DraftColour> draftColours();
+    [[nodiscard]] std::span<const DraftColor> draftColors();
 
     [[nodiscard]] ThemeDraft draftOf(const Palette& palette);
 
-    // What keeps a draft from being saved, or from reading well, in sentences: a colour
+    // What keeps a draft from being saved, or from reading well, in sentences: a color
     // that is not #rrggbb, no name, or text too faint on the background. Empty when none.
     [[nodiscard]] std::vector<std::string> draftProblems(const ThemeDraft& draft);
 
@@ -49,7 +49,7 @@ namespace desktop {
     [[nodiscard]] std::string themeFileText(const ThemeDraft& draft);
     [[nodiscard]] std::optional<ThemeDraft> parseThemeFile(std::string_view text);
 
-    // The nearest of GNOME's accent colours, by hue, or slate for a grey.
+    // The nearest of GNOME's accent colors, by hue, or slate for a gray.
     [[nodiscard]] std::string_view gnomeAccentOf(std::string_view hex);
 
     // The built-in palettes and then the user's, by name. Each stays where it is for as

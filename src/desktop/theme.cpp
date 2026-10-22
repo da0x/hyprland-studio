@@ -61,7 +61,7 @@ namespace desktop {
         return std::format("\"{}\"", rgba(palette.raised, "aa"));
     }
 
-    std::vector<std::pair<std::string, std::string>> hyprtoolkitColours(const Palette& palette) {
+    std::vector<std::pair<std::string, std::string>> hyprtoolkitColors(const Palette& palette) {
         return {
             {"background", argb(palette.base)},       {"base", argb(palette.surface)},         {"alternate_base", argb(palette.raised)},
             {"text", argb(palette.text)},             {"bright_text", argb(palette.text)},     {"link_text", argb(palette.audio)},
@@ -129,7 +129,7 @@ window {{
 @define-color accent    {};
 @define-color alert     {};
 
-/* The names apps and themes look colours up by. */
+/* The names apps and themes look colors up by. */
 @define-color theme_bg_color          @base;
 @define-color theme_fg_color          @text;
 @define-color theme_base_color        @surface;
@@ -388,7 +388,7 @@ label {{
         auto toolkit = configuration::planFile(hyprtoolkitConfigFile(environment), "");
         if (!toolkit)
             return std::unexpected{toolkit.error()};
-        toolkit->proposed = configuration::withHyprlangValues(toolkit->current.value_or(""), hyprtoolkitColours(palette));
+        toolkit->proposed = configuration::withHyprlangValues(toolkit->current.value_or(""), hyprtoolkitColors(palette));
         if (toolkit->changes())
             changes.push_back(std::move(*toolkit));
 
@@ -411,7 +411,7 @@ label {{
                 if (system.empty())
                     system = readAll(candidate);
             const auto quoted = [](std::string_view hex) { return std::format("\"{}\"", hex); };
-            const std::vector<configuration::IniValue> colours{
+            const std::vector<configuration::IniValue> colors{
                 {"global", "frame_color", quoted(palette.accent)},
                 {"urgency_low", "background", quoted(palette.base)},       {"urgency_low", "foreground", quoted(palette.subtle)},
                 {"urgency_low", "frame_color", quoted(palette.raised)},    {"urgency_normal", "background", quoted(palette.base)},
@@ -419,7 +419,7 @@ label {{
                 {"urgency_critical", "background", quoted(palette.base)},  {"urgency_critical", "foreground", quoted(palette.text)},
                 {"urgency_critical", "frame_color", quoted(palette.alert)},
             };
-            more.push_back(planEdit(home / "dunst" / "dunstrc", [&colours](std::string_view text) { return configuration::withIniValues(text, colours); }, system));
+            more.push_back(planEdit(home / "dunst" / "dunstrc", [&colors](std::string_view text) { return configuration::withIniValues(text, colors); }, system));
         }
         for (auto& planned : more) {
             if (!planned)

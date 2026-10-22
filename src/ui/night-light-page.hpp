@@ -33,7 +33,7 @@ namespace ui {
         // Reads the files again, when the page is opened.
         void refresh();
 
-        // Draws the page again, after Lantern's colours or text size changed.
+        // Draws the page again, after Lantern's colors or text size changed.
         void restyle();
 
         // Puts the screens back as hyprsunset's profile has them, after a warmth was tried.

@@ -26,30 +26,30 @@ namespace ui {
 
         CSharedPointer<Hyprtoolkit::IElement> stroke(std::string_view hex, double share, double height, double rounding) {
             return Hyprtoolkit::CRectangleBuilder::begin()
-                ->color([c = paletteColour(hex)] { return c; })
+                ->color([c = paletteColor(hex)] { return c; })
                 ->rounding(static_cast<int>(rounding))
                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {share, height}})
                 ->commence();
         }
 
-        // A window as the theme draws it: the palette's colours inside, Hyprland's border
+        // A window as the theme draws it: the palette's colors inside, Hyprland's border
         // around, a gradient when it has the focus.
         CSharedPointer<Hyprtoolkit::CRectangleElement> window(const desktop::Palette& shown, bool focused, CDynamicSize size, double radius, int border, double scale) {
             auto builder = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([c = paletteColour(shown.base)] { return c; })
+                               ->color([c = paletteColor(shown.base)] { return c; })
                                ->rounding(static_cast<int>(std::lround(radius)))
                                ->size(std::move(size));
             if (border > 0) {
                 builder->borderThickness(border);
                 if (focused)
-                    builder->borderGradient([accent = paletteColour(shown.accent, 0.93F), audio = paletteColour(shown.audio, 0.93F)] {
+                    builder->borderGradient([accent = paletteColor(shown.accent, 0.93F), audio = paletteColor(shown.audio, 0.93F)] {
                         Hyprtoolkit::CGradientValueData gradient;
                         gradient.m_vColors = {accent, audio};
                         gradient.m_fAngle  = std::numbers::pi_v<float> / 4;
                         return gradient;
                     });
                 else
-                    builder->borderColor([c = paletteColour(shown.raised, 0.67F)] { return c; });
+                    builder->borderColor([c = paletteColor(shown.raised, 0.67F)] { return c; });
             }
             const auto made = builder->commence();
 
@@ -62,7 +62,7 @@ namespace ui {
                 // An app: a title, a panel with lines, and the accent button.
                 inside->addChild(stroke(shown.text, 0.45, 10 * scale, 3 * scale));
                 const auto panel = Hyprtoolkit::CRectangleBuilder::begin()
-                                       ->color([c = paletteColour(shown.surface)] { return c; })
+                                       ->color([c = paletteColor(shown.surface)] { return c; })
                                        ->rounding(static_cast<int>(6 * scale))
                                        ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 56 * scale}})
                                        ->commence();
@@ -78,7 +78,7 @@ namespace ui {
                 inside->addChild(panel);
                 inside->addChild(stroke(shown.accent, 0.3, 16 * scale, 5 * scale));
             } else {
-                // A terminal: lines of output in a few colours.
+                // A terminal: lines of output in a few colors.
                 inside->addChild(stroke(shown.network, 0.5, 6 * scale, 3 * scale));
                 inside->addChild(stroke(shown.subtle, 0.8, 6 * scale, 3 * scale));
                 inside->addChild(stroke(shown.alert, 0.35, 6 * scale, 3 * scale));
@@ -98,7 +98,7 @@ namespace ui {
         const auto edge    = look.gapsOut * scale;
 
         const auto screen = Hyprtoolkit::CRectangleBuilder::begin()
-                                ->color([c = paletteColour(palette.dark ? "#3b4252" : "#b6bccb")] { return c; })
+                                ->color([c = paletteColor(palette.dark ? "#3b4252" : "#b6bccb")] { return c; })
                                 ->rounding(static_cast<int>(8 * scale))
                                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
                                 ->commence();

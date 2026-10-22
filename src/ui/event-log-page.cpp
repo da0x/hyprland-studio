@@ -194,7 +194,7 @@ namespace ui {
             // What changes the screen most stands out.
             const bool big = entry.event.name == "openwindow" || entry.event.name == "closewindow" || entry.event.name.starts_with("monitor") || entry.event.name == "configreloaded";
             rows.push_back(RowList::Row{
-                .cells  = {entry.time, big ? coloured(entry.described, accent) : escapeMarkup(entry.described), entry.event.name},
+                .cells  = {entry.time, big ? colored(entry.described, accent) : escapeMarkup(entry.described), entry.event.name},
                 .marked = false,
             });
         }

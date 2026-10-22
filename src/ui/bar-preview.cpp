@@ -37,10 +37,10 @@ namespace ui {
         constexpr float  fontPoints     = 11.25F;
         constexpr float  islandOpacity  = 0.92F;
 
-        Hyprtoolkit::CHyprColor colour(std::string_view hexColour, float alpha = 1.F) {
+        Hyprtoolkit::CHyprColor color(std::string_view hexColor, float alpha = 1.F) {
             unsigned value = 0;
-            if (hexColour.size() == 7)
-                std::from_chars(hexColour.data() + 1, hexColour.data() + 7, value, 16);
+            if (hexColor.size() == 7)
+                std::from_chars(hexColor.data() + 1, hexColor.data() + 7, value, 16);
             return {static_cast<float>((value >> 16U) & 0xFFU) / 255.F, static_cast<float>((value >> 8U) & 0xFFU) / 255.F, static_cast<float>(value & 0xFFU) / 255.F, alpha};
         }
 
@@ -50,15 +50,15 @@ namespace ui {
 
         CSharedPointer<Hyprtoolkit::CRowLayoutElement> row(double width, double height, double spacing = 0);
 
-        // Text centred in a box `width` wide.
-        CSharedPointer<Hyprtoolkit::IElement> label(const std::string& markup, std::string_view hexColour, double width, double scale, double height = 0) {
+        // Text centered in a box `width` wide.
+        CSharedPointer<Hyprtoolkit::IElement> label(const std::string& markup, std::string_view hexColor, double width, double scale, double height = 0) {
             const auto text = Hyprtoolkit::CTextBuilder::begin()
                                   ->text(std::format("<span font_family=\"Adwaita Sans, Symbols Nerd Font\">{}</span>", markup))
                                   ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, fontPoints * static_cast<float>(scale)})
-                                  ->color([c = colour(hexColour)] { return c; })
+                                  ->color([c = color(hexColor)] { return c; })
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
                                   ->commence();
-            // A column centres a narrower child across but starts it at the top, so a spacer
+            // A column centers a narrower child across but starts it at the top, so a spacer
             // above takes half of what the line leaves. A column sized to its content
             // comes out empty in 0.6.0, so the box has a fixed height.
             const auto boxHeight  = height > 0 ? height : barHeight * scale;
@@ -69,11 +69,11 @@ namespace ui {
             return box;
         }
 
-        // The left and right groups, each as wide as it needs, and the centre between them. In
+        // The left and right groups, each as wide as it needs, and the center between them. In
         // hyprtoolkit 0.6.0 only the first growing child of a row takes the space left over,
-        // so two springs cannot centre anything; a column centres a narrower child, so the
-        // centre is one, and the only one that grows.
-        CSharedPointer<Hyprtoolkit::IElement> thirds(const CSharedPointer<Hyprtoolkit::IElement>& left, const CSharedPointer<Hyprtoolkit::IElement>& centre,
+        // so two springs cannot center anything; a column centers a narrower child, so the
+        // center is one, and the only one that grows.
+        CSharedPointer<Hyprtoolkit::IElement> thirds(const CSharedPointer<Hyprtoolkit::IElement>& left, const CSharedPointer<Hyprtoolkit::IElement>& center,
                                                      const CSharedPointer<Hyprtoolkit::IElement>& right, double height, bool grow, double leftSide, double rightSide) {
             const auto whole = row(grow ? 1 : 0, height);
             if (grow)
@@ -83,7 +83,7 @@ namespace ui {
             start->addChild(left);
             const auto middle = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})->commence();
             middle->setGrow(true, false);
-            middle->addChild(centre);
+            middle->addChild(center);
             const auto end = Hyprtoolkit::CRowLayoutBuilder::begin()->size(fixed(rightSide))->commence();
             end->addChild(right);
             whole->addChild(start);
@@ -129,14 +129,14 @@ namespace ui {
             const auto  made     = row(widgetWidth(desktop::Widget::workspaces) * scale, height, pillGap * scale);
             made->addChild(gap((groupPadding - pillGap) * scale));
             for (int number = 1; number <= 5; ++number) {
-                const auto textColour = number == 1 ? palette.onAccent : number <= 3 ? palette.subtle : palette.raised;
+                const auto textColor = number == 1 ? palette.onAccent : number <= 3 ? palette.subtle : palette.raised;
                 const auto pill       = Hyprtoolkit::CRectangleBuilder::begin()
-                                      ->color([c = colour(palette.accent, number == 1 ? 1.F : 0.F)] { return c; })
+                                      ->color([c = color(palette.accent, number == 1 ? 1.F : 0.F)] { return c; })
                                       ->rounding(static_cast<int>(std::lround(rounding * 0.7 * scale)))
                                       ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {pillWidth * scale, height - 10 * scale}})
                                       ->commence();
                 const auto inside = row(pillWidth * scale, height - 10 * scale);
-                inside->addChild(label(std::to_string(number), textColour, pillWidth * scale, scale, height - 10 * scale));
+                inside->addChild(label(std::to_string(number), textColor, pillWidth * scale, scale, height - 10 * scale));
                 pill->addChild(inside);
                 made->addChild(pill);
             }
@@ -181,12 +181,12 @@ namespace ui {
             return made;
         }
 
-        // How a style's border is drawn at `scale`: its colour, and at least a pixel wide.
-        Hyprtoolkit::CHyprColor borderColour(const desktop::WaybarStyle& style) {
+        // How a style's border is drawn at `scale`: its color, and at least a pixel wide.
+        Hyprtoolkit::CHyprColor borderColor(const desktop::WaybarStyle& style) {
             switch (style.border) {
-                case desktop::Border::thin: return colour(style.palette->surface);
-                case desktop::Border::inactive: return colour(style.palette->raised, 0.67F);
-                case desktop::Border::active: return colour(style.palette->accent, 0.93F);
+                case desktop::Border::thin: return color(style.palette->surface);
+                case desktop::Border::inactive: return color(style.palette->raised, 0.67F);
+                case desktop::Border::active: return color(style.palette->accent, 0.93F);
             }
             return {};
         }
@@ -199,11 +199,11 @@ namespace ui {
         CSharedPointer<Hyprtoolkit::CRectangleElement> panel(const desktop::Palette& palette, double width, double height, double rounding, float alpha,
                                                              const desktop::WaybarStyle* bordered, double scale) {
             auto builder = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([c = colour(palette.base, alpha)] { return c; })
+                               ->color([c = color(palette.base, alpha)] { return c; })
                                ->rounding(static_cast<int>(rounding))
                                ->size(CDynamicSize{width > 0 ? CDynamicSize::HT_SIZE_ABSOLUTE : CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {width > 0 ? width : 1.0, height}});
             if (bordered)
-                builder->borderColor([c = borderColour(*bordered)] { return c; })->borderThickness(borderWidth(*bordered, scale));
+                builder->borderColor([c = borderColor(*bordered)] { return c; })->borderThickness(borderWidth(*bordered, scale));
             return builder->commence();
         }
 
@@ -216,8 +216,8 @@ namespace ui {
 
     }
 
-    Hyprtoolkit::CHyprColor paletteColour(std::string_view hex, float alpha) {
-        return colour(hex, alpha);
+    Hyprtoolkit::CHyprColor paletteColor(std::string_view hex, float alpha) {
+        return color(hex, alpha);
     }
 
     CSharedPointer<Hyprtoolkit::IElement> widgetPreview(const desktop::WaybarStyle& style, desktop::Widget shown, double scale) {
@@ -225,7 +225,7 @@ namespace ui {
         // The tray draws nothing until a program puts an icon there, so it shows one.
         const auto width = (shown == desktop::Widget::tray ? 40.0 : widgetWidth(shown)) * scale;
         const auto piece = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([c = colour(style.palette->base, islandOpacity)] { return c; })
+                               ->color([c = color(style.palette->base, islandOpacity)] { return c; })
                                ->rounding(static_cast<int>(std::lround(std::min(style.geometry.rounding * scale, height / 2))))
                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})
                                ->commence();
@@ -234,7 +234,7 @@ namespace ui {
             const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})->commence();
             column->addChild(gap(1, (height - 16 * scale) / 2));
             column->addChild(Hyprtoolkit::CRectangleBuilder::begin()
-                                 ->color([c = colour(style.palette->subtle)] { return c; })
+                                 ->color([c = color(style.palette->subtle)] { return c; })
                                  ->rounding(static_cast<int>(4 * scale))
                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {16 * scale, 16 * scale}})
                                  ->commence());
@@ -257,7 +257,7 @@ namespace ui {
 
         // The desktop behind the bar: a soft tone that shows a light or a dark bar.
         const auto backdrop = Hyprtoolkit::CRectangleBuilder::begin()
-                                  ->color([c = palette.dark ? colour("#4b5263", backdropShown ? 1.F : 0.F) : colour("#9aa3b5", backdropShown ? 1.F : 0.F)] { return c; })
+                                  ->color([c = palette.dark ? color("#4b5263", backdropShown ? 1.F : 0.F) : color("#9aa3b5", backdropShown ? 1.F : 0.F)] { return c; })
                                   ->rounding(static_cast<int>(8 * scale))
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
                                   ->commence();
@@ -283,13 +283,13 @@ namespace ui {
                         return gap(1, barSize);
                     return island(group(style, side, scale, barSize), width, palette, scale, style.geometry.rounding, style);
                 };
-                line->addChild(thirds(islandOf(desktop::Side::left), islandOf(desktop::Side::centre), islandOf(desktop::Side::right), barSize, true, left, right));
+                line->addChild(thirds(islandOf(desktop::Side::left), islandOf(desktop::Side::center), islandOf(desktop::Side::right), barSize, true, left, right));
                 break;
             }
             case desktop::Shape::floating: {
                 const auto whole = panel(palette, 1, barSize, style.geometry.rounding * scale, islandOpacity, &style, scale);
                 whole->setGrow(true, false);
-                whole->addChild(thirds(group(style, desktop::Side::left, scale, barSize), group(style, desktop::Side::centre, scale, barSize), group(style, desktop::Side::right, scale, barSize), barSize, false, left, right));
+                whole->addChild(thirds(group(style, desktop::Side::left, scale, barSize), group(style, desktop::Side::center, scale, barSize), group(style, desktop::Side::right, scale, barSize), barSize, false, left, right));
                 line->addChild(whole);
                 break;
             }
@@ -300,10 +300,10 @@ namespace ui {
                 const auto   column    = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, barSize}})->commence();
                 column->setGrow(true, false);
                 const auto whole = panel(palette, 0, above, 0, 1.F, nullptr, scale);
-                whole->addChild(thirds(group(style, desktop::Side::left, scale, above), group(style, desktop::Side::centre, scale, above), group(style, desktop::Side::right, scale, above), above, false, left, right));
+                whole->addChild(thirds(group(style, desktop::Side::left, scale, above), group(style, desktop::Side::center, scale, above), group(style, desktop::Side::right, scale, above), above, false, left, right));
                 column->addChild(whole);
                 column->addChild(Hyprtoolkit::CRectangleBuilder::begin()
-                                     ->color([c = borderColour(style)] { return c; })
+                                     ->color([c = borderColor(style)] { return c; })
                                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, underline}})
                                      ->commence());
                 line->addChild(column);

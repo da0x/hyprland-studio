@@ -43,7 +43,7 @@ namespace ui {
         // Stops watching hyprpaper. Called before the event loop goes away.
         void close();
 
-        // Draws the page again, after Lantern's colours changed.
+        // Draws the page again, after Lantern's colors changed.
         void restyle();
 
         // The page is no longer shown: a wallpaper tried on the desktop and not kept is

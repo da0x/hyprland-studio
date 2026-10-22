@@ -26,7 +26,7 @@ namespace application {
         FileChooser& operator=(const FileChooser&) = delete;
 
         // Asks for one image and returns at once. `done` runs on the event loop with the
-        // chosen file, or nothing if the user cancelled. Fails when the session bus or the
+        // chosen file, or nothing if the user canceled. Fails when the session bus or the
         // portal cannot be reached.
         [[nodiscard]] std::expected<void, std::string> chooseImage(const std::string& title, std::function<void(std::optional<std::filesystem::path>)> done);
 

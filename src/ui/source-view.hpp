@@ -10,7 +10,7 @@
 
 namespace ui {
 
-    // A config file as it is on disk, with line numbers and Lua syntax colours.
+    // A config file as it is on disk, with line numbers and Lua syntax colors.
     class SourceView {
       public:
         // `defer` runs a function after the current layout pass; see RowList.

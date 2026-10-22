@@ -221,7 +221,7 @@ namespace ui {
         if (!planned)
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         else if (planned->empty())
-            note = outcome.empty() ? "" : std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome));
+            note = outcome.empty() ? "" : std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome));
         else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);

@@ -24,7 +24,7 @@
 
 namespace ui {
 
-    // The terminal's colours, chosen apart from the desktop's from terminal themes of their
+    // The terminal's colors, chosen apart from the desktop's from terminal themes of their
     // own, and written to kitty only after the user reviews the change.
     class TerminalPage {
       public:
@@ -36,10 +36,10 @@ namespace ui {
         // Without its title and margin, as a tab of a page that has them; see TabbedPage.
         void embed();
 
-        // Draws the page again, after Lantern's colours changed.
+        // Draws the page again, after Lantern's colors changed.
         void restyle();
 
-        // Shows every theme adjusted for this contrast and colour vision, set on the
+        // Shows every theme adjusted for this contrast and color vision, set on the
         // Accessibility page, keeping the same theme chosen.
         void adjust(desktop::Contrast wanted, desktop::Vision vision);
 
@@ -53,7 +53,7 @@ namespace ui {
         void fillGrid();
         void scroll(Hyprtoolkit::Input::eAxisAxis axis, float delta);
         void fillStatus();
-        // Every theme, adjusted for the contrast and colour vision chosen.
+        // Every theme, adjusted for the contrast and color vision chosen.
         [[nodiscard]] std::span<const desktop::TerminalTheme>                  themes() const;
         // The themes shown: the dark ones or the light ones.
         [[nodiscard]] std::vector<const desktop::TerminalTheme*>               shownThemes() const;

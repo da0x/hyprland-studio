@@ -153,7 +153,7 @@ namespace desktop {
 
         Essential emojiFont(const EssentialSources& sources) {
             return Essential{.requirement = {.name     = "Emoji",
-                                             .purpose  = "Emoji in chats, web pages and file names. Without a colour emoji font they show as empty boxes.",
+                                             .purpose  = "Emoji in chats, web pages and file names. Without a color emoji font they show as empty boxes.",
                                              .upstream = "https://github.com/googlefonts/noto-emoji",
                                              .package  = "noto-fonts-emoji",
                                              .found    = firstFont(sources, {"Noto Color Emoji", "Twemoji", "JoyPixels"})},

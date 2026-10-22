@@ -13,7 +13,7 @@ namespace desktop {
     namespace {
 
         constexpr std::string_view server = "swayosd-server";
-        constexpr std::string_view marker = "/* Written by Lantern for Hyprland, in the bar's colours. */";
+        constexpr std::string_view marker = "/* Written by Lantern for Hyprland, in the bar's colors. */";
 
         struct PopupKey {
             std::string_view keys;

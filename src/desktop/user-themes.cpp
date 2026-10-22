@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "desktop/user-themes.hpp"
 
-#include "desktop/colour.hpp"
+#include "desktop/color.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,7 +16,7 @@ namespace desktop {
 
     namespace {
 
-        const std::array<DraftColour, 11> colours{{
+        const std::array<DraftColor, 11> colors{{
             {&ThemeDraft::base, "Background", "the bar and the windows' backdrop"},
             {&ThemeDraft::surface, "Surface", "borders and what is hovered"},
             {&ThemeDraft::raised, "Raised", "the inactive windows' border and cards"},
@@ -76,8 +76,8 @@ namespace desktop {
 
     }
 
-    std::span<const DraftColour> draftColours() {
-        return colours;
+    std::span<const DraftColor> draftColors() {
+        return colors;
     }
 
     ThemeDraft draftOf(const Palette& palette) {
@@ -100,13 +100,13 @@ namespace desktop {
         std::vector<std::string> problems;
         if (trim(draft.name).empty())
             problems.emplace_back("It needs a name.");
-        for (const auto& colour : colours)
-            if (!isHex(draft.*colour.member))
-                problems.push_back(std::format("{} is not a colour written as #rrggbb.", colour.name));
+        for (const auto& color : colors)
+            if (!isHex(draft.*color.member))
+                problems.push_back(std::format("{} is not a color written as #rrggbb.", color.name));
         if (problems.empty()) {
-            if (contrast(parseColour(draft.text), parseColour(draft.base)) < 4.5)
+            if (contrast(parseColor(draft.text), parseColor(draft.base)) < 4.5)
                 problems.emplace_back("Text is hard to read on the background: they need more contrast.");
-            if (contrast(parseColour(draft.onAccent), parseColour(draft.accent)) < 3)
+            if (contrast(parseColor(draft.onAccent), parseColor(draft.accent)) < 3)
                 problems.emplace_back("Text on the accent is hard to read: they need more contrast.");
         }
         return problems;
@@ -160,7 +160,7 @@ namespace desktop {
             else if (key == "alert")
                 draft.alert = value;
         }
-        if (draft.name.empty() || std::ranges::any_of(colours, [&](const DraftColour& colour) { return !isHex(draft.*colour.member); }))
+        if (draft.name.empty() || std::ranges::any_of(colors, [&](const DraftColor& color) { return !isHex(draft.*color.member); }))
             return std::nullopt;
         return draft;
     }
@@ -170,13 +170,13 @@ namespace desktop {
             {"blue", "#3584e4"}, {"teal", "#2190a4"}, {"green", "#3a944a"}, {"yellow", "#c88800"},
             {"orange", "#ed5b00"}, {"red", "#e62d42"}, {"pink", "#d56199"}, {"purple", "#9141ac"},
         }};
-        const auto colour = lchOf(parseColour(hex));
-        if (colour.chroma < 0.03)
+        const auto color = lchOf(parseColor(hex));
+        if (color.chroma < 0.03)
             return "slate";
         std::string_view nearest  = "blue";
         double           distance = 360;
         for (const auto& [name, accent] : accents) {
-            const auto apart = std::fabs(std::remainder(colour.hue - lchOf(parseColour(accent)).hue, 360.0));
+            const auto apart = std::fabs(std::remainder(color.hue - lchOf(parseColor(accent)).hue, 360.0));
             if (apart < distance) {
                 distance = apart;
                 nearest  = name;

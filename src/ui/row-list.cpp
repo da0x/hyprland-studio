@@ -21,18 +21,18 @@ namespace ui {
         // Space before the first column, inside the row's background.
         constexpr double padding          = 20;
 
-        // Asks the colour function again. hyprtoolkit offers no other way than rebuilding,
+        // Asks the color function again. hyprtoolkit offers no other way than rebuilding,
         // which schedules a layout pass, so never call this from inside one.
-        void recolour(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>& rectangle) {
+        void recolor(const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>& rectangle) {
             rectangle->rebuild()->commence();
         }
 
     }
 
     RowList::RowList(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, std::vector<Column> columns,
-                     double rowHeight, std::function<Hyprtoolkit::CHyprColor()> textColour) :
-        palette{std::move(palette)}, defer{std::move(defer)}, columns{std::move(columns)}, rowHeight{rowHeight}, textColour{std::move(textColour)} {
-        const auto text = [this] { return this->textColour ? this->textColour() : this->palette->m_colors.text; };
+                     double rowHeight, std::function<Hyprtoolkit::CHyprColor()> textColor) :
+        palette{std::move(palette)}, defer{std::move(defer)}, columns{std::move(columns)}, rowHeight{rowHeight}, textColor{std::move(textColor)} {
+        const auto text = [this] { return this->textColor ? this->textColor() : this->palette->m_colors.text; };
 
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         root->setGrow(false, true);
@@ -116,7 +116,7 @@ namespace ui {
         return rows.size() > fitting ? rows.size() - fitting : 0;
     }
 
-    Hyprtoolkit::CHyprColor RowList::rowColour(std::size_t index) const {
+    Hyprtoolkit::CHyprColor RowList::rowColor(std::size_t index) const {
         const auto& colors = palette->m_colors;
         const auto  at     = first + index;
         if (index < fitting && at < rows.size() && rows[at].marked)
@@ -127,10 +127,10 @@ namespace ui {
     }
 
     RowList::Shown RowList::makeRow(std::size_t index) {
-        const auto text = [this] { return textColour ? textColour() : palette->m_colors.text; };
+        const auto text = [this] { return textColor ? textColor() : palette->m_colors.text; };
         Shown      made;
         made.background = Hyprtoolkit::CRectangleBuilder::begin()
-                              ->color([this, index] { return rowColour(index); })
+                              ->color([this, index] { return rowColor(index); })
                               ->rounding(palette->m_vars.smallRounding)
                               ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, rowHeight}})
                               ->commence();
@@ -146,12 +146,12 @@ namespace ui {
         });
         made.background->setMouseEnter([this, index](const Hyprutils::Math::Vector2D&) {
             hovered = index;
-            recolour(shown[index].background);
+            recolor(shown[index].background);
         });
         made.background->setMouseLeave([this, index] {
             if (hovered == index)
                 hovered.reset();
-            recolour(shown[index].background);
+            recolor(shown[index].background);
         });
         made.background->setMouseButton([this, index](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
             const auto at = first + index;
@@ -166,7 +166,7 @@ namespace ui {
 
         row->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {padding - columnGap, 1.0}})->commence());
         for (const auto& spec : columns) {
-            // Sized to its text in height, so the row centres it.
+            // Sized to its text in height, so the row centers it.
             auto builder = Hyprtoolkit::CTextBuilder::begin()->text(" ")->color(text)->size(
                 CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {spec.width > 0 ? spec.width : 1.0, 1.0}});
             if (spec.monospace)
@@ -222,7 +222,7 @@ namespace ui {
                 // An empty text is laid out as nothing, so blank cells hold a space.
                 shown[index].cells[cell]->setText(value.empty() ? std::string{" "} : columns[cell].markup ? std::string{value} : escapeMarkup(value));
             }
-            recolour(shown[index].background);
+            recolor(shown[index].background);
         }
 
         if (rows.size() <= fitting || fitting == 0)

@@ -19,12 +19,12 @@ namespace desktop {
     // apps, Lantern among them.
 
     // The border values hl.config gets, as Lua: a gradient of the accent and the audio
-    // colour for the focused window, the raised colour for the others.
+    // color for the focused window, the raised color for the others.
     [[nodiscard]] std::string activeBorder(const Palette& palette);
     [[nodiscard]] std::string inactiveBorder(const Palette& palette);
 
-    // hyprtoolkit.conf's colour keys for the palette.
-    [[nodiscard]] std::vector<std::pair<std::string, std::string>> hyprtoolkitColours(const Palette& palette);
+    // hyprtoolkit.conf's color keys for the palette.
+    [[nodiscard]] std::vector<std::pair<std::string, std::string>> hyprtoolkitColors(const Palette& palette);
 
     // $XDG_CONFIG_HOME/hypr/hyprtoolkit.conf, or ~/.config/hypr/hyprtoolkit.conf.
     [[nodiscard]] std::filesystem::path hyprtoolkitConfigFile(const foundation::Environment& environment);
@@ -45,7 +45,7 @@ namespace desktop {
     [[nodiscard]] std::string wofiStyle(const Palette& palette);
 
     // A stylesheet that gives GTK apps the palette, for GTK 3 and GTK 4 alike. Adwaita
-    // builds its colours into its rules, so renaming them is not enough: the rules here
+    // builds its colors into its rules, so renaming them is not enough: the rules here
     // cover what the volume control, the network settings and most small apps are made of.
     [[nodiscard]] std::string gtkStyle(const Palette& palette);
 

@@ -58,10 +58,10 @@ namespace {
         EXPECT_TRUE(hyprland.contains("hl.env(\"XCURSOR_SIZE\", \"48\")\n"));
         EXPECT_TRUE(hyprland.contains("hl.env(\"HYPRCURSOR_SIZE\", \"48\")\n"));
         EXPECT_TRUE(hyprland.contains("        enabled = false,\n"));
-        const auto shader = desktop::colourVisionShaderFile(desktop::Vision::redGreen, environment);
+        const auto shader = desktop::colorVisionShaderFile(desktop::Vision::redGreen, environment);
         EXPECT_TRUE(hyprland.ends_with(std::format("\nhl.config({{ decoration = {{ screen_shader = \"{}\" }} }})\n", shader.string())));
         EXPECT_EQ(planned->files[1].file, shader);
-        EXPECT_EQ(planned->files[1].proposed, desktop::colourVisionShader(desktop::Vision::redGreen));
+        EXPECT_EQ(planned->files[1].proposed, desktop::colorVisionShader(desktop::Vision::redGreen));
         EXPECT_TRUE(planned->files[2].proposed.contains("font_size = 14\n"));
         EXPECT_TRUE(planned->files[2].proposed.contains("h1_size = 24\n"));
 
@@ -85,15 +85,15 @@ namespace {
         std::filesystem::remove_all(root);
     }
 
-    TEST(Accessibility, CorrectsColoursAsTheShaderDoes) {
-        const desktop::Colour red{1, 0, 0}, green{0, 0.6, 0};
+    TEST(Accessibility, CorrectsColorsAsTheShaderDoes) {
+        const desktop::Color red{1, 0, 0}, green{0, 0.6, 0};
         EXPECT_EQ(desktop::corrected(red, desktop::Vision::typical), red);
-        // Red and green, alike to a red-green colour-blind eye, end up apart in blue.
+        // Red and green, alike to a red-green color-blind eye, end up apart in blue.
         const auto fixedRed = desktop::corrected(red, desktop::Vision::redGreen), fixedGreen = desktop::corrected(green, desktop::Vision::redGreen);
         EXPECT_GT(std::abs(fixedRed.blue - fixedGreen.blue), 0.3);
-        // Grey is seen as it is, so nothing moves.
-        const desktop::Colour grey{0.5, 0.5, 0.5};
-        const auto            same = desktop::corrected(grey, desktop::Vision::redGreen);
+        // Gray is seen as it is, so nothing moves.
+        const desktop::Color gray{0.5, 0.5, 0.5};
+        const auto            same = desktop::corrected(gray, desktop::Vision::redGreen);
         EXPECT_NEAR(same.red, 0.5, 0.01);
         EXPECT_NEAR(same.blue, 0.5, 0.01);
     }
@@ -105,10 +105,10 @@ namespace {
         const auto root = freshRoot();
         for (const auto vision : {desktop::Vision::redGreen, desktop::Vision::blueYellow}) {
             const auto file = root / std::format("{}.frag", desktop::nameOf(vision));
-            std::ofstream{file} << desktop::colourVisionShader(vision);
+            std::ofstream{file} << desktop::colorVisionShader(vision);
             EXPECT_EQ(std::system(std::format("'{}' '{}' > /dev/null", validator->string(), file.string()).c_str()), 0) << desktop::nameOf(vision); // NOLINT(cert-env33-c): a test's own tool
         }
-        EXPECT_TRUE(desktop::colourVisionShader(desktop::Vision::typical).empty());
+        EXPECT_TRUE(desktop::colorVisionShader(desktop::Vision::typical).empty());
         std::filesystem::remove_all(root);
     }
 

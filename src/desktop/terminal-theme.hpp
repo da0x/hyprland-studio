@@ -17,7 +17,7 @@ namespace desktop {
     // How a theme is adjusted for the person reading it, applied to every theme alike.
     enum class Contrast {
         standard,
-        // Text and every colour at least 7:1 against the background (WCAG AAA), comments
+        // Text and every color at least 7:1 against the background (WCAG AAA), comments
         // at least 4.5:1, each keeping its hue.
         high,
     };
@@ -29,7 +29,7 @@ namespace desktop {
         blueYellow,
     };
 
-    // A terminal's colour scheme, as kitty writes one: chosen apart from the desktop's
+    // A terminal's color scheme, as kitty writes one: chosen apart from the desktop's
     // palette, since terminal themes are their own family.
     struct TerminalTheme {
         std::string                 name;
@@ -39,18 +39,18 @@ namespace desktop {
         std::string                 background;
         std::string                 foreground;
         std::string                 cursor;
-        std::array<std::string, 16> colours;
+        std::array<std::string, 16> colors;
         bool                        dark     = true;
         // How it was adjusted from the theme bundled.
         Contrast                    contrast = Contrast::standard;
         Vision                      vision   = Vision::typical;
     };
 
-    // The theme adjusted: its colours, and its file with each changed value replaced. It
+    // The theme adjusted: its colors, and its file with each changed value replaced. It
     // keeps its name; see adjustmentName.
     [[nodiscard]] TerminalTheme adjusted(const TerminalTheme& theme, Contrast contrast, Vision vision);
 
-    // What was adjusted, said after a theme's name: "high contrast, for red-green colour
+    // What was adjusted, said after a theme's name: "high contrast, for red-green color
     // blindness", or empty for neither.
     [[nodiscard]] std::string adjustmentName(Contrast contrast, Vision vision);
 
@@ -58,7 +58,7 @@ namespace desktop {
     [[nodiscard]] TerminalTheme terminalTheme(std::string_view name, std::string_view file);
 
     // The bundled themes, dark and light, from kitty-themes; see terminal-themes/NOTICE.
-    // They set colours only, so applying one changes nothing else about kitty.
+    // They set colors only, so applying one changes nothing else about kitty.
     [[nodiscard]] std::span<const TerminalTheme> terminalThemes();
 
     // Every bundled theme adjusted alike, in the same order. Made once for each choice and
@@ -73,8 +73,8 @@ namespace desktop {
         std::string family;
         // Its package on Arch Linux, for a recommended font; empty for one only installed.
         std::string package;
-        // Its licence, for a recommended font.
-        std::string licence;
+        // Its license, for a recommended font.
+        std::string license;
         bool        installed = false;
     };
 

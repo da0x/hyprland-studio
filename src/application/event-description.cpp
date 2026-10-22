@@ -141,7 +141,7 @@ namespace application {
             return std::format("{} wants attention", window(data, windowName));
         if (name == "minimized") {
             const auto parts = of(2);
-            return std::format("{} {}", window(parts[0], windowName), parts[1] == "1" ? "was minimised" : "was restored");
+            return std::format("{} {}", window(parts[0], windowName), parts[1] == "1" ? "was minimized" : "was restored");
         }
         if (name == "pin") {
             const auto parts = of(2);

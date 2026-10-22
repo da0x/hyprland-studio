@@ -20,7 +20,7 @@
 namespace ui {
 
     // What happens while the computer is left alone (dimming, locking, turning the screens
-    // off and suspending, through hypridle), a lock screen in the theme's colours through
+    // off and suspending, through hypridle), a lock screen in the theme's colors through
     // hyprlock, and the power mode and brightness. The files are written only after the
     // user reviews the change; the power mode and brightness change at once.
     class IdlePage {
@@ -34,7 +34,7 @@ namespace ui {
         // opened.
         void refresh();
 
-        // Draws the page again, after Lantern's colours or text size changed.
+        // Draws the page again, after Lantern's colors or text size changed.
         void restyle();
 
       private:

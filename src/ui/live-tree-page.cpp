@@ -46,11 +46,11 @@ namespace ui {
             return builder->commence();
         }
 
-        CSharedPointer<Hyprtoolkit::CTextElement> label(const std::string& markup, const Hyprtoolkit::CHyprColor& colour, double width) {
+        CSharedPointer<Hyprtoolkit::CTextElement> label(const std::string& markup, const Hyprtoolkit::CHyprColor& color, double width) {
             return Hyprtoolkit::CTextBuilder::begin()
                 ->text(std::string{markup})
                 ->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})
-                ->color([colour] { return colour; })
+                ->color([color] { return color; })
                 ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {width, 1.0}})
                 ->commence();
@@ -162,12 +162,12 @@ namespace ui {
         }
         const auto scale = std::min(scaled(mapWidth) / std::max(1.0, right - left), mapHeight / std::max(1.0, bottom - top));
 
-        const auto& colours  = palette->m_colors;
+        const auto& colors  = palette->m_colors;
         const auto  canvas   = Hyprtoolkit::CNullBuilder::begin()->size(fixed((right - left) * scale, (bottom - top) * scale))->commence();
-        const auto  backdrop = darkTheme(*palette) ? paletteColour("#1d2021") : paletteColour("#c9cdd6");
+        const auto  backdrop = darkTheme(*palette) ? paletteColor("#1d2021") : paletteColor("#c9cdd6");
         for (const auto& monitor : tree.monitors) {
             const auto [width, height] = layoutSize(monitor);
-            const auto screen = box(backdrop, fixed(width * scale, height * scale), 6, monitor.focused ? colours.accent : colours.alternateBase, 2);
+            const auto screen = box(backdrop, fixed(width * scale, height * scale), 6, monitor.focused ? colors.accent : colors.alternateBase, 2);
             place(screen, (monitor.x - left) * scale, (monitor.y - top) * scale);
 
             // The windows on what it shows, tiled first and floating over them, the special
@@ -180,17 +180,17 @@ namespace ui {
             for (const auto* window : shown) {
                 const bool picked  = selected == window->address;
                 const bool focused = window->focusOrder == 0;
-                const auto drawn   = box(colours.alternateBase, fixed(std::max(4.0, window->width * scale), std::max(4.0, window->height * scale)), 4,
-                                         picked || focused ? colours.accent : colours.base, picked ? 3 : focused ? 2 : 1);
+                const auto drawn   = box(colors.alternateBase, fixed(std::max(4.0, window->width * scale), std::max(4.0, window->height * scale)), 4,
+                                         picked || focused ? colors.accent : colors.base, picked ? 3 : focused ? 2 : 1);
                 place(drawn, (window->x - monitor.x) * scale, (window->y - monitor.y) * scale);
                 if (window->width * scale > 50 && window->height * scale > 22) {
-                    const auto name = label(escapeMarkup(window->windowClass.empty() ? window->title : window->windowClass), colours.text, window->width * scale - 12);
+                    const auto name = label(escapeMarkup(window->windowClass.empty() ? window->title : window->windowClass), colors.text, window->width * scale - 12);
                     place(name, 6, 4);
                     drawn->addChild(name);
                 }
                 screen->addChild(drawn);
             }
-            const auto name = label(std::format("<span weight=\"600\">{}</span>  {}", escapeMarkup(monitor.name), monitor.activeWorkspace), colours.text, width * scale - 12);
+            const auto name = label(std::format("<span weight=\"600\">{}</span>  {}", escapeMarkup(monitor.name), monitor.activeWorkspace), colors.text, width * scale - 12);
             place(name, 6, height * scale - 20);
             screen->addChild(name);
             canvas->addChild(screen);
@@ -225,7 +225,7 @@ namespace ui {
                 std::string details;
                 for (const auto& fact : facts)
                     details += (details.empty() ? "" : " · ") + fact;
-                const auto mark = window->focusOrder == 0 ? coloured("●", accent) + " " : std::string{"   "};
+                const auto mark = window->focusOrder == 0 ? colored("●", accent) + " " : std::string{"   "};
                 add(std::format("            {}<span weight=\"600\">{}</span>  <span alpha=\"70%\">{}</span>", mark, escapeMarkup(window->windowClass), escapeMarkup(window->title)),
                     escapeMarkup(details), window->address, selected == window->address);
             }
@@ -239,7 +239,7 @@ namespace ui {
                 if (workspace.monitor != monitor.name)
                     continue;
                 const bool showing = workspace.id == monitor.activeWorkspace || workspace.id == monitor.specialWorkspace;
-                add(std::format("      {}{}", escapeMarkup(workspaceName(workspace)), showing ? coloured("  · showing", accent) : std::string{}),
+                add(std::format("      {}{}", escapeMarkup(workspaceName(workspace)), showing ? colored("  · showing", accent) : std::string{}),
                     escapeMarkup(std::format("{} {}{}", workspace.windows, workspace.windows == 1 ? "window" : "windows", workspace.hasFullscreen ? " · one fullscreen" : "")), {},
                     false);
                 windowsOf(workspace);

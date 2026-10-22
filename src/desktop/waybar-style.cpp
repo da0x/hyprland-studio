@@ -17,8 +17,8 @@ namespace desktop {
 
     namespace {
 
-        // The palettes' colours as their authors publish them: Catppuccin, Rosé Pine,
-        // Tokyo Night, Nord and Gruvbox are all under the MIT licence.
+        // The palettes' colors as their authors publish them: Catppuccin, Rosé Pine,
+        // Tokyo Night, Nord and Gruvbox are all under the MIT license.
         constexpr std::array palettes{
             Palette{.name = "Catppuccin Mocha", .dark = true, .base = "#1e1e2e", .onAccent = "#11111b", .surface = "#313244", .raised = "#45475a", .muted = "#6c7086",
                     .subtle = "#a6adc8", .text = "#cdd6f4", .accent = "#cba6f7", .audio = "#89b4fa", .network = "#94e2d5", .alert = "#f38ba8", .gnomeAccent = "purple"},
@@ -52,7 +52,7 @@ namespace desktop {
             return !relative.empty() && !relative.native().starts_with("..");
         }
 
-        // What every shape shares: the font, the workspaces and the modules' colours.
+        // What every shape shares: the font, the workspaces and the modules' colors.
         constexpr std::string_view moduleRules = R"(
 #workspaces button {
     padding: 0 10px;
@@ -130,7 +130,7 @@ tooltip label {
         constexpr std::array widgets{
             WidgetInfo{Widget::workspaces, "hyprland/workspaces", "Workspaces", "Your workspaces, to go to one.", Side::left, true},
             WidgetInfo{Widget::windowTitle, "hyprland/window", "Window title", "The window you are using.", Side::left, false},
-            WidgetInfo{Widget::clock, "clock", "Clock", "Date and time; a calendar on hover.", Side::centre, true},
+            WidgetInfo{Widget::clock, "clock", "Clock", "Date and time; a calendar on hover.", Side::center, true},
             WidgetInfo{Widget::weather, "custom/weather", "Weather", "The temperature, from wttr.in.", Side::right, false},
             WidgetInfo{Widget::media, "mpris", "Media", "What is playing.", Side::right, false},
             WidgetInfo{Widget::privacy, "privacy", "Privacy", "A sign while your screen or mic is shared.", Side::right, false},
@@ -258,7 +258,7 @@ tooltip label {
             return {};
         }
 
-        // Each widget's look, in the palette's colours.
+        // Each widget's look, in the palette's colors.
         std::string_view widgetRules(Widget widget) {
             switch (widget) {
                 // Always in the stylesheet.
@@ -484,7 +484,7 @@ window#waybar {
         const auto       parsed = nlohmann::json::parse(config, nullptr, false, true);
         if (parsed.is_discarded() || !parsed.is_object())
             return found;
-        for (const auto& [key, side] : {std::pair{"modules-left", Side::left}, std::pair{"modules-center", Side::centre}, std::pair{"modules-right", Side::right}}) {
+        for (const auto& [key, side] : {std::pair{"modules-left", Side::left}, std::pair{"modules-center", Side::center}, std::pair{"modules-right", Side::right}}) {
             if (!parsed.contains(key) || !parsed[key].is_array())
                 continue;
             for (const auto& module : parsed[key])
@@ -505,7 +505,7 @@ window#waybar {
         for (std::size_t side = 0; side < lists.size(); ++side)
             for (const auto widget : style.widgets[side])
                 lists[side].push_back(widgetInfo(widget).module);
-        const auto& [left, centre, right] = lists;
+        const auto& [left, center, right] = lists;
         std::string blocks;
         for (const auto& info : widgets)
             if (sideOf(style.widgets, info.widget))
@@ -571,7 +571,7 @@ window#waybar {
 }}
 )",
                            floating ? 38 : 34, floating ? style.geometry.topGap : 0, floating ? style.geometry.edgeGap : 0, floating ? style.geometry.edgeGap : 0, moduleList(left),
-                           moduleList(centre), moduleList(right), palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928",
+                           moduleList(center), moduleList(right), palette.accent, palette.subtle, palette.alert, "\U000F075F", "\U000F02CB", "\U000F057F", "\U000F0580", "\U000F057E", "\U000F0928",
                            "\U000F0200", "\U000F092D", blocks);
     }
 

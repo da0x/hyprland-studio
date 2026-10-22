@@ -18,7 +18,7 @@
 
 namespace ui {
 
-    // fastfetch's summary of the system: its logo, its colour from the terminal's scheme,
+    // fastfetch's summary of the system: its logo, its color from the terminal's scheme,
     // how much it shows, and whether each new terminal opens with it. Written only after the
     // user reviews the change.
     class SystemInfoPage {
@@ -31,12 +31,12 @@ namespace ui {
         // Reads the files again, when the page is opened.
         void refresh();
 
-        // Draws the page again, after Lantern's colours or text size changed.
+        // Draws the page again, after Lantern's colors or text size changed.
         void restyle();
 
       private:
         void showOverview();
-        // What fastfetch says with the settings chosen, drawn in the terminal's colours.
+        // What fastfetch says with the settings chosen, drawn in the terminal's colors.
         void fillPreview();
         void showReview();
         void apply();

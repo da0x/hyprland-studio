@@ -9,7 +9,7 @@
 
 namespace application {
 
-    // One of the config's files as it is on disk, coloured for showing.
+    // One of the config's files as it is on disk, colored for showing.
     struct SourceFile {
         std::filesystem::path     path;
         std::string               text;

@@ -143,14 +143,14 @@ namespace ui {
 
         const auto block = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         const auto amber = dark ? std::string{"#f9e2af"} : std::string{"#a15c00"};
-        const auto mark  = !requirement.met() ? coloured("✗", red) : problem.empty() ? coloured("✓", green) : coloured("!", amber);
-        const auto state = requirement.met() ? escapeMarkup(*requirement.found) : coloured("not installed", red);
+        const auto mark  = !requirement.met() ? colored("✗", red) : problem.empty() ? colored("✓", green) : colored("!", amber);
+        const auto state = requirement.met() ? escapeMarkup(*requirement.found) : colored("not installed", red);
         block->addChild(markupLine(std::format("{}  <span weight=\"600\">{}</span>   {}", mark, escapeMarkup(requirement.name), state), palette));
         block->addChild(paragraph(requirement.purpose, palette, true));
-        block->addChild(markupLine(coloured(requirement.upstream, hex(palette->m_colors.linkText)), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
+        block->addChild(markupLine(colored(requirement.upstream, hex(palette->m_colors.linkText)), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
         if (requirement.met()) {
             if (!problem.empty())
-                block->addChild(markupLine(coloured(escapeMarkup(problem), amber), palette));
+                block->addChild(markupLine(colored(escapeMarkup(problem), amber), palette));
             return block;
         }
 
@@ -188,8 +188,8 @@ namespace ui {
                                ->rounding(palette->m_vars.smallRounding)
                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})
                                ->commence();
-        // A column centres the letter across; a spacer above, of half what the line leaves,
-        // centres it up and down.
+        // A column centers the letter across; a spacer above, of half what the line leaves,
+        // centers it up and down.
         const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {width, height}})->commence();
         const auto line   = static_cast<double>(points) * 4.0 / 3.0 * 1.2;
         column->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, std::max(0.0, (height - line) / 2)}})->commence());
@@ -220,7 +220,7 @@ namespace ui {
         return markupLine(std::format("<span weight=\"600\">{}</span>", escapeMarkup(text)), palette, CFontSize{CFontSize::HT_FONT_H3}, 1.0F);
     }
 
-    // A diff as list rows: a header per file, then its changes with a sign and a colour.
+    // A diff as list rows: a header per file, then its changes with a sign and a color.
     std::vector<RowList::Row> diffRows(const std::vector<configuration::FileChange>& changes, const Hyprtoolkit::CPalette& palette) {
         using Kind                        = configuration::DiffLine::Kind;
         const bool                dark    = darkTheme(palette);
@@ -235,14 +235,14 @@ namespace ui {
             rows.push_back({{"", std::format("<b>{}</b>   {}", escapeMarkup(shortPath(change.file)), what)}, true});
             for (const auto& line : configuration::changesOnly(configuration::diffLines(change.current.value_or(""), change.proposed))) {
                 if (line.kind == Kind::same && line.line == 0) {
-                    rows.push_back({{"", coloured("…", faded)}, false});
+                    rows.push_back({{"", colored("…", faded)}, false});
                     continue;
                 }
-                const auto& colour = line.kind == Kind::added ? added : line.kind == Kind::removed ? removed : faded;
+                const auto& color = line.kind == Kind::added ? added : line.kind == Kind::removed ? removed : faded;
                 const auto* sign   = line.kind == Kind::added ? "+" : line.kind == Kind::removed ? "−" : "";
-                // coloured() escapes what it is given, so only the plain line is escaped here.
+                // colored() escapes what it is given, so only the plain line is escaped here.
                 const auto  text   = line.text.empty() ? std::string{" "} : line.text;
-                rows.push_back({{coloured(sign, colour), line.kind == Kind::same ? escapeMarkup(text) : coloured(text, colour)}, false});
+                rows.push_back({{colored(sign, color), line.kind == Kind::same ? escapeMarkup(text) : colored(text, color)}, false});
             }
         }
         return rows;

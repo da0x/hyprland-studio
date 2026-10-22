@@ -47,7 +47,7 @@ namespace ui {
         // The window the menu that adds a widget opens from.
         void setWindow(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IWindow> window);
 
-        // Draws the page again, after Lantern's colours changed.
+        // Draws the page again, after Lantern's colors changed.
         void restyle();
 
       private:
@@ -73,7 +73,7 @@ namespace ui {
         // made, so rebuilding the page on every click made it flicker.
         void                                                                   updateStyle();
         void                                                                   fillStyleStatus();
-        // The open tab's choices: the shape, colours and border, or the widgets.
+        // The open tab's choices: the shape, colors and border, or the widgets.
         void                                                                   fillChoices();
         // The Pop-ups tab, its status, and its own review, apart from the bar's style.
         void                                                                   fillPopups();

@@ -42,7 +42,7 @@ namespace ui {
             return text.str();
         }
 
-        // What fastfetch says when nothing has run it yet, to show the colours on.
+        // What fastfetch says when nothing has run it yet, to show the colors on.
         const std::vector<std::string> sample{"you@archlinux", "-------------", "OS  Arch Linux x86_64", "Kernel  Linux", "WM  Hyprland (Wayland)", "Uptime  1 hour",
                                               "Packages  1000 (pacman)", "Memory  4 GiB / 16 GiB"};
 
@@ -58,7 +58,7 @@ namespace ui {
              20} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->addChild(paragraph("fastfetch shows a summary of your system in the terminal: the distribution's logo beside what it is and runs, in your "
-                                 "terminal scheme's own colours. Lantern writes its settings after you review them.",
+                                 "terminal scheme's own colors. Lantern writes its settings after you review them.",
                                  this->palette));
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
         body->setGrow(false, true);
@@ -144,7 +144,7 @@ namespace ui {
                 accent = accents.size();
             accents.emplace_back(choice.label);
         }
-        left->addChild(settingRow("Colour", "from your terminal's scheme", std::move(accents), accent, palette,
+        left->addChild(settingRow("Color", "from your terminal's scheme", std::move(accents), accent, palette,
                                   [this, changed](std::size_t chosen) {
                                       if (chosen < desktop::fetchAccents.size())
                                           wanted.accent = std::string{desktop::fetchAccents[chosen].name};
@@ -173,7 +173,7 @@ namespace ui {
         const auto background = theme ? theme->background : hex(palette->m_colors.base);
         const auto foreground = theme ? theme->foreground : hex(palette->m_colors.text);
         const auto accent     = std::ranges::find(desktop::fetchAccents, wanted.accent, &desktop::FetchAccent::name);
-        const auto colour     = theme && accent != desktop::fetchAccents.end() ? theme->colours[accent->colour] : hex(palette->m_colors.accent);
+        const auto color     = theme && accent != desktop::fetchAccents.end() ? theme->colors[accent->color] : hex(palette->m_colors.accent);
 
         // fastfetch's own words, once it has run with these settings; until then, a sample.
         const auto fastfetch = program("fastfetch");
@@ -199,7 +199,7 @@ namespace ui {
         const auto& shown = fastfetch && !lines.empty() ? lines : sample;
 
         const auto frame = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([value = paletteColour(background)] { return value; })
+                               ->color([value = paletteColor(background)] { return value; })
                                ->rounding(palette->m_vars.smallRounding)
                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
                                ->commence();
@@ -209,19 +209,19 @@ namespace ui {
         for (std::size_t index = 0; index < shown.size(); ++index) {
             const auto& line = shown[index];
             std::string markup;
-            // The title, user@host, is in the colour; the keys before the separator are too.
+            // The title, user@host, is in the color; the keys before the separator are too.
             if (index == 0 || line.starts_with("---"))
-                markup = coloured(line, index == 0 ? colour : foreground);
+                markup = colored(line, index == 0 ? color : foreground);
             else if (const auto gap = line.find("  "); gap != std::string::npos)
-                markup = coloured(line.substr(0, gap), colour) + coloured(line.substr(gap), foreground);
+                markup = colored(line.substr(0, gap), color) + colored(line.substr(gap), foreground);
             else
-                markup = coloured(line, foreground);
+                markup = colored(line, foreground);
             text->addChild(markupLine(std::format("<span font_family=\"{}\">{}</span>", mono, markup), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 1.0F));
         }
         frame->addChild(text);
         preview->addChild(frame);
         if (wanted.logo != desktop::FetchLogo::none)
-            preview->addChild(markupLine("The logo is drawn beside it, in the same colour.", palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
+            preview->addChild(markupLine("The logo is drawn beside it, in the same color.", palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
     }
 
     void SystemInfoPage::fillStatus() {
@@ -238,7 +238,7 @@ namespace ui {
         if (!planned)
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         else if (planned->empty())
-            note = now ? std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "fastfetch is set like this." : outcome))
+            note = now ? std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "fastfetch is set like this." : outcome))
                        : escapeMarkup(outcome);
         if (planned && (!planned->empty() || !now))
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));

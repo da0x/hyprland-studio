@@ -158,8 +158,8 @@ namespace ui {
         if (themedLock && lockNow != LockLook::lantern) {
             const auto config  = configuration::mainConfig(configuration::lanternLaunch());
             const auto* theme  = config ? desktop::currentTheme(*config) : nullptr;
-            const auto& colour = theme ? *theme : desktop::waybarPalettes().front();
-            auto        lock   = configuration::planFile(desktop::hyprlockConfigFile(environment), desktop::lockScreen(colour));
+            const auto& color = theme ? *theme : desktop::waybarPalettes().front();
+            auto        lock   = configuration::planFile(desktop::hyprlockConfigFile(environment), desktop::lockScreen(color));
             if (!lock)
                 return std::unexpected{lock.error()};
             planned.push_back(std::move(*lock));
@@ -171,7 +171,7 @@ namespace ui {
         reviewing = false;
         body->clearChildren();
         const auto columns = leftRow(0);
-        // Both as tall as the page, so each starts at the top: a row centres what is shorter.
+        // Both as tall as the page, so each starts at the top: a row centers what is shorter.
         columns->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->gap(24)->commence();
         const auto left  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {0.5, 1.0}})->commence();
         const auto right = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {0.46, 1.0}})->commence();
@@ -219,10 +219,10 @@ namespace ui {
 
     void IdlePage::fillLock(const CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column) {
         column->addChild(heading("Lock screen", palette));
-        const auto kept = lockNow == LockLook::yours ? "Yours, from hyprlock.conf" : lockNow == LockLook::none ? "hyprlock's plain one" : "The theme's colours";
+        const auto kept = lockNow == LockLook::yours ? "Yours, from hyprlock.conf" : lockNow == LockLook::none ? "hyprlock's plain one" : "The theme's colors";
         std::vector<std::string> items{kept};
         if (lockNow != LockLook::lantern)
-            items.emplace_back("The theme's colours");
+            items.emplace_back("The theme's colors");
         column->addChild(settingRow("Look", "the blurred desktop, a clock and a password field", std::move(items), themedLock && lockNow != LockLook::lantern ? 1 : 0, palette,
                                     [this](std::size_t chosen) {
                                         themedLock = lockNow == LockLook::lantern || chosen == 1;
@@ -290,7 +290,7 @@ namespace ui {
         if (!planned)
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         else if (planned->empty())
-            note = outcome.empty() ? "" : std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome));
+            note = outcome.empty() ? "" : std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome));
         else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);

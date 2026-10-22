@@ -35,7 +35,7 @@ namespace desktop {
     // block gets the commands that lock and wake the screens, and everything else is kept.
     [[nodiscard]] std::string withIdle(std::string_view config, const IdleSettings& settings);
 
-    // A hyprlock.conf in the palette's colours: the blurred desktop behind a clock and a
+    // A hyprlock.conf in the palette's colors: the blurred desktop behind a clock and a
     // password field.
     [[nodiscard]] std::string lockScreen(const Palette& palette);
 

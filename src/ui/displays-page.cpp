@@ -193,8 +193,8 @@ namespace ui {
         const double spanY = std::max(1, bottom - top);
         const double fit   = std::min(scaled(mapWidth) / spanX, mapHeight / spanY);
 
-        const auto& colours  = palette->m_colors;
-        const auto  backdrop = darkTheme(*palette) ? paletteColour("#1d2021") : paletteColour("#c9cdd6");
+        const auto& colors  = palette->m_colors;
+        const auto  backdrop = darkTheme(*palette) ? paletteColor("#1d2021") : paletteColor("#c9cdd6");
         const auto  canvas   = Hyprtoolkit::CNullBuilder::begin()->size(fixed(spanX * fit, spanY * fit))->commence();
         for (std::size_t index = 0; index < displays.size(); ++index) {
             const auto& settings = wanted[index];
@@ -202,7 +202,7 @@ namespace ui {
                 continue;
             const auto [width, height] = desktop::layoutSize(settings);
             const bool chosen          = index == selected && displays.size() > 1;
-            const auto border          = chosen ? colours.accent : colours.alternateBase;
+            const auto border          = chosen ? colors.accent : colors.alternateBase;
             const auto screen          = Hyprtoolkit::CRectangleBuilder::begin()
                                     ->color([backdrop] { return backdrop; })
                                     ->borderColor([border] { return border; })
@@ -214,7 +214,7 @@ namespace ui {
             const auto name = Hyprtoolkit::CTextBuilder::begin()
                                   ->text(std::format("<span weight=\"600\">{}</span>  {} × {}", escapeMarkup(displays[index].name), settings.mode.width, settings.mode.height))
                                   ->fontSize(CFontSize{CFontSize::HT_FONT_SMALL})
-                                  ->color([text = colours.text] { return text; })
+                                  ->color([text = colors.text] { return text; })
                                   ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {std::max(8.0, width * fit - 16), 1.0}})
                                   ->commence();
@@ -414,7 +414,7 @@ namespace ui {
             if (!planned)
                 note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
             else if (!*planned)
-                note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your displays are set like this." : outcome));
+                note = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your displays are set like this." : outcome));
             else {
                 buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
                 note = escapeMarkup(outcome);

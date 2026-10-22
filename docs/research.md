@@ -358,7 +358,7 @@ What this means for our plan:
   is impossible.
 
 HyprMod is the nearest project. What sets us apart: native, live-first, an option
-catalogue read from the installed Hyprland, and edits made in the user's own file.
+catalog read from the installed Hyprland, and edits made in the user's own file.
 
 ## What can we learn from Noctalia?
 

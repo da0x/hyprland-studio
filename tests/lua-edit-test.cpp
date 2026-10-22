@@ -17,7 +17,7 @@ hl.config({
 
         col = {
             active_border   = { colors = {"rgba(33ccffee)", "rgba(00ff99ee)"}, angle = 45 },
-            inactive_border = "rgba(595959aa)", -- grey
+            inactive_border = "rgba(595959aa)", -- gray
         },
     },
 })
@@ -69,9 +69,9 @@ hl.config({ decoration = { rounding = 10 } })
     }
 
     TEST(HyprlangEdit, SetsKeysOutsideBlocksAndAddsMissingOnes) {
-        const auto config = "# colours\naccent = 0xff00ffcc   # mine\nwallpaper {\n    accent = 1\n}\ntext=0xffdadada\n";
+        const auto config = "# colors\naccent = 0xff00ffcc   # mine\nwallpaper {\n    accent = 1\n}\ntext=0xffdadada\n";
         const auto edited = configuration::withHyprlangValues(config, {{"accent", "0xffcba6f7"}, {"text", "0xffcdd6f4"}, {"base", "0xff313244"}});
-        EXPECT_EQ(edited, "# colours\naccent = 0xffcba6f7   # mine\nwallpaper {\n    accent = 1\n}\ntext=0xffcdd6f4\nbase = 0xff313244\n");
+        EXPECT_EQ(edited, "# colors\naccent = 0xffcba6f7   # mine\nwallpaper {\n    accent = 1\n}\ntext=0xffcdd6f4\nbase = 0xff313244\n");
         EXPECT_EQ(configuration::withHyprlangValues("", {{"accent", "0x1"}}), "accent = 0x1\n");
     }
 

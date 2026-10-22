@@ -35,43 +35,43 @@ namespace ui {
         // Taller than other pages' pictures, so the largest cursor fits.
         constexpr double pictureHeight = 72;
 
-        CSharedPointer<Hyprtoolkit::CRectangleElement> surface(std::string_view colour, double height) {
+        CSharedPointer<Hyprtoolkit::CRectangleElement> surface(std::string_view color, double height) {
             return Hyprtoolkit::CRectangleBuilder::begin()
-                ->color([c = paletteColour(colour)] { return c; })
+                ->color([c = paletteColor(color)] { return c; })
                 ->rounding(6)
                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, height}})
                 ->commence();
         }
 
-        CSharedPointer<Hyprtoolkit::CTextElement> centredText(const std::string& markup, float points, const std::string& colour) {
+        CSharedPointer<Hyprtoolkit::CTextElement> centeredText(const std::string& markup, float points, const std::string& color) {
             return Hyprtoolkit::CTextBuilder::begin()
                 ->text(std::string{markup})
                 ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, points})
-                ->color([c = paletteColour(colour)] { return c; })
+                ->color([c = paletteColor(color)] { return c; })
                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
                 ->commence();
         }
 
-        // A picture's content, centred up and down in the picture's height; a column centres
+        // A picture's content, centered up and down in the picture's height; a column centers
         // what is narrower than it across.
-        CSharedPointer<Hyprtoolkit::IElement> centred(const CSharedPointer<Hyprtoolkit::IElement>& inside, double used) {
+        CSharedPointer<Hyprtoolkit::IElement> centered(const CSharedPointer<Hyprtoolkit::IElement>& inside, double used) {
             const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, pictureHeight}})->commence();
             column->addChild(space(std::max(0.0, (pictureHeight - used) / 2)));
             column->addChild(inside);
             return column;
         }
 
-        // Colours as a strip of small squares, on a background.
-        CSharedPointer<Hyprtoolkit::IElement> chips(const std::string& background, const std::vector<std::string>& colours) {
+        // Colors as a strip of small squares, on a background.
+        CSharedPointer<Hyprtoolkit::IElement> chips(const std::string& background, const std::vector<std::string>& colors) {
             const auto frame = surface(background, pictureHeight);
             const auto row   = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(5)->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 18.0}})->commence();
-            for (const auto& colour : colours)
+            for (const auto& color : colors)
                 row->addChild(Hyprtoolkit::CRectangleBuilder::begin()
-                                  ->color([c = paletteColour(colour)] { return c; })
+                                  ->color([c = paletteColor(color)] { return c; })
                                   ->rounding(4)
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {18.0, 18.0}})
                                   ->commence());
-            frame->addChild(centred(row, 18));
+            frame->addChild(centered(row, 18));
             return frame;
         }
 
@@ -102,7 +102,7 @@ namespace ui {
             std::vector<std::string> parts;
             parts.emplace_back(settings.contrast == desktop::Contrast::high ? "high contrast" : "standard contrast");
             if (settings.vision != desktop::Vision::typical)
-                parts.push_back(std::format("colours for {} colour blindness{}", desktop::nameOf(settings.vision), settings.wholeDesktop ? " across the screen" : ""));
+                parts.push_back(std::format("colors for {} color blindness{}", desktop::nameOf(settings.vision), settings.wholeDesktop ? " across the screen" : ""));
             parts.push_back(std::format("text at {}%", std::lround(settings.textScale * 100)));
             parts.push_back(std::format("a {} px cursor", settings.cursorSize));
             if (settings.reduceMotion)
@@ -147,7 +147,7 @@ namespace ui {
         const auto settings    = application::loadSettings(application::lanternFolder(environment));
         if (const auto contrast = desktop::contrastNamed(settings.contrast))
             found.contrast = *contrast;
-        // A shader in use says the colour vision; without one, Lantern's record does.
+        // A shader in use says the color vision; without one, Lantern's record does.
         if (!found.wholeDesktop)
             if (const auto vision = desktop::visionNamed(settings.vision))
                 found.vision = *vision;
@@ -189,20 +189,20 @@ namespace ui {
                     [this, level, themeFor] {
                         const auto* theme = themeFor(level, wanted.vision);
                         return cards.picture(std::format("contrast {} {}", desktop::nameOf(level), desktop::nameOf(wanted.vision)), [&] {
-                            const auto& colour = theme->colours;
+                            const auto& color = theme->colors;
                             const auto  frame  = surface(theme->background, pictureHeight);
-                            const auto  in     = [](const std::string& hex, std::string_view words) { return coloured(words, hex); };
+                            const auto  in     = [](const std::string& hex, std::string_view words) { return colored(words, hex); };
                             const auto  lines  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(2)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-                            lines->addChild(centredText(std::format("<span font_family=\"monospace\">{} {} {}</span>", in(colour[1], "error"), in(colour[2], "passed"), in(colour[4], "info")), 9.F, theme->foreground));
-                            lines->addChild(centredText(std::format("<span font_family=\"monospace\">{} {}</span>", in(theme->foreground, "plain"), in(colour[8], "# comment")), 9.F, theme->foreground));
-                            frame->addChild(centred(lines, 32));
+                            lines->addChild(centeredText(std::format("<span font_family=\"monospace\">{} {} {}</span>", in(color[1], "error"), in(color[2], "passed"), in(color[4], "info")), 9.F, theme->foreground));
+                            lines->addChild(centeredText(std::format("<span font_family=\"monospace\">{} {}</span>", in(theme->foreground, "plain"), in(color[8], "# comment")), 9.F, theme->foreground));
+                            frame->addChild(centered(lines, 32));
                             return frame;
                         });
                     },
             });
         cards.addSetting(left, "Contrast", "GTK's high-contrast style, and every terminal theme", std::move(contrast));
 
-        // Colour vision: the theme's six colours, as each makes them.
+        // Color vision: the theme's six colors, as each makes them.
         std::vector<ChoiceCards::Choice> vision;
         for (const auto& [label, kind] : {std::pair{"Typical", desktop::Vision::typical}, std::pair{"Red-green", desktop::Vision::redGreen}, std::pair{"Blue-yellow", desktop::Vision::blueYellow}})
             vision.push_back(ChoiceCards::Choice{
@@ -213,13 +213,13 @@ namespace ui {
                     [this, kind, themeFor] {
                         const auto* theme = themeFor(wanted.contrast, kind);
                         return cards.picture(std::format("vision {} {}", desktop::nameOf(kind), desktop::nameOf(wanted.contrast)), [&] {
-                            return chips(theme->background, {theme->colours[1], theme->colours[2], theme->colours[3], theme->colours[4], theme->colours[5], theme->colours[6]});
+                            return chips(theme->background, {theme->colors[1], theme->colors[2], theme->colors[3], theme->colors[4], theme->colors[5], theme->colors[6]});
                         });
                     },
             });
-        cards.addSetting(left, "Colour vision", "colours told apart in every terminal theme", std::move(vision));
+        cards.addSetting(left, "Color vision", "colors told apart in every terminal theme", std::move(vision));
 
-        // The whole screen: colours everyone knows, before and after the shader.
+        // The whole screen: colors everyone knows, before and after the shader.
         const std::vector<std::string> reference{"#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#8e24aa"};
         std::vector<ChoiceCards::Choice>            whole;
         for (const auto& [label, on] : {std::pair{"Off", false}, std::pair{"On", true}})
@@ -232,13 +232,13 @@ namespace ui {
                         const auto kind = on ? wanted.vision : desktop::Vision::typical;
                         return cards.picture(std::format("whole {} {}", on, desktop::nameOf(kind)), [&] {
                             std::vector<std::string> shown;
-                            for (const auto& colour : reference)
-                                shown.push_back(desktop::hexOf(desktop::corrected(desktop::parseColour(colour), kind)));
+                            for (const auto& color : reference)
+                                shown.push_back(desktop::hexOf(desktop::corrected(desktop::parseColor(color), kind)));
                             return chips(hex(palette->m_colors.base), shown);
                         });
                     },
             });
-        cards.addSetting(left, "Whole screen", "a Hyprland shader corrects every colour, photos too", std::move(whole));
+        cards.addSetting(left, "Whole screen", "a Hyprland shader corrects every color, photos too", std::move(whole));
 
         // Text size: the same words at each size.
         std::vector<ChoiceCards::Choice> textSize;
@@ -252,7 +252,7 @@ namespace ui {
                         return cards.picture(std::format("text {}", scale), [&] {
                             const auto frame  = surface(hex(palette->m_colors.base), pictureHeight);
                             const auto points = static_cast<float>(11.0 * scale);
-                            frame->addChild(centred(centredText("Aa", points, hex(palette->m_colors.text)), points * 4.0 / 3.0 * 1.2));
+                            frame->addChild(centered(centeredText("Aa", points, hex(palette->m_colors.text)), points * 4.0 / 3.0 * 1.2));
                             return frame;
                         });
                     },
@@ -273,7 +273,7 @@ namespace ui {
                             // The arrow's line is about a point and a half to the pixel, so the
                             // sizes keep their proportions and the largest fits its card.
                             const auto points = static_cast<float>(size) * 0.62F;
-                            frame->addChild(centred(centredText("🡴", points, hex(palette->m_colors.text)), points * 4.0 / 3.0 * 1.2));
+                            frame->addChild(centered(centeredText("🡴", points, hex(palette->m_colors.text)), points * 4.0 / 3.0 * 1.2));
                             return frame;
                         });
                     },
@@ -294,7 +294,7 @@ namespace ui {
                             const auto row   = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(3)->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 30.0}})->commence();
                             const auto window = [this](float alpha) {
                                 return Hyprtoolkit::CRectangleBuilder::begin()
-                                    ->color([palette = palette, alpha] { auto colour = palette->m_colors.accent; colour.a = alpha; return colour; })
+                                    ->color([palette = palette, alpha] { auto color = palette->m_colors.accent; color.a = alpha; return color; })
                                     ->rounding(4)
                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {40.0, 30.0}})
                                     ->commence();
@@ -304,7 +304,7 @@ namespace ui {
                                 row->addChild(window(0.35F));
                             }
                             row->addChild(window(1.0F));
-                            frame->addChild(centred(row, 30));
+                            frame->addChild(centered(row, 30));
                             return frame;
                         });
                     },
@@ -335,7 +335,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (same) {
-            note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your desktop uses these settings." : outcome));
+            note = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your desktop uses these settings." : outcome));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);
@@ -393,7 +393,7 @@ namespace ui {
             return showOverview();
         }
         desktop::setGsettings(plan.settings, *record, environment);
-        // Lantern's own record of contrast and colour vision, kept as it was for Undo.
+        // Lantern's own record of contrast and color vision, kept as it was for Undo.
         const auto folder   = application::lanternFolder(environment);
         auto       settings = application::loadSettings(folder);
         std::ofstream{*record / settingsKept} << "contrast\t" << settings.contrast << "\nvision\t" << settings.vision << '\n';

@@ -68,8 +68,8 @@ namespace desktop {
             return std::format("\"{}\"", file.string());
         }
 
-        // A colour-blind eye, in linear RGB: Machado, Oliveira and Fernandes (2009) at full
-        // strength. Rows of the matrix that turns a colour into the colour seen.
+        // A color-blind eye, in linear RGB: Machado, Oliveira and Fernandes (2009) at full
+        // strength. Rows of the matrix that turns a color into the color seen.
         struct Correction {
             std::array<std::array<double, 3>, 3> seen;
             // Where what is lost goes: the error's share added to each channel.
@@ -81,11 +81,11 @@ namespace desktop {
             if (vision == Vision::blueYellow)
                 return {{{{1.255528, -0.076749, -0.178779}, {-0.078411, 0.930809, 0.147602}, {0.004733, 0.691367, 0.303900}}},
                         {{{1, 0, 0.7}, {0, 1, 0.7}, {0, 0, 0}}},
-                        "blue-yellow colour blindness (tritanopia)"};
+                        "blue-yellow color blindness (tritanopia)"};
             // Deuteranopia, the most common; it serves protanopia nearly as well.
             return {{{{0.367322, 0.860646, -0.227968}, {0.280085, 0.672501, 0.047413}, {-0.011820, 0.042940, 0.968881}}},
                     {{{0, 0, 0}, {0.7, 1, 0}, {0.7, 0, 1}}},
-                    "red-green colour blindness (deuteranopia and protanopia)"};
+                    "red-green color blindness (deuteranopia and protanopia)"};
         }
 
     }
@@ -117,14 +117,14 @@ namespace desktop {
         return std::nullopt;
     }
 
-    std::string colourVisionShader(Vision vision) {
+    std::string colorVisionShader(Vision vision) {
         if (vision == Vision::typical)
             return {};
         const auto correction = correctionFor(vision);
         const auto row        = [](const std::array<double, 3>& values) { return std::format("vec3({:.6f}, {:.6f}, {:.6f})", values[0], values[1], values[2]); };
         return std::format(R"x(#version 300 es
-// Colour correction for {}, written by Lantern.
-// Colours the eye cannot tell apart are moved to colours it can: the colour as it would be
+// Color correction for {}, written by Lantern.
+// Colors the eye cannot tell apart are moved to colors it can: the color as it would be
 // seen is worked out (Machado, Oliveira and Fernandes, 2009), and what is lost is added to
 // the channels that are seen.
 
@@ -133,34 +133,34 @@ in vec2 v_texcoord;
 uniform sampler2D tex;
 layout(location = 0) out vec4 fragColor;
 
-vec3 toLinear(vec3 colour) {{
-    return mix(colour / 12.92, pow((colour + 0.055) / 1.055, vec3(2.4)), step(0.04045, colour));
+vec3 toLinear(vec3 color) {{
+    return mix(color / 12.92, pow((color + 0.055) / 1.055, vec3(2.4)), step(0.04045, color));
 }}
 
-vec3 toScreen(vec3 colour) {{
-    return mix(colour * 12.92, 1.055 * pow(colour, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, colour));
+vec3 toScreen(vec3 color) {{
+    return mix(color * 12.92, 1.055 * pow(color, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, color));
 }}
 
 void main() {{
     vec4 pixel  = texture(tex, v_texcoord);
-    vec3 colour = toLinear(pixel.rgb);
-    vec3 seen   = vec3(dot({}, colour), dot({}, colour), dot({}, colour));
-    vec3 lost   = colour - seen;
+    vec3 color = toLinear(pixel.rgb);
+    vec3 seen   = vec3(dot({}, color), dot({}, color), dot({}, color));
+    vec3 lost   = color - seen;
     vec3 moved  = vec3(dot({}, lost), dot({}, lost), dot({}, lost));
-    fragColor   = vec4(toScreen(clamp(colour + moved, 0.0, 1.0)), pixel.a);
+    fragColor   = vec4(toScreen(clamp(color + moved, 0.0, 1.0)), pixel.a);
 }}
 )x",
                            correction.who, row(correction.seen[0]), row(correction.seen[1]), row(correction.seen[2]), row(correction.shift[0]), row(correction.shift[1]),
                            row(correction.shift[2]));
     }
 
-    Colour corrected(const Colour& colour, Vision vision) {
+    Color corrected(const Color& color, Vision vision) {
         if (vision == Vision::typical)
-            return colour;
+            return color;
         const auto toLinear = [](double channel) { return channel <= 0.04045 ? channel / 12.92 : std::pow((channel + 0.055) / 1.055, 2.4); };
         const auto toScreen = [](double channel) { return channel <= 0.0031308 ? channel * 12.92 : 1.055 * std::pow(channel, 1.0 / 2.4) - 0.055; };
         const auto correction = correctionFor(vision);
-        const std::array<double, 3> linear{toLinear(colour.red), toLinear(colour.green), toLinear(colour.blue)};
+        const std::array<double, 3> linear{toLinear(color.red), toLinear(color.green), toLinear(color.blue)};
         const auto dot = [](const std::array<double, 3>& row, const std::array<double, 3>& values) { return row[0] * values[0] + row[1] * values[1] + row[2] * values[2]; };
         std::array<double, 3> lost{};
         for (std::size_t channel = 0; channel < 3; ++channel)
@@ -171,8 +171,8 @@ void main() {{
         return {result[0], result[1], result[2]};
     }
 
-    std::filesystem::path colourVisionShaderFile(Vision vision, const foundation::Environment& environment) {
-        return configHome(environment) / "hypr" / "shaders" / std::format("colour-vision-{}.frag", nameOf(vision));
+    std::filesystem::path colorVisionShaderFile(Vision vision, const foundation::Environment& environment) {
+        return configHome(environment) / "hypr" / "shaders" / std::format("color-vision-{}.frag", nameOf(vision));
     }
 
     std::vector<std::pair<std::string, std::string>> toolkitTextSizes(double scale) {
@@ -203,7 +203,7 @@ void main() {{
             current.reduceMotion = true;
         if (const auto shader = luaValue(text, shaderPath))
             for (const auto vision : {Vision::redGreen, Vision::blueYellow})
-                if (*shader == quoted(colourVisionShaderFile(vision, environment))) {
+                if (*shader == quoted(colorVisionShaderFile(vision, environment))) {
                     current.vision       = vision;
                     current.wholeDesktop = true;
                 }
@@ -250,15 +250,15 @@ void main() {{
         // user's own is left alone unless correction is asked for.
         const bool shaded = wanted.wholeDesktop && wanted.vision != Vision::typical;
         if (shaded) {
-            text           = configuration::withLuaConfigValueSet(text, shaderPath, quoted(colourVisionShaderFile(wanted.vision, environment)));
-            auto shaderFile = configuration::planEdit(colourVisionShaderFile(wanted.vision, environment), [&wanted](std::string_view) { return colourVisionShader(wanted.vision); });
+            text           = configuration::withLuaConfigValueSet(text, shaderPath, quoted(colorVisionShaderFile(wanted.vision, environment)));
+            auto shaderFile = configuration::planEdit(colorVisionShaderFile(wanted.vision, environment), [&wanted](std::string_view) { return colorVisionShader(wanted.vision); });
             if (!shaderFile)
                 return std::unexpected{shaderFile.error()};
             if (*shaderFile)
                 plan.files.push_back(std::move(**shaderFile));
         } else if (const auto shader = luaValue(text, shaderPath)) {
             for (const auto vision : {Vision::redGreen, Vision::blueYellow})
-                if (*shader == quoted(colourVisionShaderFile(vision, environment)))
+                if (*shader == quoted(colorVisionShaderFile(vision, environment)))
                     if (auto edited = configuration::withLuaConfigValue(text, shaderPath, "\"\""))
                         text = std::move(*edited);
         }

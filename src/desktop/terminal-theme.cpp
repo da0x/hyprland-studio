@@ -2,7 +2,7 @@
 #include "desktop/terminal-theme.hpp"
 
 #include "configuration/hyprlang-edit.hpp"
-#include "desktop/colour.hpp"
+#include "desktop/color.hpp"
 #include "desktop/system.hpp"
 
 #include <algorithm>
@@ -61,8 +61,8 @@ namespace desktop {
             else if (key.starts_with("color")) {
                 unsigned index = 0;
                 const auto [stop, failed] = std::from_chars(key.data() + 5, key.data() + key.size(), index);
-                if (failed == std::errc{} && stop == key.data() + key.size() && index < theme.colours.size())
-                    theme.colours[index] = value;
+                if (failed == std::errc{} && stop == key.data() + key.size() && index < theme.colors.size())
+                    theme.colors[index] = value;
             }
         }
         if (theme.cursor.empty() || theme.cursor == "none")
@@ -76,9 +76,9 @@ namespace desktop {
             return theme;
         TerminalTheme result = theme;
 
-        // Colour vision first: the six hues of the 16 colours move, keeping each colour's
+        // Color vision first: the six hues of the 16 colors move, keeping each color's
         // own lightness and chroma, so the theme keeps its feel. The hues, in OKLCH degrees,
-        // follow the colours used by palettes made for these kinds of colour blindness.
+        // follow the colors used by palettes made for these kinds of color blindness.
         if (vision != Vision::typical) {
             // red, green, yellow, blue, magenta, cyan
             constexpr std::array<double, 6> redGreen{55, 245, 100, 280, 330, 200};
@@ -86,24 +86,24 @@ namespace desktop {
             const auto&                     hues = vision == Vision::redGreen ? redGreen : blueYellow;
             for (std::size_t slot = 0; slot < 6; ++slot)
                 for (const auto index : {slot + 1, slot + 9}) {
-                    auto lch                = lchOf(parseColour(result.colours[index]));
+                    auto lch                = lchOf(parseColor(result.colors[index]));
                     lch.hue                 = hues[slot];
-                    result.colours[index]   = hexOf(colourOf(lch));
+                    result.colors[index]   = hexOf(colorOf(lch));
                 }
         }
 
         if (contrast == Contrast::high) {
             // The background a little further from the middle, then everything read against it.
-            auto background = lchOf(parseColour(result.background));
+            auto background = lchOf(parseColor(result.background));
             background.lightness = theme.dark ? background.lightness * 0.7 : background.lightness + (1 - background.lightness) * 0.6;
-            const auto ground    = parseColour(hexOf(colourOf(background)));
+            const auto ground    = parseColor(hexOf(colorOf(background)));
             result.background    = hexOf(ground);
-            result.foreground    = hexOf(withContrast(parseColour(result.foreground), ground, 10.0));
-            for (std::size_t index = 1; index < result.colours.size(); ++index)
+            result.foreground    = hexOf(withContrast(parseColor(result.foreground), ground, 10.0));
+            for (std::size_t index = 1; index < result.colors.size(); ++index)
                 if (index != 8)
-                    result.colours[index] = hexOf(withContrast(parseColour(result.colours[index]), ground, 7.0));
-            result.colours[8] = hexOf(withContrast(parseColour(result.colours[8]), ground, 4.5));
-            result.cursor     = hexOf(withContrast(parseColour(result.cursor), ground, 4.5));
+                    result.colors[index] = hexOf(withContrast(parseColor(result.colors[index]), ground, 7.0));
+            result.colors[8] = hexOf(withContrast(parseColor(result.colors[8]), ground, 4.5));
+            result.cursor     = hexOf(withContrast(parseColor(result.cursor), ground, 4.5));
         }
 
         // The file: each value that changed, replaced where the theme sets it.
@@ -115,8 +115,8 @@ namespace desktop {
         set("background", theme.background, result.background);
         set("foreground", theme.foreground, result.foreground);
         set("cursor", theme.cursor, result.cursor);
-        for (std::size_t index = 0; index < result.colours.size(); ++index)
-            set(std::format("color{}", index), theme.colours[index], result.colours[index]);
+        for (std::size_t index = 0; index < result.colors.size(); ++index)
+            set(std::format("color{}", index), theme.colors[index], result.colors[index]);
         result.contrast = contrast;
         result.vision   = vision;
         result.file     = std::format("# {}, {}\n{}", theme.name, adjustmentName(contrast, vision), file);
@@ -128,9 +128,9 @@ namespace desktop {
         if (contrast == Contrast::high)
             parts.emplace_back("high contrast");
         if (vision == Vision::redGreen)
-            parts.emplace_back("for red-green colour blindness");
+            parts.emplace_back("for red-green color blindness");
         if (vision == Vision::blueYellow)
-            parts.emplace_back("for blue-yellow colour blindness");
+            parts.emplace_back("for blue-yellow color blindness");
         std::string name;
         for (const auto part : parts)
             name += std::format("{}{}", name.empty() ? "" : ", ", part);
@@ -228,7 +228,7 @@ namespace desktop {
         if (!findProgram("kitty", foundation::variable(environment, "PATH").value_or("")))
             return changes;
         const auto folder = kittyFolder(environment);
-        // kitty's own convention, as `kitten themes` follows it: the colours in
+        // kitty's own convention, as `kitten themes` follows it: the colors in
         // current-theme.conf, which kitty.conf includes.
         for (auto planned : {configuration::planEdit(folder / "current-theme.conf", [&theme](std::string_view) { return theme.file; }),
                              configuration::planEdit(folder / "kitty.conf", [fontSize, &fontFamily, opacity, &environment](std::string_view text) {

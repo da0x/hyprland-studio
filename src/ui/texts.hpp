@@ -9,7 +9,7 @@
 namespace ui {
 
     // Texts that span the width of their column and start at its left edge. A column
-    // layout centres anything narrower than itself, so a text sized to its words would sit
+    // layout centers anything narrower than itself, so a text sized to its words would sit
     // in the middle.
 
     // A page's title.

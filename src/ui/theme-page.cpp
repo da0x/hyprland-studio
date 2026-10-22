@@ -44,7 +44,7 @@ namespace ui {
             return desktop::findProgram(name, foundation::variable(foundation::currentEnvironment(), "PATH").value_or(""));
         }
 
-        // A draft's colours as a palette, its views into the draft.
+        // A draft's colors as a palette, its views into the draft.
         desktop::Palette paletteOf(const desktop::ThemeDraft& draft, const std::string& accent) {
             return desktop::Palette{.name = draft.name, .dark = draft.dark, .base = draft.base, .onAccent = draft.onAccent, .surface = draft.surface, .raised = draft.raised,
                                     .muted = draft.muted, .subtle = draft.subtle, .text = draft.text, .accent = draft.accent, .audio = draft.audio, .network = draft.network,
@@ -183,7 +183,7 @@ namespace ui {
         draftPreview = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         body->addChild(draftPreview);
 
-        // The name and the kind line up with the colours' values below.
+        // The name and the kind line up with the colors' values below.
         const auto nameRow = leftRow(scaled(40));
         nameRow->rebuild()->gap(10)->commence();
         const auto label = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {scaled(220), 1.0}})->commence();
@@ -207,19 +207,19 @@ namespace ui {
                                   },
                                   defer));
 
-        // The colours two to a row: a swatch, the name and what it colours, and its value.
+        // The colors two to a row: a swatch, the name and what it colors, and its value.
         swatches.clear();
-        const auto colours = desktop::draftColours();
+        const auto colors = desktop::draftColors();
         const bool picker  = program("hyprpicker").has_value();
-        for (std::size_t first = 0; first < colours.size(); first += 2) {
+        for (std::size_t first = 0; first < colors.size(); first += 2) {
             const auto line = leftRow(0);
             line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(24)->commence();
-            for (std::size_t index = first; index < std::min(colours.size(), first + 2); ++index) {
-                const auto& colour = colours[index];
+            for (std::size_t index = first; index < std::min(colors.size(), first + 2); ++index) {
+                const auto& color = colors[index];
                 const auto  side   = leftRow(scaled(40));
                 side->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {0.49, scaled(40)}})->gap(10)->commence();
                 const auto swatch = Hyprtoolkit::CRectangleBuilder::begin()
-                                        ->color([value = paletteColour(draft.*colour.member)] { return value; })
+                                        ->color([value = paletteColor(draft.*color.member)] { return value; })
                                         ->rounding(6)
                                         ->borderColor([palette = palette] { return palette->m_colors.alternateBase; })
                                         ->borderThickness(1)
@@ -228,12 +228,12 @@ namespace ui {
                 swatches.push_back(swatch);
                 side->addChild(swatch);
                 const auto names = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {scaled(220), 1.0}})->commence();
-                names->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", escapeMarkup(std::string{colour.name})), palette));
-                names->addChild(markupLine(escapeMarkup(std::string{colour.about}), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
+                names->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", escapeMarkup(std::string{color.name})), palette));
+                names->addChild(markupLine(escapeMarkup(std::string{color.about}), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
                 side->addChild(names);
                 const auto value = Hyprtoolkit::CTextboxBuilder::begin()
-                                       ->defaultText(std::string{draft.*colour.member})
-                                       ->onTextEdited([this, member = colour.member](CSharedPointer<Hyprtoolkit::CTextboxElement>, const std::string& text) {
+                                       ->defaultText(std::string{draft.*color.member})
+                                       ->onTextEdited([this, member = color.member](CSharedPointer<Hyprtoolkit::CTextboxElement>, const std::string& text) {
                                            draft.*member = text;
                                            this->defer([this] { updateEditor(); });
                                        })
@@ -242,12 +242,12 @@ namespace ui {
                 registerTextbox(value);
                 side->addChild(value);
                 if (picker)
-                    side->addChild(button("Pick", 70, false, [this, member = colour.member, value] {
+                    side->addChild(button("Pick", 70, false, [this, member = color.member, value] {
                         defer([this, member, value] {
                             const auto hyprpicker = program("hyprpicker");
                             if (!hyprpicker)
                                 return;
-                            // hyprpicker lets you click anywhere on the screens and says the colour there.
+                            // hyprpicker lets you click anywhere on the screens and says the color there.
                             (void)application::runCommand(loop, *hyprpicker, {"--format=hex", "--no-fancy"}, [this, member, value](bool ok, std::string output) {
                                 const auto at = output.find('#');
                                 if (!ok || at == std::string::npos || output.size() < at + 7 || !editing)
@@ -277,17 +277,17 @@ namespace ui {
         drawn.palette      = &shown;
         draftPreview->clearChildren();
         draftPreview->addChild(desktopPreview(shown, look, drawn, 170.0 / 250, 170));
-        const auto colours = desktop::draftColours();
-        for (std::size_t index = 0; index < swatches.size() && index < colours.size(); ++index)
-            swatches[index]->rebuild()->color([value = paletteColour(draft.*colours[index].member)] { return value; })->commence();
+        const auto colors = desktop::draftColors();
+        for (std::size_t index = 0; index < swatches.size() && index < colors.size(); ++index)
+            swatches[index]->rebuild()->color([value = paletteColor(draft.*colors[index].member)] { return value; })->commence();
 
         const auto problems = desktop::draftProblems(draft);
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons{button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); })};
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
         if (draftFile)
             away.push_back(button("Delete this theme", 180, false, [this] { defer([this] { deleteDraft(); }); }));
-        // A theme whose text cannot be read can still be saved; one with a colour that is not
-        // a colour cannot.
+        // A theme whose text cannot be read can still be saved; one with a color that is not
+        // a color cannot.
         const bool savable = std::ranges::none_of(problems, [](const std::string& problem) { return problem.contains("#rrggbb") || problem.contains("name"); });
         if (savable)
             buttons.push_back(button("Save", 110, true, [this] { defer([this] { saveDraft(); }); }));
@@ -341,7 +341,7 @@ namespace ui {
             if (chosen)
                 name = std::format("<span weight=\"600\">{}</span>", name);
             if (shown == inUse)
-                name += std::format("   {}", coloured("· in use", hex(palette->m_colors.accent)));
+                name += std::format("   {}", colored("· in use", hex(palette->m_colors.accent)));
             made.name->rebuild()->text(std::string{name})->commence();
         }
     }
@@ -369,7 +369,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (planned->empty() && gtkSame) {
-            note = std::format("{}  Your desktop uses {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name));
+            note = std::format("{}  Your desktop uses {}.", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(selected->name));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);
@@ -406,7 +406,7 @@ namespace ui {
             steps.emplace_back("Write the changes below. A copy of each file is kept first, so it can be undone.");
         for (const auto& setting : gtk)
             steps.push_back(std::format("Set GTK's {} from {} to {}, for GTK apps.", setting.key, setting.current, setting.wanted));
-        steps.emplace_back("Show the new colours at once: Hyprland's borders, Lantern, Waybar, the launcher and dunst's notifications.");
+        steps.emplace_back("Show the new colors at once: Hyprland's borders, Lantern, Waybar, the launcher and dunst's notifications.");
         if (std::ranges::any_of(changes, [](const auto& change) { return change.file.filename() == "gtk.css"; }))
             steps.emplace_back("Give GTK apps, such as the volume control and the network settings, the palette too: every one opened from now on, "
                                "and the rest once they are opened again.");
@@ -436,20 +436,20 @@ namespace ui {
         const auto changed = [this](auto test) { return std::ranges::any_of(changes, test); };
         const bool toolkit = changed([](const auto& change) { return change.file.filename() == "hyprtoolkit.conf"; });
         if (toolkit) {
-            // Lantern's own colours, set before hyprtoolkit sees the file change and
+            // Lantern's own colors, set before hyprtoolkit sees the file change and
             // redraws every element with them.
-            auto& colours          = palette->m_colors;
-            colours.background     = paletteColour(selected->base);
-            colours.base           = paletteColour(selected->surface);
-            colours.alternateBase  = paletteColour(selected->raised);
-            colours.text           = paletteColour(selected->text);
-            colours.brightText     = paletteColour(selected->text);
-            colours.linkText       = paletteColour(selected->audio);
-            colours.accent         = paletteColour(selected->accent);
-            colours.accentSecondary = paletteColour(selected->network);
-            // Every element is made again in the new colours.
-            if (recoloured)
-                defer(recoloured);
+            auto& colors          = palette->m_colors;
+            colors.background     = paletteColor(selected->base);
+            colors.base           = paletteColor(selected->surface);
+            colors.alternateBase  = paletteColor(selected->raised);
+            colors.text           = paletteColor(selected->text);
+            colors.brightText     = paletteColor(selected->text);
+            colors.linkText       = paletteColor(selected->audio);
+            colors.accent         = paletteColor(selected->accent);
+            colors.accentSecondary = paletteColor(selected->network);
+            // Every element is made again in the new colors.
+            if (recolored)
+                defer(recolored);
         }
         const bool bar     = changed([](const auto& change) { return change.file.parent_path().filename() == "waybar"; });
         const bool config  = changed([](const auto& change) { return change.file.extension() == ".lua"; });

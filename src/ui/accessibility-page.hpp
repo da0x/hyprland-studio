@@ -21,7 +21,7 @@
 
 namespace ui {
 
-    // Contrast, colour vision, text size, cursor size and motion, for the whole desktop:
+    // Contrast, color vision, text size, cursor size and motion, for the whole desktop:
     // dconf's settings, Hyprland's config, hyprtoolkit's, and every terminal theme. Written
     // only after the user reviews the change.
     class AccessibilityPage {
@@ -35,11 +35,11 @@ namespace ui {
         // the terminal's themes in that version, and Lantern's text at that size.
         void onApplied(std::function<void(const desktop::Accessibility&)> applied) { this->applied = std::move(applied); }
 
-        // Draws the page again, after Lantern's colours changed.
+        // Draws the page again, after Lantern's colors changed.
         void restyle();
 
         // What is in use: the desktop's settings, with Lantern's own record of the
-        // contrast and colour vision for the terminal laid over them.
+        // contrast and color vision for the terminal laid over them.
         [[nodiscard]] static desktop::Accessibility inUse();
 
       private:

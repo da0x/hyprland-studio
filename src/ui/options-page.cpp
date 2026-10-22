@@ -52,14 +52,14 @@ namespace ui {
             return std::format("<span alpha=\"55%\">{}</span>{}", escapeMarkup(name.substr(0, last + 1)), escapeMarkup(name.substr(last + 1)));
         }
 
-        // A colour Hyprland writes as aarrggbb, as a swatch in that colour.
+        // A color Hyprland writes as aarrggbb, as a swatch in that color.
         std::optional<std::string> swatch(std::string_view word) {
             if (word.size() != 8 || !std::ranges::all_of(word, [](unsigned char c) { return std::isxdigit(c); }))
                 return std::nullopt;
             return std::format("<span foreground=\"#{}\">■</span>", word.substr(2));
         }
 
-        // A value as it reads best: a colour with its swatch, a number with the name it
+        // A value as it reads best: a color with its swatch, a number with the name it
         // stands for, an empty one as such.
         std::string valueMarkup(const std::string& value, const ipc::OptionDescription& description) {
             if (value.empty())
@@ -227,7 +227,7 @@ namespace ui {
         details->clearChildren();
         const auto found = selected ? std::ranges::find(rows, *selected, [](const auto& row) { return row.description.name; }) : rows.end();
         if (found == rows.end()) {
-            details->addChild(markupLine("Values in the accent differ from Hyprland's default; faded ones are the default, left to Hyprland. Colours show as swatches.", palette,
+            details->addChild(markupLine("Values in the accent differ from Hyprland's default; faded ones are the default, left to Hyprland. Colors show as swatches.", palette,
                                          CFontSize{CFontSize::HT_FONT_SMALL}, 0.7F));
             return;
         }
@@ -250,7 +250,7 @@ namespace ui {
             facts.push_back(std::format("one of {}", choices));
         }
         if (row.where)
-            facts.push_back(std::format("set at {}", coloured(row.where->brief(), hex(palette->m_colors.linkText))));
+            facts.push_back(std::format("set at {}", colored(row.where->brief(), hex(palette->m_colors.linkText))));
         else if (row.set)
             facts.push_back("set by your config");
         else

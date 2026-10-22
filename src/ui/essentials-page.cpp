@@ -113,7 +113,7 @@ namespace ui {
         const auto missing = std::ranges::count_if(found, [](const auto& essential) { return !essential.requirement.met() || !essential.problem.empty(); });
         std::string note   = escapeMarkup(outcome);
         if (note.empty() && missing == 0)
-            note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), "Everything is here.");
+            note = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), "Everything is here.");
         else if (note.empty())
             note = escapeMarkup(std::format("{} of {} need{} your attention.", missing, found.size(), missing == 1 ? "s" : ""));
         const auto noteText = markupLine(note, palette);

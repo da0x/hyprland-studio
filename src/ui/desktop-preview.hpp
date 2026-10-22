@@ -10,7 +10,7 @@ namespace ui {
 
     // A drawing of the desktop as it would look: Waybar in `bar`'s style at the top, and three
     // windows tiled as Hyprland tiles them, one focused beside two stacked, with `look`'s
-    // corners, gaps and border, in `palette`'s colours. The focused one holds an app and has
+    // corners, gaps and border, in `palette`'s colors. The focused one holds an app and has
     // the gradient border the theme gives it; the others hold a terminal. `height` is the
     // drawing's, and `scale` how much smaller than the screen it is drawn.
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> desktopPreview(const desktop::Palette& palette, const desktop::WindowLook& look,

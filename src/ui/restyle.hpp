@@ -14,17 +14,17 @@
 
 namespace ui {
 
-    // hyprtoolkit takes an element's colour when it is made or rebuilt, so after Lantern's
-    // palette changes, every element made in the old colours is rebuilt. The
+    // hyprtoolkit takes an element's color when it is made or rebuilt, so after Lantern's
+    // palette changes, every element made in the old colors is rebuilt. The
     // places that make long-lived elements register them here.
 
     // What a registered element is asked to do.
     enum class Restyle {
         // Only say whether it is still there.
         check,
-        // Take the palette's colours.
-        recolour,
-        // Take the palette's colours and text sizes.
+        // Take the palette's colors.
+        recolor,
+        // Take the palette's colors and text sizes.
         resize,
     };
 
@@ -57,9 +57,9 @@ namespace ui {
     // How many elements are registered, for restyleAll's `upTo`.
     [[nodiscard]] std::size_t restyleCount();
 
-    // Rebuilds every registered element that is still alive: in the palette's colours, and
+    // Rebuilds every registered element that is still alive: in the palette's colors, and
     // with `resized`, its text sizes too. Only the first `upTo` are rebuilt: elements made
-    // since are already in the new colours and sizes, and a text not laid out yet would be
+    // since are already in the new colors and sizes, and a text not laid out yet would be
     // drawn once at no width, a letter to a line, when given a new size.
     void restyleAll(bool resized = false, std::size_t upTo = std::numeric_limits<std::size_t>::max());
 

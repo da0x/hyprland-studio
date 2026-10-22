@@ -37,7 +37,7 @@ namespace ui {
         // Asks Hyprland for its displays again, when the page is opened.
         void refresh();
 
-        // Draws the page again, after Lantern's colours or text size changed.
+        // Draws the page again, after Lantern's colors or text size changed.
         void restyle();
 
       private:

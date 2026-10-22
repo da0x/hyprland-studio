@@ -37,7 +37,7 @@ namespace ui {
         // Learns the windows' names, so events that name a window by its address can say
         // which it is.
         void learnWindows(const ipc::Tree& tree);
-        // Draws the list again, after Lantern's colours changed.
+        // Draws the list again, after Lantern's colors changed.
         void restyle();
 
       private:

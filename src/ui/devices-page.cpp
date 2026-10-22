@@ -117,7 +117,7 @@ namespace ui {
                                                      : std::format("Playing through {} at {}%.", output.empty() ? "the default output" : output, volume->percent),
                                        palette));
         addOpen(column, "Open the volume control", "pavucontrol");
-        addOpen(column, "Open Hyprland's sound centre", "hyprpwcenter");
+        addOpen(column, "Open Hyprland's sound center", "hyprpwcenter");
         if (!program("pavucontrol") && !program("hyprpwcenter"))
             column->addChild(requirementBlock(desktop::Requirement{.name     = "Volume control",
                                                                    .purpose  = "Picks the output and the microphone, and sets each app's volume.",

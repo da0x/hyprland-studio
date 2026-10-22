@@ -396,7 +396,7 @@ namespace ui {
         if (!planned)
             status->addChild(paragraph(std::format("Lantern cannot set it up: {}.", planned.error()), palette));
         else if (applied)
-            status->addChild(markupLine(std::format("{}  Applied: {} shows it, and starts when you log in.", coloured("✓", hex(palette->m_colors.accent)),
+            status->addChild(markupLine(std::format("{}  Applied: {} shows it, and starts when you log in.", colored("✓", hex(palette->m_colors.accent)),
                                                     awwwChosen ? "awww" : "hyprpaper"),
                                         palette));
         else
@@ -597,14 +597,14 @@ namespace ui {
             const auto install = desktop::installCommand(requirement, distribution);
             if (!allMet && !install.empty()) {
                 body->addChild(commandRow(install, copier, palette, defer,
-                                          std::format("{}  <span weight=\"600\">{}</span> is not installed. Run this, then press Check again:", coloured("✗", bad),
+                                          std::format("{}  <span weight=\"600\">{}</span> is not installed. Run this, then press Check again:", colored("✗", bad),
                                                       escapeMarkup(requirement.name))));
             } else if (!allMet) {
                 body->addChild(requirementBlock(requirement, distribution, copier, palette, defer));
             }
             const auto actions = leftRow();
             if (allMet) {
-                const auto found = markupLine(std::format("{}  <span weight=\"600\">{}</span>   {}", coloured("✓", good), escapeMarkup(requirement.name),
+                const auto found = markupLine(std::format("{}  <span weight=\"600\">{}</span>   {}", colored("✓", good), escapeMarkup(requirement.name),
                                                           escapeMarkup(requirement.found.value_or(""))),
                                               palette);
                 found->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();

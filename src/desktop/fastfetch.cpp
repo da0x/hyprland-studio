@@ -10,7 +10,7 @@ namespace desktop {
 
     namespace {
 
-        constexpr std::string_view marker   = "// Written by Lantern for Hyprland, in the terminal's own colours.";
+        constexpr std::string_view marker   = "// Written by Lantern for Hyprland, in the terminal's own colors.";
         constexpr std::string_view greeting = "command -v fastfetch >/dev/null && fastfetch";
         constexpr std::string_view about    = "# Lantern for Hyprland: a summary of the system in each new terminal.";
 

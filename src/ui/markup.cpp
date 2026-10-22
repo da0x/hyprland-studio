@@ -13,7 +13,7 @@ namespace ui {
 
         // Each kind in a hue of its own, so that a keyword and a function name never look
         // alike whatever the theme's accent is.
-        std::string colourOf(const Hyprtoolkit::CPalette& palette, syntax::Kind kind) {
+        std::string colorOf(const Hyprtoolkit::CPalette& palette, syntax::Kind kind) {
             const bool dark = darkTheme(palette);
             switch (kind) {
                 case syntax::Kind::comment: return dark ? "#7d8799" : "#6a737d";
@@ -54,8 +54,8 @@ namespace ui {
         return palette.m_colors.background.asOkLab().l < 0.5;
     }
 
-    std::string coloured(std::string_view text, const std::string& colour) {
-        return std::format("<span foreground=\"{}\">{}</span>", colour, escapeMarkup(text));
+    std::string colored(std::string_view text, const std::string& color) {
+        return std::format("<span foreground=\"{}\">{}</span>", color, escapeMarkup(text));
     }
 
     std::string codeMarkup(std::string_view text, std::size_t begin, std::size_t end, const std::vector<syntax::Span>& spans, std::vector<syntax::Span>::const_iterator& span,
@@ -87,7 +87,7 @@ namespace ui {
                 break;
             }
             plain(std::max(at, span->begin));
-            markup += std::format("<span foreground=\"{}\"{}>", colourOf(palette, span->kind), span->kind == syntax::Kind::comment ? " style=\"italic\"" : "");
+            markup += std::format("<span foreground=\"{}\"{}>", colorOf(palette, span->kind), span->kind == syntax::Kind::comment ? " style=\"italic\"" : "");
             plain(std::min(span->end, end));
             markup += "</span>";
         }

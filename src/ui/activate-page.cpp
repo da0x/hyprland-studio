@@ -206,7 +206,7 @@ namespace ui {
         const auto words = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
         words->setGrow(true, false);
         if (active) {
-            words->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", coloured(std::format("Active since {}", active->since), accent)), palette,
+            words->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", colored(std::format("Active since {}", active->since), accent)), palette,
                                        CFontSize{CFontSize::HT_FONT_H3}, 1.0F));
             words->addChild(markupLine(escapeMarkup(std::format("{}. Deactivate puts the desktop back as your config says.", listed(*active))), palette));
         } else {
@@ -232,7 +232,7 @@ namespace ui {
                 const auto inside  = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
                 inside->setMargin(14);
                 const auto heading = leftRow(34);
-                const auto name    = markupLine(std::format("{}  <span weight=\"600\">{}</span>", coloured(text.symbol, isOn ? accent : hex(palette->m_colors.text)), escapeMarkup(text.title)),
+                const auto name    = markupLine(std::format("{}  <span weight=\"600\">{}</span>", colored(text.symbol, isOn ? accent : hex(palette->m_colors.text)), escapeMarkup(text.title)),
                                                 palette, CFontSize{CFontSize::HT_FONT_H3}, 1.0F);
                 name->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
                 name->setGrow(true, false);
@@ -258,7 +258,7 @@ namespace ui {
                         inside->addChild(markupLine(std::format("and {} more", inArea.size() - shown), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
                     if (area == activation::Area::keybindings)
                         for (const auto& collision : collisions)
-                            inside->addChild(markupLine(std::format("{}  {}", coloured("!", accent), escapeMarkup(collision + ": both will run.")), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
+                            inside->addChild(markupLine(std::format("{}  {}", colored("!", accent), escapeMarkup(collision + ": both will run.")), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
                 }
                 // A card sized to its content leaves out the bottom margin; this puts it back.
                 inside->addChild(space(4));
@@ -296,7 +296,7 @@ namespace ui {
         for (const auto& skipped : effects.skipped)
             body->addChild(markupLine(escapeMarkup(std::format("Line {} is left out: {}.", skipped.line, skipped.reason)), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.7F));
         for (const auto& problem : problems)
-            body->addChild(markupLine(std::format("{}  {}", coloured("!", accent), escapeMarkup(problem)), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
+            body->addChild(markupLine(std::format("{}  {}", colored("!", accent), escapeMarkup(problem)), palette, CFontSize{CFontSize::HT_FONT_SMALL}));
 
         CSharedPointer<Hyprtoolkit::IElement> note;
         if (!outcome.empty()) {

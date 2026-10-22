@@ -86,7 +86,7 @@ namespace ui {
             return 1;
 
         const auto palette    = backend->getPalette();
-        // Lantern's colours: hyprtoolkit's, from hyprtoolkit.conf or its defaults, until
+        // Lantern's colors: hyprtoolkit's, from hyprtoolkit.conf or its defaults, until
         // the Theme page sets new ones here and every element is made again in them.
         const auto background = [palette] { return palette->m_colors.background; };
         const auto base       = [palette] { return palette->m_colors.base; };
@@ -193,7 +193,7 @@ namespace ui {
         eventLog.embed();
         console.embed();
         TabbedPage screens{palette, defer, "Displays", {{"Screens", displays.element(), ""}, {"Night light", nightLight.element(), "Night light"}}};
-        TabbedPage terminalTabs{palette, defer, "Terminal", {{"Colours", terminal.element(), ""}, {"System info", systemInfo.element(), "System info"}}};
+        TabbedPage terminalTabs{palette, defer, "Terminal", {{"Colors", terminal.element(), ""}, {"System info", systemInfo.element(), "System info"}}};
         TabbedPage inspect{palette, defer, "Inspect",
                            {{"Tree", liveTree.element(), "Live tree"}, {"Events", eventLog.element(), "Event log"}, {"Console", console.element(), "Console"}}};
         // A wallpaper tried on the desktop and not kept goes back when its page is left; a
@@ -386,8 +386,8 @@ namespace ui {
                     quit();
             });
         });
-        // Every element made in the old colours is made again: the long-lived ones in place,
-        // and the pages' contents, some with colours baked into their text, from their data.
+        // Every element made in the old colors is made again: the long-lived ones in place,
+        // and the pages' contents, some with colors baked into their text, from their data.
         const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &systemInfo, &cursors, &displays, &input, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
@@ -419,8 +419,8 @@ namespace ui {
             console.restyle();
             restyleAll(resized, before);
         };
-        theme.onRecoloured([redraw] { redraw(false); });
-        // The terminal's themes follow the contrast and colour vision; Lantern's text, the size.
+        theme.onRecolored([redraw] { redraw(false); });
+        // The terminal's themes follow the contrast and color vision; Lantern's text, the size.
         accessibility.onApplied([&terminal, palette, redraw, defer, window, loop, resizeSidebar](const desktop::Accessibility& now) {
             terminal.adjust(now.contrast, now.vision);
             auto&      sizes  = palette->m_vars;

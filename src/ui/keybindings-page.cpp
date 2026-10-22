@@ -75,7 +75,7 @@ namespace ui {
             bool             inactive     = false;
         };
 
-        // Where the binding was set, in the link colour since clicking opens it, then
+        // Where the binding was set, in the link color since clicking opens it, then
         // anything unusual about it.
         std::string notes(const std::optional<configuration::Location>& location, const Flags& flags, const Hyprtoolkit::CPalette& palette) {
             std::vector<std::string> extras;
@@ -91,7 +91,7 @@ namespace ui {
             add(flags.locked, "also when locked");
             add(flags.nonConsuming, "passes the key on");
 
-            std::string text = location ? coloured(location->brief(), hex(palette.m_colors.linkText)) : std::string{};
+            std::string text = location ? colored(location->brief(), hex(palette.m_colors.linkText)) : std::string{};
             for (const auto& extra : extras)
                 text += (text.empty() ? "" : "  ·  ") + escapeMarkup(extra);
             return text;
@@ -328,7 +328,7 @@ namespace ui {
                                Flags{.submap = live.submap, .release = live.release, .repeat = live.repeat, .longPress = live.longPress, .locked = live.locked, .nonConsuming = live.nonConsuming},
                                *palette);
             if (!clash.empty())
-                noted = coloured(clash, hex(palette->m_colors.accent)) + (noted.empty() ? "" : "  ·  ") + noted;
+                noted = colored(clash, hex(palette->m_colors.accent)) + (noted.empty() ? "" : "  ·  ") + noted;
             auto made    = entry(keyCaps(keys, *palette), row.recorded ? row.recorded->action : configuration::Value{}, described(row), location, noted,
                                  std::format("{} {} {} {} {}", keys, described(row), location ? location->brief() : std::string{}, live.submap, clash));
             made.clashes = !clash.empty();
@@ -402,10 +402,10 @@ namespace ui {
             begin = end + 1;
             ++line;
         }
-        const auto arrow  = coloured(lines.size() > 1 ? "▶ " : "", hex(palette->m_colors.accent));
-        const auto folded = lines.size() > 1 ? coloured(std::format("  … {} lines", lines.size()), hex(palette->m_colors.text.mix(palette->m_colors.base, 0.5F))) : std::string{};
+        const auto arrow  = colored(lines.size() > 1 ? "▶ " : "", hex(palette->m_colors.accent));
+        const auto folded = lines.size() > 1 ? colored(std::format("  … {} lines", lines.size()), hex(palette->m_colors.text.mix(palette->m_colors.base, 0.5F))) : std::string{};
         made.action         = monospace(arrow + lines.front(), *palette) + folded;
-        made.expandedAction = monospace(coloured("▼ ", hex(palette->m_colors.accent)) + lines.front(), *palette);
+        made.expandedAction = monospace(colored("▼ ", hex(palette->m_colors.accent)) + lines.front(), *palette);
         return made;
     }
 

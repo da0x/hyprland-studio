@@ -106,7 +106,7 @@ namespace ui {
         body->clearChildren();
         // The keyboard on the left, the mouse on the right.
         const auto columns = leftRow(0);
-        // Both as tall as the page, so each starts at the top: a row centres what is shorter.
+        // Both as tall as the page, so each starts at the top: a row centers what is shorter.
         columns->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->gap(24)->commence();
         const auto keyboard = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {0.5, 1.0}})->commence();
         const auto mouse    = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(6)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {0.46, 1.0}})->commence();
@@ -315,7 +315,7 @@ namespace ui {
         if (!planned)
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         else if (!*planned)
-            note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your keyboard and mouse are set like this." : outcome));
+            note = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your keyboard and mouse are set like this." : outcome));
         else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);

@@ -17,8 +17,8 @@ namespace desktop {
 
     struct Fastfetch {
         FetchLogo   logo   = FetchLogo::large;
-        // A terminal colour by its ANSI name, such as blue, for the logo, the title and the
-        // keys: shown in the terminal's own colour scheme, so it keeps matching it.
+        // A terminal color by its ANSI name, such as blue, for the logo, the title and the
+        // keys: shown in the terminal's own color scheme, so it keeps matching it.
         std::string accent = "blue";
         // Everything fastfetch knows, rather than the few things most people look at.
         bool        full   = false;
@@ -26,11 +26,11 @@ namespace desktop {
         bool        operator==(const Fastfetch&) const = default;
     };
 
-    // The accents offered, by ANSI name, with the index of the colour in a terminal theme.
+    // The accents offered, by ANSI name, with the index of the color in a terminal theme.
     struct FetchAccent {
         std::string_view name;
         std::string_view label;
-        std::size_t      colour;
+        std::size_t      color;
     };
     inline constexpr std::array<FetchAccent, 6> fetchAccents{{
         {"blue", "Blue", 4}, {"magenta", "Magenta", 5}, {"cyan", "Cyan", 6}, {"green", "Green", 2}, {"yellow", "Yellow", 3}, {"red", "Red", 1},

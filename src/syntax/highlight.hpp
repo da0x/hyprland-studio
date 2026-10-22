@@ -9,7 +9,7 @@
 
 namespace syntax {
 
-    // What a piece of source is, as far as colouring it goes.
+    // What a piece of source is, as far as coloring it goes.
     enum class Kind {
         comment,
         keyword,
@@ -31,8 +31,8 @@ namespace syntax {
         friend bool operator==(const Span&, const Span&) = default;
     };
 
-    // The coloured runs of a Lua source, in order and never overlapping. Bytes outside
-    // every span are plain. A source with syntax errors is still coloured as far as the
+    // The colored runs of a Lua source, in order and never overlapping. Bytes outside
+    // every span are plain. A source with syntax errors is still colored as far as the
     // parser can make sense of it.
     [[nodiscard]] std::vector<Span> highlightLua(std::string_view source);
 

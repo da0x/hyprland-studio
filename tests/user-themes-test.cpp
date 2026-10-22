@@ -20,7 +20,7 @@ namespace {
         auto broken   = draft;
         broken.accent = "purple";
         broken.name   = " ";
-        EXPECT_EQ(desktop::draftProblems(broken), (std::vector<std::string>{"It needs a name.", "Accent is not a colour written as #rrggbb."}));
+        EXPECT_EQ(desktop::draftProblems(broken), (std::vector<std::string>{"It needs a name.", "Accent is not a color written as #rrggbb."}));
         auto faint = draft;
         faint.text = faint.base;
         EXPECT_EQ(desktop::draftProblems(faint).size(), 1U);

@@ -231,22 +231,22 @@ namespace ui {
             }
             choices->addChild(shapes);
 
-            choices->addChild(markupLine("<span weight=\"600\">Colours</span>", palette));
+            choices->addChild(markupLine("<span weight=\"600\">Colors</span>", palette));
             const auto     all    = desktop::allPalettes();
             constexpr auto perRow = static_cast<std::size_t>(cardsPerRow);
             paletteCards.clear();
             for (std::size_t first = 0; first < all.size(); first += perRow) {
-                const auto colours = leftRow(0);
-                colours->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
+                const auto colors = leftRow(0);
+                colors->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
                 for (std::size_t index = first; index < std::min(all.size(), first + perRow); ++index) {
                     auto made = card(std::string{all[index]->name}, [this, chosen = all[index]] {
                         selected.palette = chosen;
                         updateStyle();
                     });
-                    colours->addChild(made.frame);
+                    colors->addChild(made.frame);
                     paletteCards.emplace_back(all[index], std::move(made));
                 }
-                choices->addChild(colours);
+                choices->addChild(colors);
             }
 
             choices->addChild(markupLine("<span weight=\"600\">Border</span>", palette));
@@ -278,11 +278,11 @@ namespace ui {
         for (const auto& info : desktop::waybarWidgets())
             if (!desktop::sideOf(selected.widgets, info.widget))
                 off.push_back(info.widget);
-        // All three as tall as the longest, since a row centres shorter children.
+        // All three as tall as the longest, since a row centers shorter children.
         std::size_t longest = 0;
         for (std::size_t side = 0; side < selected.widgets.size(); ++side)
             longest = std::max(longest, selected.widgets[side].size());
-        // A tile: the widget's name, and under it the widget as the bar draws it, both centred.
+        // A tile: the widget's name, and under it the widget as the bar draws it, both centered.
         // The previews shrink when a column holds many, so the page still fits its window: a
         // page laid out taller than that comes out wrong.
         constexpr double tilesHeight = 440;
@@ -296,7 +296,7 @@ namespace ui {
                                   ->rounding(palette->m_vars.smallRounding)
                                   ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, rowHeight}})
                                   ->commence();
-            // A column centres what is narrower than itself.
+            // A column centers what is narrower than itself.
             const auto stack = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
             stack->setMargin(5);
             const auto name = markupLine(escapeMarkup(std::string{infoOf(widget).name}), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.8F);
@@ -463,7 +463,7 @@ namespace ui {
         if (!planned)
             return planned;
         std::erase_if(*planned, [](const auto& change) { return !change.changes(); });
-        // The pop-ups take the bar's colours, when Lantern wrote their style.
+        // The pop-ups take the bar's colors, when Lantern wrote their style.
         if (std::error_code error; style.palette && std::filesystem::exists(desktop::popupStyleFile(foundation::currentEnvironment()), error)) {
             auto popups = planPopupStyle(*style.palette);
             if (!popups)
@@ -505,7 +505,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("Lantern cannot write it: {}.", planned.error()));
         } else if (same) {
-            note = std::format("{}  Your Waybar uses {}, {}.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
+            note = std::format("{}  Your Waybar uses {}, {}.", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(selected.palette->name),
                                escapeMarkup(std::string{shapeInfo(selected.shape).name}));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(selected); }); }));
@@ -655,11 +655,11 @@ namespace ui {
         if (*edited)
             planned.push_back(std::move(**edited));
         if (popupsWanted) {
-            // In the colours of the bar Waybar has, or else of the one chosen here.
+            // In the colors of the bar Waybar has, or else of the one chosen here.
             const auto current = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry());
-            const auto colours = current && current->palette ? current->palette : selected.palette;
-            if (colours) {
-                auto style = planPopupStyle(*colours);
+            const auto colors = current && current->palette ? current->palette : selected.palette;
+            if (colors) {
+                auto style = planPopupStyle(*colors);
                 if (!style)
                     return std::unexpected{style.error()};
                 if (*style)
@@ -670,7 +670,7 @@ namespace ui {
     }
 
     void BarPage::fillPopups() {
-        choices->addChild(paragraph("A pop-up shows the new level when you press a volume or brightness key, in the bar's colours. swayosd draws it.", palette));
+        choices->addChild(paragraph("A pop-up shows the new level when you press a volume or brightness key, in the bar's colors. swayosd draws it.", palette));
         choices->addChild(settingRow("Pop-ups", "for the volume and brightness keys", {"Off", "On"}, popupsWanted ? 1 : 0, palette,
                                      [this](std::size_t chosen) {
                                          popupsWanted = chosen == 1;
@@ -703,7 +703,7 @@ namespace ui {
         if (!planned)
             note = escapeMarkup(std::format("Lantern cannot write it: {}.", planned.error()));
         else if (planned->empty())
-            note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), popupsNow ? "The pop-ups are on." : "The pop-ups are off.");
+            note = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), popupsNow ? "The pop-ups are on." : "The pop-ups are off.");
         else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showPopupReview(); }); }));
             note = escapeMarkup(outcome);

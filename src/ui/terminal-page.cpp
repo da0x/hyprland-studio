@@ -62,7 +62,7 @@ namespace ui {
         root->setMargin(28);
         title = pageTitle("Terminal", this->palette);
         root->addChild(title);
-        root->addChild(paragraph("Colour schemes for kitty, chosen apart from the desktop's: terminal themes are their own family, and many are best dark "
+        root->addChild(paragraph("Color schemes for kitty, chosen apart from the desktop's: terminal themes are their own family, and many are best dark "
                                  "whatever the desktop is. They come from kitty's own collection, kitty-themes. Nothing is written until you review the change.",
                                  this->palette));
         body = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})->commence();
@@ -116,7 +116,7 @@ namespace ui {
         const auto environment = foundation::currentEnvironment();
         const auto install     = desktop::installCommand(desktop::Requirement{.name = found->family, .purpose = "", .upstream = "", .package = found->package, .found = std::nullopt},
                                                          desktop::currentDistribution());
-        const auto lead        = std::format("{} ({}) is not installed. Run this, then press Check again:", escapeMarkup(found->family), escapeMarkup(found->licence));
+        const auto lead        = std::format("{} ({}) is not installed. Run this, then press Check again:", escapeMarkup(found->family), escapeMarkup(found->license));
         const auto line        = leftRow(40);
         if (install.empty()) {
             line->addChild(markupLine(std::format("{} Install it from your distribution's packages; on Arch Linux it is {}.", lead, escapeMarkup(found->package)), palette));
@@ -167,12 +167,12 @@ namespace ui {
         auto&      made   = sessions[{theme, large, large ? fontSize : 0.0, family, large ? opacity : 1.0}];
         if (made)
             return made;
-        const auto& colour = theme->colours;
+        const auto& color = theme->colors;
         // The large one is see-through as kitty will be, over the desktop's own image.
         const auto  frame  = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([c = paletteColour(theme->background, large ? static_cast<float>(opacity) : 1.F)] { return c; })
+                               ->color([c = paletteColor(theme->background, large ? static_cast<float>(opacity) : 1.F)] { return c; })
                                ->rounding(large ? 10 : 6)
-                               ->borderColor([c = paletteColour(colour[8])] { return c; })
+                               ->borderColor([c = paletteColor(color[8])] { return c; })
                                ->borderThickness(1)
                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, large ? 200.0 : 82.0}})
                                ->commence();
@@ -181,15 +181,15 @@ namespace ui {
                                ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})
                                ->commence();
         lines->setMargin(large ? 16 : 7);
-        // A short session, coloured as a shell and the usual tools colour their output.
-        const auto in     = [](const std::string& hex, std::string_view text) { return coloured(text, hex); };
-        const auto prompt = std::format("{} {} {} ", in(colour[2], "you@hyprland"), in(colour[4], "~/lantern-hyprland"), in(theme->foreground, "$"));
+        // A short session, colored as a shell and the usual tools color their output.
+        const auto in     = [](const std::string& hex, std::string_view text) { return colored(text, hex); };
+        const auto prompt = std::format("{} {} {} ", in(color[2], "you@hyprland"), in(color[4], "~/lantern-hyprland"), in(theme->foreground, "$"));
         const std::vector<std::string> session{
             prompt + in(theme->foreground, "ls"),
-            std::format("{}  {}  {}  {}  {}", in(colour[4], "build"), in(colour[4], "docs"), in(colour[4], "src"), in(theme->foreground, "README.md"), in(colour[2], "configure")),
-            std::format("{} {}", in(colour[3], "warning:"), in(theme->foreground, "unused variable ") + in(colour[5], "'scale'")),
-            std::format("{} {}", in(colour[1], "error:"), in(theme->foreground, "expected ';' before ") + in(colour[6], "'}'")),
-            in(colour[8], "# 81 tests, 80 passed"),
+            std::format("{}  {}  {}  {}  {}", in(color[4], "build"), in(color[4], "docs"), in(color[4], "src"), in(theme->foreground, "README.md"), in(color[2], "configure")),
+            std::format("{} {}", in(color[3], "warning:"), in(theme->foreground, "unused variable ") + in(color[5], "'scale'")),
+            std::format("{} {}", in(color[1], "error:"), in(theme->foreground, "expected ';' before ") + in(color[6], "'}'")),
+            in(color[8], "# 81 tests, 80 passed"),
             prompt + in(theme->cursor, "█"),
         };
         for (std::size_t index = 0; index < session.size(); ++index) {
@@ -198,7 +198,7 @@ namespace ui {
             lines->addChild(Hyprtoolkit::CTextBuilder::begin()
                                 ->text(std::format("<span font_family=\"{}\">{}</span>", escapeMarkup(family), session[index]))
                                 ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, large ? static_cast<float>(fontSize) : 5.F})
-                                ->color([c = paletteColour(theme->foreground)] { return c; })
+                                ->color([c = paletteColor(theme->foreground)] { return c; })
                                 ->align(Hyprtoolkit::HT_FONT_ALIGN_LEFT)
                                 ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
                                 ->commence());
@@ -234,7 +234,7 @@ namespace ui {
             return;
         }
 
-        // Dark or light, and which eight of them. Contrast and colour vision are on the
+        // Dark or light, and which eight of them. Contrast and color vision are on the
         // Accessibility page, and named in the footer.
         const auto shown = shownThemes();
         const auto top   = leftRow();
@@ -438,7 +438,7 @@ namespace ui {
             if (chosen)
                 name = std::format("<span weight=\"600\">{}</span>", name);
             if (theme == inUse)
-                name += std::format("  {}", coloured("· in use", hex(palette->m_colors.accent)));
+                name += std::format("  {}", colored("· in use", hex(palette->m_colors.accent)));
             made.name->rebuild()->text(std::string{name})->commence();
         }
     }
@@ -463,7 +463,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (planned->empty()) {
-            note = std::format("{}  Your terminal uses {}, in {} at {:g} pt.", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(fullName(*selected)),
+            note = std::format("{}  Your terminal uses {}, in {} at {:g} pt.", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(fullName(*selected)),
                                escapeMarkup(desktop::kittyFontFamily(environment).value_or("kitty's default font")), fontSize);
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
@@ -494,7 +494,7 @@ namespace ui {
                                palette));
         body->addChild(paragraph("Applying will:", palette));
         body->addChild(paragraph("•  Write the changes below. A copy of each file is kept first, so it can be undone.", palette, true));
-        body->addChild(paragraph("•  Show the new colours and font size in every open kitty window at once.", palette, true));
+        body->addChild(paragraph("•  Show the new colors and font size in every open kitty window at once.", palette, true));
         // kitty takes a new opacity on reload only if it started with dynamic opacity on.
         if (opacity != desktop::kittyOpacity(environment) && !desktop::kittyDynamicOpacity(environment))
             body->addChild(paragraph("•  Give new kitty windows the new background. Windows open now keep theirs until they are opened again; after that, "

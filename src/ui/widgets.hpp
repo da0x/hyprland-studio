@@ -86,7 +86,7 @@ namespace ui {
 
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> heading(const std::string& text, const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette);
 
-    // A diff as list rows: a header per file, then its changes with a sign and a colour.
+    // A diff as list rows: a header per file, then its changes with a sign and a color.
     [[nodiscard]] std::vector<RowList::Row> diffRows(const std::vector<configuration::FileChange>& changes, const Hyprtoolkit::CPalette& palette);
 
 }

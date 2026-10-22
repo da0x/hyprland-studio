@@ -35,9 +35,9 @@ namespace ui {
         // Waybar's height, as the preview draws it.
         constexpr double barHeight     = 22;
 
-        // The colours windows are drawn in: the desktop's theme, if Lantern set one, or
+        // The colors windows are drawn in: the desktop's theme, if Lantern set one, or
         // Lantern's own.
-        struct Colours {
+        struct Colors {
             std::string backdrop;
             std::string window;
             std::string content;
@@ -45,7 +45,7 @@ namespace ui {
             std::string inactive;
         };
 
-        Colours coloursFor(const Hyprtoolkit::CPalette& studio) {
+        Colors colorsFor(const Hyprtoolkit::CPalette& studio) {
             if (const auto config = configuration::mainConfig(configuration::lanternLaunch()))
                 if (const auto* theme = desktop::currentTheme(*config))
                     return {theme->dark ? "#3b4252" : "#b6bccb", std::string{theme->base}, std::string{theme->raised}, std::string{theme->accent}, std::string{theme->raised}};
@@ -53,13 +53,13 @@ namespace ui {
                     hex(studio.m_colors.alternateBase)};
         }
 
-        CSharedPointer<Hyprtoolkit::CRectangleElement> block(const std::string& colour, CDynamicSize size, double rounding = 0, const std::string& border = {}, int thickness = 0) {
+        CSharedPointer<Hyprtoolkit::CRectangleElement> block(const std::string& color, CDynamicSize size, double rounding = 0, const std::string& border = {}, int thickness = 0) {
             auto builder = Hyprtoolkit::CRectangleBuilder::begin()
-                               ->color([c = paletteColour(colour)] { return c; })
+                               ->color([c = paletteColor(color)] { return c; })
                                ->rounding(static_cast<int>(std::lround(rounding)))
                                ->size(std::move(size));
             if (thickness > 0)
-                builder->borderColor([c = paletteColour(border)] { return c; })->borderThickness(thickness);
+                builder->borderColor([c = paletteColor(border)] { return c; })->borderThickness(thickness);
             return builder->commence();
         }
 
@@ -71,7 +71,7 @@ namespace ui {
             return CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}};
         }
 
-        // A card's picture: what is drawn, centred up and down; a column centres it across.
+        // A card's picture: what is drawn, centered up and down; a column centers it across.
         CSharedPointer<Hyprtoolkit::IElement> cardPicture(const std::string& background, const CSharedPointer<Hyprtoolkit::IElement>& inside, double used) {
             const auto frame  = block(background, CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, ChoiceCards::defaultPictureHeight}}, 6);
             const auto column = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
@@ -145,7 +145,7 @@ namespace ui {
         body->addChild(preview);
         body->addChild(space(6));
 
-        // Settings two to a row, so each pair lines up: a row centres what is shorter.
+        // Settings two to a row, so each pair lines up: a row centers what is shorter.
         std::vector<CSharedPointer<Hyprtoolkit::CColumnLayoutElement>> sides;
         for (int row = 0; row < 3; ++row) {
             const auto line = leftRow(0);
@@ -165,7 +165,7 @@ namespace ui {
         const auto& resizing = sides[4];
         const auto& pickers  = sides[5];
 
-        const auto colours = coloursFor(*palette);
+        const auto colors = colorsFor(*palette);
         // Presets, and the value the config has now when it is none of them, shown as
         // `shown` times the value: the distance it makes on screen.
         const auto choicesOf = [this](int desktop::WindowLook::*member, std::vector<std::pair<std::string, int>> presets, const std::function<CSharedPointer<Hyprtoolkit::IElement>(int)>& draw,
@@ -185,15 +185,15 @@ namespace ui {
 
         cards.addSetting(corners, "Corners", "how round each window is",
                          choicesOf(&desktop::WindowLook::rounding, {{"Square", 0}, {"Slight", 4}, {"Round", 10}, {"Very round", 18}},
-                                   [colours](int radius) {
-                                       return cardPicture(colours.backdrop, block(colours.window, fixed(70, 38), radius * 0.8, colours.active, 2), 38);
+                                   [colors](int radius) {
+                                       return cardPicture(colors.backdrop, block(colors.window, fixed(70, 38), radius * 0.8, colors.active, 2), 38);
                                    },
                                    "corners"));
-        cards.addSetting(border, "Border", "the coloured line around each window",
+        cards.addSetting(border, "Border", "the colored line around each window",
                          choicesOf(&desktop::WindowLook::borderSize, {{"None", 0}, {"Thin", 1}, {"Normal", 2}, {"Thick", 4}},
                                    // Drawn with the corners chosen, so the two read as one window.
-                                   [this, colours](int border) {
-                                       return cardPicture(colours.backdrop, block(colours.window, fixed(70, 38), wanted.rounding * 0.8, colours.active, border), 38);
+                                   [this, colors](int border) {
+                                       return cardPicture(colors.backdrop, block(colors.window, fixed(70, 38), wanted.rounding * 0.8, colors.active, border), 38);
                                    },
                                    "border"));
         std::vector<ChoiceCards::Choice> resize;
@@ -203,27 +203,27 @@ namespace ui {
                 .chosen = [this, on] { return wanted.resizeOnBorder == on; },
                 .select = [this, on] { wanted.resizeOnBorder = on; },
                 .draw =
-                    [this, on, colours] {
+                    [this, on, colors] {
                         return cards.picture(std::format("resize {} {}", on, wanted.rounding), [&] {
                             // On, a window whose highlighted edge is being dragged out to the
                             // outline of the size it will be; off, a window and nothing more.
                             const auto radius  = wanted.rounding * 0.8;
-                            const auto outline = block(colours.backdrop, fixed(80, 38), radius, colours.content, on ? 1 : 0);
+                            const auto outline = block(colors.backdrop, fixed(80, 38), radius, colors.content, on ? 1 : 0);
                             const auto row     = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(3)->size(filling())->commence();
-                            row->addChild(block(colours.window, fixed(46, 38), radius, on ? colours.active : colours.inactive, on ? 3 : 1));
+                            row->addChild(block(colors.window, fixed(46, 38), radius, on ? colors.active : colors.inactive, on ? 3 : 1));
                             if (on) {
                                 const auto arrow = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
                                 arrow->addChild(space(8));
                                 arrow->addChild(Hyprtoolkit::CTextBuilder::begin()
                                                     ->text("→")
                                                     ->fontSize(CFontSize{CFontSize::HT_FONT_ABSOLUTE, 14.F})
-                                                    ->color([c = paletteColour(colours.active)] { return c; })
+                                                    ->color([c = paletteColor(colors.active)] { return c; })
                                                     ->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})
                                                     ->commence());
                                 row->addChild(arrow);
                             }
                             outline->addChild(row);
-                            return cardPicture(colours.backdrop, outline, 38);
+                            return cardPicture(colors.backdrop, outline, 38);
                         });
                     },
             });
@@ -235,23 +235,23 @@ namespace ui {
                 .chosen = [this, floating] { return wanted.floatFilePickers == floating; },
                 .select = [this, floating] { wanted.floatFilePickers = floating; },
                 .draw =
-                    [this, floating, colours] {
+                    [this, floating, colors] {
                         return cards.picture(std::format("pickers {} {}", floating, wanted.rounding), [&] {
                             // Tiled, the dialog takes half the screen beside the app; floating,
                             // it sits in the middle, over the app.
                             const auto radius = wanted.rounding * 0.8;
                             if (floating) {
-                                const auto app    = block(colours.window, fixed(84, 42), radius, colours.inactive, 1);
+                                const auto app    = block(colors.window, fixed(84, 42), radius, colors.inactive, 1);
                                 const auto middle = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
                                 middle->setMargin(10);
-                                middle->addChild(block(colours.content, filling(), radius * 0.5, colours.active, 2));
+                                middle->addChild(block(colors.content, filling(), radius * 0.5, colors.active, 2));
                                 app->addChild(middle);
-                                return cardPicture(colours.backdrop, app, 42);
+                                return cardPicture(colors.backdrop, app, 42);
                             }
                             const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-                            row->addChild(block(colours.window, fixed(40, 42), radius, colours.inactive, 1));
-                            row->addChild(block(colours.window, fixed(40, 42), radius, colours.active, 2));
-                            return cardPicture(colours.backdrop, row, 42);
+                            row->addChild(block(colors.window, fixed(40, 42), radius, colors.inactive, 1));
+                            row->addChild(block(colors.window, fixed(40, 42), radius, colors.active, 2));
+                            return cardPicture(colors.backdrop, row, 42);
                         });
                     },
             });
@@ -262,39 +262,39 @@ namespace ui {
         // the same gap.
         cards.addSetting(between, "Between windows", "the distance between two windows",
                          choicesOf(&desktop::WindowLook::gapsIn, {{"None", 0}, {"Small", 5}, {"Normal", 10}, {"Wide", 20}},
-                                   [colours](int gap) {
+                                   [colors](int gap) {
                                        // Two plain windows, and the gap between them drawn as a line as
                                        // thick as it is; with none they meet at a hairline.
                                        const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 38.0}})->commence();
-                                       row->addChild(block(colours.window, fixed(36, 38), 3));
+                                       row->addChild(block(colors.window, fixed(36, 38), 3));
                                        if (gap == 0)
-                                           row->addChild(block(colours.content, fixed(1, 38)));
+                                           row->addChild(block(colors.content, fixed(1, 38)));
                                        else
-                                           row->addChild(block(colours.active, fixed(std::max(2.0, std::round(gap * 2 * 0.3)), 38), 1));
-                                       row->addChild(block(colours.window, fixed(36, 38), 3));
-                                       return cardPicture(colours.backdrop, row, 38);
+                                           row->addChild(block(colors.active, fixed(std::max(2.0, std::round(gap * 2 * 0.3)), 38), 1));
+                                       row->addChild(block(colors.window, fixed(36, 38), 3));
+                                       return cardPicture(colors.backdrop, row, 38);
                                    },
                                    "between", 2));
         cards.addSetting(edge, "Screen edge", "the gap between windows and the edges of the screen",
                          choicesOf(&desktop::WindowLook::gapsOut, {{"None", 0}, {"Small", 10}, {"Normal", 20}, {"Wide", 40}},
-                                   [colours](int gap) {
+                                   [colors](int gap) {
                                        // A monitor on its stand, the gap between its edge and the window on
                                        // it highlighted.
-                                       const auto bezel = block(colours.window, fixed(84, 42), 4);
+                                       const auto bezel = block(colors.window, fixed(84, 42), 4);
                                        const auto glass = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
                                        glass->setMargin(3);
-                                       const auto edgeGap = block(colours.active, filling(), 1);
+                                       const auto edgeGap = block(colors.active, filling(), 1);
                                        const auto inside  = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
                                        inside->setMargin(gap * 0.3);
-                                       inside->addChild(block(colours.content, filling(), 2));
+                                       inside->addChild(block(colors.content, filling(), 2));
                                        edgeGap->addChild(inside);
                                        glass->addChild(edgeGap);
                                        bezel->addChild(glass);
                                        const auto monitor = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
                                        monitor->addChild(bezel);
-                                       monitor->addChild(block(colours.window, fixed(10, 4)));
-                                       monitor->addChild(block(colours.window, fixed(30, 3), 1));
-                                       return cardPicture(colours.backdrop, monitor, 49);
+                                       monitor->addChild(block(colors.window, fixed(10, 4)));
+                                       monitor->addChild(block(colors.window, fixed(30, 3), 1));
+                                       return cardPicture(colors.backdrop, monitor, 49);
                                    },
                                    "edge"));
 
@@ -304,7 +304,7 @@ namespace ui {
 
     void WindowsPage::fillPreview() {
         preview->clearChildren();
-        // The desktop in the theme's colours, so this and the Theme page show the same desktop,
+        // The desktop in the theme's colors, so this and the Theme page show the same desktop,
         // with the bar following the windows as they are chosen here.
         const auto        config  = configuration::mainConfig(configuration::lanternLaunch());
         const auto*       theme   = config ? desktop::currentTheme(*config) : nullptr;
@@ -336,7 +336,7 @@ namespace ui {
         if (!planned) {
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
         } else if (same) {
-            note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your windows look like this." : outcome));
+            note = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your windows look like this." : outcome));
         } else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
             note = escapeMarkup(outcome);

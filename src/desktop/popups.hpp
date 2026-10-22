@@ -17,7 +17,7 @@ namespace desktop {
     // ~/.config/swayosd/style.css, which swayosd's server reads over its own style.
     [[nodiscard]] std::filesystem::path popupStyleFile(const foundation::Environment& environment);
 
-    // A style in the bar's colours. Its first line says Lantern wrote it.
+    // A style in the bar's colors. Its first line says Lantern wrote it.
     [[nodiscard]] std::string popupStyle(const Palette& palette);
 
     // Whether Lantern wrote the style, so that it may write it again.

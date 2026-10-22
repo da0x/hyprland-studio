@@ -36,8 +36,8 @@ namespace ui {
         void showConnection(application::Connection connection, const std::string& reason);
         void showKeybindings(const std::expected<application::Keybindings, std::string>& keybindings);
 
-        // Draws the bindings again, after Lantern's colours changed: their keys and
-        // actions carry colours in their text.
+        // Draws the bindings again, after Lantern's colors changed: their keys and
+        // actions carry colors in their text.
         void restyle();
 
       private:

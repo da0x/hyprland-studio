@@ -142,7 +142,7 @@ namespace desktop {
     }
 
     std::string lockScreen(const Palette& palette) {
-        const auto rgb = [](std::string_view colour) { return std::format("rgb({})", colour.starts_with('#') ? colour.substr(1) : colour); };
+        const auto rgb = [](std::string_view color) { return std::format("rgb({})", color.starts_with('#') ? color.substr(1) : color); };
         return std::format(R"({} The {} theme; choosing another rewrites it.
 
 general {{

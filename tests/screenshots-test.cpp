@@ -77,7 +77,7 @@ namespace {
         EXPECT_TRUE(desktop::withPopups(config, true, true).contains("--brightness raise"));
     }
 
-    TEST(Popups, WritesTheStyleInTheBarsColours) {
+    TEST(Popups, WritesTheStyleInTheBarsColors) {
         const auto& palette = desktop::waybarPalettes().front();
         const auto  style   = desktop::popupStyle(palette);
         EXPECT_TRUE(desktop::lanternPopupStyle(style));
