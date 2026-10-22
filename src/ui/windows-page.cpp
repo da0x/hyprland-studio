@@ -157,12 +157,13 @@ namespace ui {
             body->addChild(line);
         }
         // Row by row: corners and the gap between windows, the border and the screen's
-        // edge, then resizing.
+        // edge, then resizing and file pickers.
         const auto& corners = sides[0];
         const auto& between = sides[1];
         const auto& border  = sides[2];
         const auto& edge    = sides[3];
         const auto& resizing = sides[4];
+        const auto& pickers  = sides[5];
 
         const auto colours = coloursFor(*palette);
         // Presets, and the value the config has now when it is none of them, shown as
@@ -227,6 +228,34 @@ namespace ui {
                     },
             });
         cards.addSetting(resizing, "Resize from the border", "drag a window's edge to resize it", std::move(resize));
+        std::vector<ChoiceCards::Choice> picking;
+        for (const auto& [label, floating] : {std::pair{"Tiled", false}, std::pair{"Floating", true}})
+            picking.push_back(ChoiceCards::Choice{
+                .label  = label,
+                .chosen = [this, floating] { return wanted.floatFilePickers == floating; },
+                .select = [this, floating] { wanted.floatFilePickers = floating; },
+                .draw =
+                    [this, floating, colours] {
+                        return cards.picture(std::format("pickers {} {}", floating, wanted.rounding), [&] {
+                            // Tiled, the dialog takes half the screen beside the app; floating,
+                            // it sits in the middle, over the app.
+                            const auto radius = wanted.rounding * 0.8;
+                            if (floating) {
+                                const auto app    = block(colours.window, fixed(84, 42), radius, colours.inactive, 1);
+                                const auto middle = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(filling())->commence();
+                                middle->setMargin(10);
+                                middle->addChild(block(colours.content, filling(), radius * 0.5, colours.active, 2));
+                                app->addChild(middle);
+                                return cardPicture(colours.backdrop, app, 42);
+                            }
+                            const auto row = Hyprtoolkit::CRowLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+                            row->addChild(block(colours.window, fixed(40, 42), radius, colours.inactive, 1));
+                            row->addChild(block(colours.window, fixed(40, 42), radius, colours.active, 2));
+                            return cardPicture(colours.backdrop, row, 42);
+                        });
+                    },
+            });
+        cards.addSetting(pickers, "File pickers", "where open and save dialogs appear", std::move(picking));
 
         // Hyprland keeps its inner gap on each side of a window, so two windows are twice it
         // apart. The choices come in the screen edge's steps, so the same choice in both is
@@ -292,7 +321,8 @@ namespace ui {
         const auto planned     = plan();
         const bool undoable    = configuration::latestChange(application::backupsFolder(environment), changeName).has_value();
         const bool same        = planned && planned->empty();
-        const auto shown       = std::format("{}|{}|{}|{}|{}|{}|{}|{}|{}", wanted.rounding, wanted.gapsIn, wanted.gapsOut, wanted.borderSize, wanted.resizeOnBorder, same,
+        const auto shown       = std::format("{}|{}|{}|{}|{}|{}|{}|{}|{}|{}", wanted.rounding, wanted.gapsIn, wanted.gapsOut, wanted.borderSize, wanted.resizeOnBorder,
+                                             wanted.floatFilePickers, same,
                                              planned ? "" : planned.error(), undoable, outcome);
         if (shown == statusShown)
             return;

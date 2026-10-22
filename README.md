@@ -56,8 +56,9 @@ Each page does one thing:
   desktop as it would look.
 - **Wallpaper:** pick a picture, see it on the desktop at once, and keep it with
   hyprpaper or awww.
-- **Windows:** corners, gaps, border thickness, and whether dragging a border resizes,
-  with a preview of your screen. The bar's corners and gaps follow the windows'.
+- **Windows:** corners, gaps, border thickness, whether dragging a border resizes, and
+  whether open and save dialogs float, with a preview of your screen. The bar's corners
+  and gaps follow the windows'.
 - **Displays:** each display's resolution, refresh rate, scale, rotation, variable
   refresh rate and place beside the others, and whether apps made for X11 stay sharp
   when a display is scaled. A change is put back after 15 seconds unless
@@ -173,7 +174,8 @@ writes the file it points to, and the review says which one.
 - **Wallpaper:** `hyprpaper.conf`, and the lines in your Hyprland config that start the
   wallpaper program at login and turn off Hyprland's own wallpaper. A picture you add
   is copied into your wallpapers folder under a new random name.
-- **Windows:** the corners, gaps, border size and resizing in your Hyprland config, and
+- **Windows:** the corners, gaps, border size and resizing in your Hyprland config, a
+  window rule named `float-file-pickers` for the portal's open and save dialogs, and
   Waybar's files, so the bar keeps matching.
 - **Displays:** the `hl.monitor` call for each display you change in your Hyprland
   config, only the values that changed. A display your config sets only through a rule

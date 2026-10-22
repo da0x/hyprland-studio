@@ -26,6 +26,10 @@ namespace desktop {
         // Dragging a window's border or gap resizes it, as on other desktops; holding Super
         // and dragging with the right button resizes it either way.
         bool resizeOnBorder = false;
+        // The open and save dialogs that xdg-desktop-portal-gtk shows for other apps float
+        // in the middle of the screen. Hyprland floats an app's own dialogs, but tiles
+        // these: they come from another program. A window rule of Lantern's, by its name.
+        bool floatFilePickers = false;
 
         friend bool operator==(const WindowLook&, const WindowLook&) = default;
     };
@@ -37,7 +41,8 @@ namespace desktop {
 
     // The change to the Hyprland config (a Lua one; a linked config is followed) that sets
     // `wanted`, each value where the config writes it or in a call of its own at the end,
-    // or nothing when it already does.
+    // and Lantern's window rule for file pickers after the config's last window rule, or
+    // nothing when it already does.
     [[nodiscard]] std::expected<std::optional<configuration::FileChange>, std::string> planWindowLook(const WindowLook& wanted, const configuration::MainConfig& config);
 
     // The bar's geometry that lines it up with windows that look like `look`: their corners

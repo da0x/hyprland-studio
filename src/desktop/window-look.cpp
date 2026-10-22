@@ -6,6 +6,7 @@
 
 #include <array>
 #include <charconv>
+#include <format>
 #include <fstream>
 #include <functional>
 #include <sstream>
@@ -31,7 +32,57 @@ namespace desktop {
         const std::vector<std::string_view> resizePath{"general", "resize_on_border"};
 
         // Hyprland's own defaults, for values a config leaves out.
-        constexpr WindowLook hyprlandDefaults{.rounding = 0, .gapsIn = 5, .gapsOut = 20, .borderSize = 1, .resizeOnBorder = false};
+        constexpr WindowLook hyprlandDefaults{.rounding = 0, .gapsIn = 5, .gapsOut = 20, .borderSize = 1, .resizeOnBorder = false, .floatFilePickers = false};
+
+        constexpr std::string_view pickerRule = "hl.window_rule({\n"
+                                                "    -- Open and save dialogs, which the portal shows for other apps.\n"
+                                                "    name   = \"float-file-pickers\",\n"
+                                                "    match  = { class = \"^xdg-desktop-portal-gtk$\" },\n"
+                                                "\n"
+                                                "    float  = true,\n"
+                                                "    center = true,\n"
+                                                "})\n";
+
+        // Where Lantern's rule for file pickers is, from the start of its line to just past
+        // its closing line.
+        std::optional<std::pair<std::size_t, std::size_t>> pickerRuleIn(std::string_view config) {
+            const auto name = config.find("\"float-file-pickers\"");
+            if (name == std::string_view::npos)
+                return std::nullopt;
+            const auto begin = config.rfind("hl.window_rule({", name);
+            const auto close = config.find("\n})", name);
+            if (begin == std::string_view::npos || close == std::string_view::npos || (begin > 0 && config[begin - 1] != '\n'))
+                return std::nullopt;
+            const auto end = config.find('\n', close + 1);
+            return std::pair{begin, end == std::string_view::npos ? config.size() : end + 1};
+        }
+
+        std::string withPickerRule(std::string text, bool on) {
+            const auto found = pickerRuleIn(text);
+            if (!on && found) {
+                auto begin = found->first;
+                // With the blank line before it, which it was added with.
+                if (begin >= 2 && text[begin - 1] == '\n' && text[begin - 2] == '\n')
+                    --begin;
+                text.erase(begin, found->second - begin);
+            } else if (on && !found) {
+                // After the last window rule, or at the end.
+                auto last = text.rfind("\nhl.window_rule(");
+                if (last == std::string::npos && text.starts_with("hl.window_rule("))
+                    last = 0;
+                const auto close = last == std::string::npos ? std::string::npos : text.find("\n})", last + 1);
+                if (close == std::string::npos) {
+                    if (!text.empty() && !text.ends_with('\n'))
+                        text += '\n';
+                    text += std::format("\n{}", pickerRule);
+                } else {
+                    const auto end = text.find('\n', close + 1);
+                    const auto at  = end == std::string::npos ? text.size() : end + 1;
+                    text.insert(at, std::format("\n{}", pickerRule));
+                }
+            }
+            return text;
+        }
 
         std::optional<std::string> luaValue(std::string_view config, const std::vector<std::string_view>& path) {
             const auto found = syntax::luaCallField(config, "hl.config", path);
@@ -67,6 +118,7 @@ namespace desktop {
                 look.*field.number = numberOf(*value).value_or(look.*field.number);
         if (const auto value = luaValue(text.str(), resizePath))
             look.resizeOnBorder = *value == "true";
+        look.floatFilePickers = pickerRuleIn(text.str()).has_value();
         return look;
     }
 
@@ -124,7 +176,7 @@ namespace desktop {
             for (const auto& field : numbers)
                 set(field.path, std::to_string(wanted.*field.number), !current || (*current).*field.number != wanted.*field.number);
             set(resizePath, wanted.resizeOnBorder ? "true" : "false", !current || current->resizeOnBorder != wanted.resizeOnBorder);
-            return text;
+            return withPickerRule(std::move(text), wanted.floatFilePickers);
         });
     }
 
