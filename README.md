@@ -295,7 +295,7 @@ desktop theme settings.
 
 ## Status
 
-0.1. Every page above works.
+0.2. Every page above works.
 
 It needs:
 
@@ -323,18 +323,23 @@ Research is in [`docs/research.md`](docs/research.md), the design in
      switch, off until you turn it on.
 2. **0.2, make it yours.**
    - Themes you author yourself, next to the built-in ones.
-   - Widgets for the bar, each on the side you choose: the window title, weather, media,
-     privacy, processor, memory, temperature, keep awake, Bluetooth and battery, as well
-     as the workspaces, clock, sound, network and tray.
-   - A cursor theme page, a see-through terminal, and GTK apps in the theme's colors.
-   - The settings a plain Hyprland install still lacks: displays, keyboard and touchpad,
-     idle and lock, night light, a check for the desktop's essentials, autostart and
-     default apps.
+   - Widgets for the bar, each on the side you choose and in the order you choose: the
+     window title, weather, media, privacy, processor, memory, temperature, keep awake,
+     Bluetooth and battery, as well as the workspaces, clock, sound, network and tray.
+     Volume and brightness pop-ups in the bar's colors.
+   - A cursor theme page, a see-through terminal, fastfetch in the terminal's colors,
+     and GTK apps in the theme's colors.
+   - The settings a plain Hyprland install still lacks: displays and night light,
+     keyboard, mouse and touchpad, sound, Bluetooth and network, idle and lock, a check
+     for the desktop's essentials, autostart, default apps, and screenshots and clipboard
+     history.
+   - A sidebar in four groups, and the pages that only read Hyprland together on one
+     Inspect page.
 
-After that: changing any option from the Options page and saving it to your config,
-keeping an activation across restarts (opt-in), dragging displays into place, keybinding and
-window-rule editors, an animation and bezier editor, and writing the older
-`hyprland.conf` format.
+After that: Qt apps in the theme, changing any option from the Options page and saving it
+to your config, keeping an activation across restarts (opt-in), dragging displays into
+place, keybinding and window-rule editors, an animation and bezier editor, and writing the
+older `hyprland.conf` format.
 
 ## Building
 
