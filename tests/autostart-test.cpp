@@ -4,6 +4,8 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <string>
+#include <vector>
 #include <string_view>
 
 namespace {
@@ -64,4 +66,25 @@ namespace {
         EXPECT_TRUE(configuration::startsAtLogin(config, false, "hyprpaper"));
     }
 
+    TEST(Autostart, ListsAndSwitchesWhatStartsAtLogin) {
+        const auto config = "hl.exec_cmd(\"not-at-login\")\n"
+                            "hl.on(\"hyprland.start\", function ()\n"
+                            "    hl.exec_cmd(\"waybar\")\n"
+                            "    -- hl.exec_cmd(\"nm-applet --indicator\")\n"
+                            "    hl.exec_cmd(\"sh -c \\\"echo hi\\\"\")\n"
+                            "end)\n";
+        EXPECT_EQ(configuration::startedAtLogin(config, true), (std::vector<configuration::StartedProgram>{
+                                                                   {"waybar", true}, {"nm-applet --indicator", false}, {"sh -c \"echo hi\"", true}}));
+        const auto off = configuration::withAutostartSwitched(config, true, "waybar", false);
+        EXPECT_NE(off.find("    -- hl.exec_cmd(\"waybar\")\n"), std::string::npos);
+        EXPECT_EQ(configuration::withAutostartSwitched(off, true, "waybar", true), config);
+        EXPECT_NE(configuration::withAutostartSwitched(config, true, "nm-applet --indicator", true).find("    hl.exec_cmd(\"nm-applet --indicator\")\n"), std::string::npos);
+        EXPECT_EQ(configuration::withoutAutostart(config, true, "nm-applet --indicator").find("nm-applet"), std::string::npos);
+        EXPECT_NE(configuration::withAutostart("", true, "sh -c \"echo hi\"", {}).find("hl.exec_cmd(\"sh -c \\\"echo hi\\\"\")"), std::string::npos);
+
+        const auto conf = "exec-once = waybar\n# exec-once = nm-applet\nexec = not-once\n";
+        EXPECT_EQ(configuration::startedAtLogin(conf, false), (std::vector<configuration::StartedProgram>{{"waybar", true}, {"nm-applet", false}}));
+        EXPECT_EQ(configuration::withAutostartSwitched(conf, false, "waybar", false), "# exec-once = waybar\n# exec-once = nm-applet\nexec = not-once\n");
+        EXPECT_EQ(configuration::withAutostartSwitched(conf, false, "nm-applet", true), "exec-once = waybar\nexec-once = nm-applet\nexec = not-once\n");
+    }
 }
