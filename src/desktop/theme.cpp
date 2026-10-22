@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "desktop/theme.hpp"
+#include "desktop/user-themes.hpp"
 
 #include "configuration/hyprlang-edit.hpp"
 #include "desktop/process.hpp"
@@ -437,9 +438,9 @@ label {{
         if (!active)
             return nullptr;
         const auto shown = std::string_view{source}.substr(active->begin, active->end - active->begin);
-        for (const auto& palette : waybarPalettes())
-            if (shown == activeBorder(palette))
-                return &palette;
+        for (const auto* palette : allPalettes())
+            if (shown == activeBorder(*palette))
+                return palette;
         return nullptr;
     }
 

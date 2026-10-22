@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/bar-page.hpp"
+#include "desktop/user-themes.hpp"
 
 #include "application/config-check.hpp"
 #include "application/settings.hpp"
@@ -231,19 +232,19 @@ namespace ui {
             choices->addChild(shapes);
 
             choices->addChild(markupLine("<span weight=\"600\">Colours</span>", palette));
-            const auto     all    = desktop::waybarPalettes();
+            const auto     all    = desktop::allPalettes();
             constexpr auto perRow = static_cast<std::size_t>(cardsPerRow);
             paletteCards.clear();
             for (std::size_t first = 0; first < all.size(); first += perRow) {
                 const auto colours = leftRow(0);
                 colours->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
                 for (std::size_t index = first; index < std::min(all.size(), first + perRow); ++index) {
-                    auto made = card(std::string{all[index].name}, [this, chosen = &all[index]] {
+                    auto made = card(std::string{all[index]->name}, [this, chosen = all[index]] {
                         selected.palette = chosen;
                         updateStyle();
                     });
                     colours->addChild(made.frame);
-                    paletteCards.emplace_back(&all[index], std::move(made));
+                    paletteCards.emplace_back(all[index], std::move(made));
                 }
                 choices->addChild(colours);
             }

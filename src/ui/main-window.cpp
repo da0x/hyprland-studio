@@ -25,6 +25,7 @@
 #include "ui/activate-page.hpp"
 #include "ui/windows-page.hpp"
 #include "ui/widgets.hpp"
+#include "desktop/user-themes.hpp"
 #include "ui/theme-page.hpp"
 #include "ui/toolkit.hpp"
 #include "ui/wallpaper-page.hpp"
@@ -74,6 +75,7 @@ namespace ui {
         Hyprutils::CLI::CLogger logger;
         logger.setLogLevel(options.verbose ? Hyprutils::CLI::LOG_DEBUG : Hyprutils::CLI::LOG_WARN);
         application::moveOldFolder(foundation::currentEnvironment());
+        desktop::loadUserPalettes(application::lanternFolder(foundation::currentEnvironment()) / "themes");
         Hyprtoolkit::IBackend::SBackendCreationData creation;
         creation.pLogConnection = makeShared<Hyprutils::CLI::CLoggerConnection>(logger);
 

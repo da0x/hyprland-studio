@@ -55,7 +55,9 @@ Each page does one thing. The sidebar groups them by what they are for.
 
 - **Theme:** one palette for the whole desktop: window borders, the bar, the app
   launcher, notifications, GTK apps and Lantern itself, shown on a picture of your
-  desktop as it would look.
+  desktop as it would look. Start a theme of your own from any of them, change its
+  colours by their hex values, or pick them from the screen with hyprpicker, and keep
+  it beside the built-in ones.
 - **Wallpaper:** pick a picture, see it on the desktop at once, and keep it with
   hyprpaper or awww.
 - **Windows:** corners, gaps, border thickness, whether dragging a border resizes, and
@@ -265,6 +267,8 @@ deletes it for you:
 - `activation.json`: what is active right now, so Deactivate works even after Lantern
   was closed.
 - `backups/`: a record of each change, with copies of the files it replaced, for Undo.
+- `themes/`: the themes you made, one file each, a line for each colour, which you can
+  share or edit by hand.
 
 There are no caches and no exports. Copying goes to the clipboard.
 

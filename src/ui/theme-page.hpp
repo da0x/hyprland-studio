@@ -4,6 +4,7 @@
 #include "application/session.hpp"
 #include "configuration/file-change.hpp"
 #include "desktop/theme.hpp"
+#include "desktop/user-themes.hpp"
 #include "desktop/waybar-style.hpp"
 #include "ui/program-switch.hpp"
 #include "ui/row-list.hpp"
@@ -43,6 +44,13 @@ namespace ui {
 
       private:
         void showOverview();
+        // The editor of a theme of the user's own: a new one started from `from`, or the
+        // one in `file`.
+        void showEditor(const desktop::Palette& from, std::optional<std::filesystem::path> file);
+        // After a colour or the name changed: the preview, the swatches and the footer.
+        void updateEditor();
+        void saveDraft();
+        void deleteDraft();
         void showReview();
         void apply();
         void undo();
@@ -89,6 +97,14 @@ namespace ui {
         std::vector<desktop::GSetting>                                       gtk;
         std::string                                                          outcome;
         std::function<void()>                                                recoloured;
+
+        // The theme being edited, the file it is kept in once saved, and what shows it.
+        bool                                                                 editing = false;
+        desktop::ThemeDraft                                                  draft;
+        std::string                                                          draftAccent;
+        std::optional<std::filesystem::path>                                 draftFile;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> draftPreview;
+        std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>> swatches;
     };
 
 }

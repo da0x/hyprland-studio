@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/theme-page.hpp"
 
+#include "application/command.hpp"
 #include "application/config-check.hpp"
 #include "application/lantern-folder.hpp"
 #include "configuration/main-config.hpp"
@@ -12,9 +13,11 @@
 #include "ui/desktop-preview.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
+#include "ui/typing.hpp"
 #include "ui/widgets.hpp"
 
 #include <hyprtoolkit/element/Null.hpp>
+#include <hyprtoolkit/element/Textbox.hpp>
 
 #include <algorithm>
 #include <csignal>
@@ -32,6 +35,21 @@ namespace ui {
 
         constexpr auto   changeName = "Theme";
         constexpr double cardShare  = 0.32;
+
+        std::filesystem::path themesFolder() {
+            return application::lanternFolder(foundation::currentEnvironment()) / "themes";
+        }
+
+        std::optional<std::filesystem::path> program(std::string_view name) {
+            return desktop::findProgram(name, foundation::variable(foundation::currentEnvironment(), "PATH").value_or(""));
+        }
+
+        // A draft's colours as a palette, its views into the draft.
+        desktop::Palette paletteOf(const desktop::ThemeDraft& draft, const std::string& accent) {
+            return desktop::Palette{.name = draft.name, .dark = draft.dark, .base = draft.base, .onAccent = draft.onAccent, .surface = draft.surface, .raised = draft.raised,
+                                    .muted = draft.muted, .subtle = draft.subtle, .text = draft.text, .accent = draft.accent, .audio = draft.audio, .network = draft.network,
+                                    .alert = draft.alert, .gnomeAccent = accent};
+        }
 
     }
 
@@ -91,6 +109,7 @@ namespace ui {
 
     void ThemePage::showOverview() {
         reviewing = false;
+        editing   = false;
         changes.clear();
         body->clearChildren();
 
@@ -100,7 +119,7 @@ namespace ui {
 
         cards.clear();
         cardRows.clear();
-        const auto all = desktop::waybarPalettes();
+        const auto all = desktop::allPalettes();
         for (std::size_t first = 0; first < all.size(); first += 3) {
             const auto line = leftRow(0);
             line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
@@ -116,13 +135,13 @@ namespace ui {
                 const auto inside = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
                 inside->setMargin(10);
                 made.holder = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
-                made.holder->addChild(desktopOf(&all[index], false));
-                made.name = markupLine(escapeMarkup(all[index].name), palette);
+                made.holder->addChild(desktopOf(all[index], false));
+                made.name = markupLine(escapeMarkup(all[index]->name), palette);
                 inside->addChild(made.holder);
                 inside->addChild(made.name);
                 made.frame->addChild(inside);
                 made.frame->setReceivesMouse(true);
-                made.frame->setMouseButton([this, chosen = &all[index]](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
+                made.frame->setMouseButton([this, chosen = all[index]](Hyprtoolkit::Input::eMouseButton button, bool pressed) {
                     if (button != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !pressed)
                         return;
                     defer([this, chosen] {
@@ -131,12 +150,183 @@ namespace ui {
                     });
                 });
                 line->addChild(made.frame);
-                cards.emplace_back(&all[index], std::move(made));
+                cards.emplace_back(all[index], std::move(made));
             }
             body->addChild(line);
             cardRows.push_back(line);
         }
+        // A theme of your own, started from the one chosen, and the chosen one's editor when
+        // it is yours.
+        const auto actions = leftRow();
+        actions->rebuild()->gap(8)->commence();
+        actions->addChild(button("New theme from this", 210, false, [this] { defer([this] { showEditor(*selected, std::nullopt); }); }));
+        if (const auto file = desktop::userThemeFile(selected))
+            actions->addChild(button("Edit", 90, false, [this, file = *file] { defer([this, file] { showEditor(*selected, file); }); }));
+        body->addChild(actions);
+        cardRows.push_back(actions);
         updateSelection();
+    }
+
+    void ThemePage::showEditor(const desktop::Palette& from, std::optional<std::filesystem::path> file) {
+        editing   = true;
+        draft     = desktop::draftOf(from);
+        draftFile = std::move(file);
+        if (!draftFile)
+            draft.name = std::format("{} (mine)", from.name);
+        draftAccent = std::string{desktop::gnomeAccentOf(draft.accent)};
+        cards.clear();
+        cardRows.clear();
+        statusShown.clear();
+        body->clearChildren();
+        body->addChild(heading(draftFile ? std::format("Edit: {}", from.name) : "A theme of your own", palette));
+
+        draftPreview = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        body->addChild(draftPreview);
+
+        // The name and the kind line up with the colours' values below.
+        const auto nameRow = leftRow(scaled(40));
+        nameRow->rebuild()->gap(10)->commence();
+        const auto label = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {scaled(220), 1.0}})->commence();
+        label->addChild(markupLine("<span weight=\"600\">Name</span>", palette));
+        nameRow->addChild(label);
+        const auto name = Hyprtoolkit::CTextboxBuilder::begin()
+                              ->defaultText(std::string{draft.name})
+                              ->onTextEdited([this](CSharedPointer<Hyprtoolkit::CTextboxElement>, const std::string& text) {
+                                  draft.name = text;
+                                  this->defer([this] { updateEditor(); });
+                              })
+                              ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(300), scaled(34)}})
+                              ->commence();
+        registerTextbox(name);
+        nameRow->addChild(name);
+        body->addChild(nameRow);
+        body->addChild(settingRow("Kind", "for GTK apps", {"Dark", "Light"}, draft.dark ? 0 : 1, palette,
+                                  [this](std::size_t chosen) {
+                                      draft.dark = chosen == 0;
+                                      updateEditor();
+                                  },
+                                  defer));
+
+        // The colours two to a row: a swatch, the name and what it colours, and its value.
+        swatches.clear();
+        const auto colours = desktop::draftColours();
+        const bool picker  = program("hyprpicker").has_value();
+        for (std::size_t first = 0; first < colours.size(); first += 2) {
+            const auto line = leftRow(0);
+            line->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(24)->commence();
+            for (std::size_t index = first; index < std::min(colours.size(), first + 2); ++index) {
+                const auto& colour = colours[index];
+                const auto  side   = leftRow(scaled(40));
+                side->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {0.49, scaled(40)}})->gap(10)->commence();
+                const auto swatch = Hyprtoolkit::CRectangleBuilder::begin()
+                                        ->color([value = paletteColour(draft.*colour.member)] { return value; })
+                                        ->rounding(6)
+                                        ->borderColor([palette = palette] { return palette->m_colors.alternateBase; })
+                                        ->borderThickness(1)
+                                        ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(28), scaled(28)}})
+                                        ->commence();
+                swatches.push_back(swatch);
+                side->addChild(swatch);
+                const auto names = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {scaled(220), 1.0}})->commence();
+                names->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", escapeMarkup(std::string{colour.name})), palette));
+                names->addChild(markupLine(escapeMarkup(std::string{colour.about}), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
+                side->addChild(names);
+                const auto value = Hyprtoolkit::CTextboxBuilder::begin()
+                                       ->defaultText(std::string{draft.*colour.member})
+                                       ->onTextEdited([this, member = colour.member](CSharedPointer<Hyprtoolkit::CTextboxElement>, const std::string& text) {
+                                           draft.*member = text;
+                                           this->defer([this] { updateEditor(); });
+                                       })
+                                       ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(110), scaled(34)}})
+                                       ->commence();
+                registerTextbox(value);
+                side->addChild(value);
+                if (picker)
+                    side->addChild(button("Pick", 70, false, [this, member = colour.member, value] {
+                        defer([this, member, value] {
+                            const auto hyprpicker = program("hyprpicker");
+                            if (!hyprpicker)
+                                return;
+                            // hyprpicker lets you click anywhere on the screens and says the colour there.
+                            (void)application::runCommand(loop, *hyprpicker, {"--format=hex", "--no-fancy"}, [this, member, value](bool ok, std::string output) {
+                                const auto at = output.find('#');
+                                if (!ok || at == std::string::npos || output.size() < at + 7 || !editing)
+                                    return;
+                                draft.*member = output.substr(at, 7);
+                                value->setText(draft.*member);
+                                updateEditor();
+                            });
+                        });
+                    }));
+                line->addChild(side);
+            }
+            body->addChild(line);
+        }
+        updateEditor();
+    }
+
+    void ThemePage::updateEditor() {
+        if (!editing)
+            return;
+        draftAccent        = std::string{desktop::gnomeAccentOf(draft.accent)};
+        const auto shown   = paletteOf(draft, draftAccent);
+        const auto bar     = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry()).value_or(desktop::WaybarStyle{desktop::Shape::islands, &shown});
+        const auto config  = configuration::mainConfig(configuration::lanternLaunch());
+        const auto look    = (config ? desktop::currentWindowLook(*config) : std::nullopt).value_or(desktop::WindowLook{});
+        auto       drawn   = bar;
+        drawn.palette      = &shown;
+        draftPreview->clearChildren();
+        draftPreview->addChild(desktopPreview(shown, look, drawn, 170.0 / 250, 170));
+        const auto colours = desktop::draftColours();
+        for (std::size_t index = 0; index < swatches.size() && index < colours.size(); ++index)
+            swatches[index]->rebuild()->color([value = paletteColour(draft.*colours[index].member)] { return value; })->commence();
+
+        const auto problems = desktop::draftProblems(draft);
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons{button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); })};
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
+        if (draftFile)
+            away.push_back(button("Delete this theme", 180, false, [this] { defer([this] { deleteDraft(); }); }));
+        // A theme whose text cannot be read can still be saved; one with a colour that is not
+        // a colour cannot.
+        const bool savable = std::ranges::none_of(problems, [](const std::string& problem) { return problem.contains("#rrggbb") || problem.contains("name"); });
+        if (savable)
+            buttons.push_back(button("Save", 110, true, [this] { defer([this] { saveDraft(); }); }));
+        const auto note = markupLine(escapeMarkup(problems.empty() ? std::string{"Save keeps it among the themes, in Lantern's folder; then review it to use it."} : problems.front()), palette);
+        note->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+        setFooter(footer, buttons, note, away);
+    }
+
+    void ThemePage::saveDraft() {
+        const auto folder = themesFolder();
+        std::error_code error;
+        std::filesystem::create_directories(folder, error);
+        const auto file   = draftFile.value_or(desktop::newThemeFile(folder, draft.name));
+        if (const auto written = configuration::writeWhole(file, desktop::themeFileText(draft)); !written) {
+            outcome = std::format("The theme was not saved: {}.", written.error());
+            return showOverview();
+        }
+        desktop::loadUserPalettes(folder);
+        for (const auto* one : desktop::allPalettes())
+            if (desktop::userThemeFile(one) == file)
+                selected = one;
+        outcome = "Saved.";
+        showOverview();
+    }
+
+    void ThemePage::deleteDraft() {
+        if (!draftFile)
+            return showOverview();
+        std::error_code error;
+        std::filesystem::remove(*draftFile, error);
+        desktop::loadUserPalettes(themesFolder());
+        if (desktop::userThemeFile(selected) == draftFile || !std::ranges::contains(desktop::allPalettes(), selected)) {
+            const auto config = configuration::mainConfig(configuration::lanternLaunch());
+            selected          = config ? desktop::currentTheme(*config) : nullptr;
+            if (selected == nullptr)
+                selected = desktop::allPalettes().front();
+        }
+        outcome = error ? std::format("The theme was not deleted: {}.", error.message()) : "Deleted.";
+        showOverview();
     }
 
     void ThemePage::updateSelection() {
@@ -316,7 +506,7 @@ namespace ui {
     }
 
     void ThemePage::fitPreview() {
-        if (reviewing || cardRows.empty())
+        if (reviewing || editing || cardRows.empty())
             return;
         constexpr double full    = 250;
         // Less than this and the drawing's contents no longer fit in it.
@@ -339,7 +529,7 @@ namespace ui {
 
     void ThemePage::restyle() {
         desktops.clear();
-        if (!reviewing)
+        if (!reviewing && !editing)
             showOverview();
     }
 

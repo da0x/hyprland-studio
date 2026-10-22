@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "desktop/waybar-style.hpp"
+#include "desktop/user-themes.hpp"
 
 #include "desktop/waybar.hpp"
 
@@ -657,9 +658,9 @@ window#waybar {
             placed = widgetsIn(text.str());
         }
         for (const auto& info : shapes) {
-            for (const auto& palette : palettes) {
+            for (const auto* palette : allPalettes()) {
                 for (const auto border : {Border::thin, Border::inactive, Border::active}) {
-                    const WaybarStyle style{info.shape, &palette, geometry, border, placed};
+                    const WaybarStyle style{info.shape, palette, geometry, border, placed};
                     const auto        planned = planWaybarStyle(style, environment, systemFolder);
                     if (planned && std::ranges::none_of(*planned, [](const auto& change) { return change.changes(); }))
                         return style;
