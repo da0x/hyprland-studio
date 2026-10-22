@@ -89,7 +89,8 @@ namespace ui {
              20} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
-        root->addChild(pageTitle("Displays", this->palette));
+        title = pageTitle("Displays", this->palette);
+        root->addChild(title);
         root->addChild(paragraph("Each display's resolution, refresh rate, scale, rotation and place beside the others. Nothing is written until you review the change, "
                                  "and a change is put back after 15 seconds unless you keep it, in case a display goes dark.",
                                  this->palette));
@@ -520,6 +521,11 @@ namespace ui {
         displays.clear();
         showOverview();
         loop.after(std::chrono::milliseconds{1500}, [this] { refresh(); });
+    }
+
+    void DisplaysPage::embed() {
+        root->removeChild(title);
+        root->setMargin(0);
     }
 
 }

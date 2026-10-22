@@ -79,7 +79,8 @@ namespace ui {
              rowHeight} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
-        root->addChild(pageTitle("Live tree", this->palette));
+        title = pageTitle("Live tree", this->palette);
+        root->addChild(title);
         status = paragraph("Connecting to Hyprland.", this->palette);
         root->addChild(status);
         map = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, mapHeight}})->commence();
@@ -245,6 +246,11 @@ namespace ui {
             }
         }
         list.setRows(std::move(rows));
+    }
+
+    void LiveTreePage::embed() {
+        root->removeChild(title);
+        root->setMargin(0);
     }
 
 }

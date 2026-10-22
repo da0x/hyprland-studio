@@ -97,7 +97,8 @@ namespace ui {
         readTerminal();
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(8)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
-        root->addChild(pageTitle("Console", this->palette));
+        title = pageTitle("Console", this->palette);
+        root->addChild(title);
         root->addChild(paragraph("Ask Hyprland what it knows. Pick a request from the list or type it as you would for hyprctl. The console sends only requests "
                                  "that read, so nothing here changes your desktop.",
                                  this->palette));
@@ -218,6 +219,11 @@ namespace ui {
         }
         rows.push_back(line(prompt + coloured("\u2588", terminal.foreground)));
         reply.setRows(std::move(rows));
+    }
+
+    void ConsolePage::embed() {
+        root->removeChild(title);
+        root->setMargin(0);
     }
 
 }

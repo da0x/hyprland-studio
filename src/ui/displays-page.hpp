@@ -7,6 +7,7 @@
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
 
@@ -29,6 +30,9 @@ namespace ui {
         DisplaysPage(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, application::EventLoop loop);
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
+
+        // Without its title and margin, as a tab of a page that has them; see TabbedPage.
+        void embed();
 
         // Asks Hyprland for its displays again, when the page is opened.
         void refresh();
@@ -55,6 +59,7 @@ namespace ui {
         std::function<void(std::function<void()>)>                           defer;
         application::EventLoop                                               loop;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         title;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
         RowList                                                              diff;

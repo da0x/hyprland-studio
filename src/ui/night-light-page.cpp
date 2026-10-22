@@ -69,7 +69,8 @@ namespace ui {
              20} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
-        root->addChild(pageTitle("Night light", this->palette));
+        title = pageTitle("Night light", this->palette);
+        root->addChild(title);
         root->addChild(paragraph("Turns the screens warmer in the evening, with less blue light, and back in the morning. hyprsunset does it; Lantern writes its "
                                  "settings after you review them.",
                                  this->palette));
@@ -285,6 +286,11 @@ namespace ui {
             outcome = "Undone.";
         refresh();
         restart();
+    }
+
+    void NightLightPage::embed() {
+        root->removeChild(title);
+        root->setMargin(0);
     }
 
 }

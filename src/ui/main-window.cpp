@@ -13,6 +13,7 @@
 #include "ui/options-page.hpp"
 #include "ui/restyle.hpp"
 #include "ui/screenshots-page.hpp"
+#include "ui/tabbed-page.hpp"
 #include "ui/terminal-page.hpp"
 #include "ui/cursors-page.hpp"
 #include "ui/devices-page.hpp"
@@ -181,8 +182,21 @@ namespace ui {
         WindowsPage     windows{palette, defer, loop};
         ActivatePage    activate{palette, defer};
         ConsolePage     console{palette, defer};
-        // A wallpaper tried on the desktop and not kept goes back when its page is left.
-        opening = [&wallpaper, &displays, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+        // Pages that belong together, as tabs of one: the displays with the night light that
+        // tints them, and the three that only look at the running Hyprland.
+        displays.embed();
+        nightLight.embed();
+        liveTree.embed();
+        eventLog.embed();
+        console.embed();
+        TabbedPage screens{palette, defer, "Displays", {{"Screens", displays.element(), ""}, {"Night light", nightLight.element(), "Night light"}}};
+        TabbedPage inspect{palette, defer, "Inspect",
+                           {{"Tree", liveTree.element(), "Live tree"}, {"Events", eventLog.element(), "Event log"}, {"Console", console.element(), "Console"}}};
+        // A wallpaper tried on the desktop and not kept goes back when its page is left; a
+        // page in a tab counts as open while its tab is.
+        opening = [&wallpaper, &displays, &essentialsPage, &idle, &nightLight, &devices, &autostart, &defaultApps, &screenshots, &screens,
+                   &inspect](const CSharedPointer<Hyprtoolkit::IElement>& opened) {
+            const auto page = opened == screens.element() ? screens.current() : opened == inspect.element() ? inspect.current() : opened;
             if (page != wallpaper.element())
                 wallpaper.leave();
             if (page != nightLight.element())
@@ -266,8 +280,7 @@ namespace ui {
         addPageButton("Terminal", terminal.element());
         addPageButton("Cursors", cursors.element());
         addGroup("Devices", false);
-        addPageButton("Displays", displays.element());
-        addPageButton("Night light", nightLight.element());
+        addPageButton("Displays", screens.element());
         addPageButton("Keyboard and mouse", input.element());
         addPageButton("Sound and network", devices.element());
         addGroup("System", false);
@@ -280,15 +293,22 @@ namespace ui {
         addGroup("Hyprland", false);
         addPageButton("Keyboard shortcuts", keybindings.element());
         addPageButton("Options", optionsPage.element());
-        addPageButton("Live tree", liveTree.element());
-        addPageButton("Event log", eventLog.element());
+        addPageButton("Inspect", inspect.element());
         addPageButton("Activate", activate.element());
-        addPageButton("Console", console.element());
-        const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
-        show(first != titles.end() ? first->second : theme.element());
+        screens.onSwitched([&opening, &screens] { opening(screens.element()); });
+        inspect.onSwitched([&opening, &inspect] { opening(inspect.element()); });
+        // The page asked for by --page: one of the sidebar's, or a tab of one.
+        CSharedPointer<Hyprtoolkit::IElement> firstPage = theme.element();
+        if (const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first); first != titles.end())
+            firstPage = first->second;
+        else if (screens.select(options.page))
+            firstPage = screens.element();
+        else if (inspect.select(options.page))
+            firstPage = inspect.element();
+        show(firstPage);
         // Lantern opened on a page further down has its button in view, in the middle.
-        if (scrolled && first != titles.end()) {
-            const auto opened = std::ranges::find(pages, first->second, &std::pair<CSharedPointer<Hyprtoolkit::CButtonElement>, CSharedPointer<Hyprtoolkit::IElement>>::second);
+        if (scrolled && firstPage != theme.element()) {
+            const auto opened = std::ranges::find(pages, firstPage, &std::pair<CSharedPointer<Hyprtoolkit::CButtonElement>, CSharedPointer<Hyprtoolkit::IElement>>::second);
             auto       pending = std::make_shared<bool>(true);
             scrolled->setRepositioned([weak = Hyprutils::Memory::CWeakPointer<Hyprtoolkit::CScrollAreaElement>{scrolled}, button = opened->first, defer, pending] {
                 if (!*pending)

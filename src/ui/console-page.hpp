@@ -35,6 +35,9 @@ namespace ui {
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
+        // Without its title and margin, as a tab of a page that has them; see TabbedPage.
+        void embed();
+
         // How requests reach Hyprland, once the session is there.
         void onAsk(Ask ask);
         // Draws the lists again, after Lantern's colours changed.
@@ -50,6 +53,7 @@ namespace ui {
         std::function<void(std::function<void()>)>                           defer;
         Ask                                                                  ask;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         title;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextboxElement>      typed;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         status;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRectangleElement>    screen;

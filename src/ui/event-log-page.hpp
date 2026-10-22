@@ -29,6 +29,9 @@ namespace ui {
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
+        // Without its title and margin, as a tab of a page that has them; see TabbedPage.
+        void embed();
+
         void showConnection(application::Connection connection, const std::string& reason);
         void addEvents(const std::vector<ipc::Event>& events);
         // Learns the windows' names, so events that name a window by its address can say
@@ -52,6 +55,7 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>        palette;
         std::function<void(std::function<void()>)>                      defer;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> root;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>         title;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextElement>    status;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CTextboxElement> search;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>  pauseButton;

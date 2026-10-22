@@ -76,9 +76,9 @@ Each page does one thing. The sidebar groups them by what they are for.
 - **Displays:** each display's resolution, refresh rate, scale, rotation, variable
   refresh rate and place beside the others, and whether apps made for X11 stay sharp
   when a display is scaled. A change is put back after 15 seconds unless
-  you keep it, so a display that goes dark fixes itself.
-- **Night light:** the screens turn warmer in the evening and back in the morning, through
-  hyprsunset, with the warmth tried on the screens before you keep it.
+  you keep it, so a display that goes dark fixes itself. Its Night light tab turns the
+  screens warmer in the evening and back in the morning, through hyprsunset, with the
+  warmth tried on the screens before you keep it.
 - **Keyboard and mouse:** keyboard layouts and the keys that switch them, what Caps Lock
   does, how held keys repeat, Num Lock at start, the pointer's speed, acceleration,
   buttons and scroll direction, and the touchpad's tap to click, right click, pause while
@@ -119,13 +119,13 @@ Each page does one thing. The sidebar groups them by what they are for.
   and which keys are bound more than once, with a search.
 - **Options:** every Hyprland option with its value, default and description, and which
   ones your config sets or changes.
-- **Live tree:** a map of your monitors and their windows, and the tree of monitors,
-  workspaces and windows, kept current as things change.
-- **Event log:** what Hyprland reports as it happens, said in words.
+- **Inspect:** the running Hyprland, which it only reads, on three tabs. **Tree** is a
+  map of your monitors and their windows, and the tree of monitors, workspaces and
+  windows, kept current as things change. **Events** is what Hyprland reports as it
+  happens, said in words. **Console** asks Hyprland what it knows, like `hyprctl`, but
+  only with requests that read.
 - **Activate:** applies Lantern's effects to the running desktop, in the areas you
   allowed; **Deactivate** puts everything back.
-- **Console:** asks Hyprland what it knows, like `hyprctl`, but only with requests
-  that read.
 
 ## Principles
 
@@ -160,7 +160,7 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Wallpaper page:** the pictures in your Wallpapers and Pictures folders,
   `~/.local/share/backgrounds`, `/usr/share/hypr` and `/usr/share/backgrounds`, and
   `hyprpaper.conf`, or which picture awww shows.
-- **Terminal page and Console:** kitty's `kitty.conf` and `current-theme.conf`. For the
+- **Terminal page and the Inspect page's Console:** kitty's `kitty.conf` and `current-theme.conf`. For the
   preview of a see-through terminal, the Terminal page asks awww which picture it shows.
 - **Displays page:** each display Hyprland knows, with the modes it offers, from
   `hyprctl monitors all`.
