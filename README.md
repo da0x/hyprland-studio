@@ -93,6 +93,10 @@ Each page does one thing:
   and the autostart files other programs leave, each switched on or off, and a program
   added. Hyprland does not read autostart files by itself, so the page says what starts
   them, if anything, and offers dex.
+- **Default apps:** the web browser, email, file manager, text editor, image viewer, PDF
+  viewer, video and music players, among the apps installed that say they open them, with
+  what the system picks while none is chosen; and the terminal that apps which run in one
+  open in, through xdg-terminal-exec.
 - **Keyboard shortcuts:** every binding, what it does, where in your config it is set,
   and which keys are bound more than once, with a search.
 - **Options:** every Hyprland option with its value, default and description, and which
@@ -154,6 +158,9 @@ This is everything Lantern touches. Nothing else is read, written or started.
 - **Autostart page:** the start lines in your Hyprland config, the `.desktop` files in
   `~/.config/autostart` and `/etc/xdg/autostart`, and `systemctl --user is-active` for
   whether systemd starts them.
+- **Default apps page:** the `.desktop` files in your and the system's `applications`
+  folders, every `mimeapps.list` in the order the XDG specification gives, each folder's
+  `mimeinfo.cache`, and `~/.config/xdg-terminals.list`.
 - **Cursors page:** the cursor themes in your icon folders and the system's, and their
   cursor files, to draw them.
 - **Its own colours:** `~/.config/hypr/hyprtoolkit.conf`, like every hyprtoolkit app.
@@ -213,6 +220,9 @@ writes the file it points to, and the review says which one.
   commented out, and, for an autostart file switched off or on, its copy in
   `~/.config/autostart` with `Hidden` set. Nothing is started or stopped until your next
   login.
+- **Default apps:** the `[Default Applications]` lines for each kind's file types in
+  `~/.config/mimeapps.list`, or in `hyprland-mimeapps.list` when you have one, and the
+  terminal at the top of `~/.config/xdg-terminals.list`.
 
 Desktop settings are changed through `gsettings`, and their old values are kept so Undo
 can restore them. After any change to your Hyprland config, Lantern asks Hyprland whether
