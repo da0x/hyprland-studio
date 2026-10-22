@@ -25,6 +25,7 @@
 #include "ui/windows-page.hpp"
 #include "ui/widgets.hpp"
 #include "ui/theme-page.hpp"
+#include "ui/toolkit.hpp"
 #include "ui/wallpaper-page.hpp"
 #include "ui/texts.hpp"
 #include "ui/typing.hpp"
@@ -35,11 +36,13 @@
 #include <hyprtoolkit/element/Null.hpp>
 #include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
+#include <hyprtoolkit/element/ScrollArea.hpp>
 #include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/window/Window.hpp>
 #include <hyprutils/cli/Logger.hpp>
 
 #include <algorithm>
+#include <format>
 #include <array>
 #include <functional>
 #include <optional>
@@ -109,6 +112,8 @@ namespace ui {
                                  ->gap(4)
                                  ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_PERCENT, {sidebarWidth(), 1.0}})
                                  ->commence();
+        // The pages' buttons, under the app's name, scrolled when they do not fit.
+        const auto pageList = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(4)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
 
         const auto content = Hyprtoolkit::CRectangleBuilder::begin()
                                  ->color(base)
@@ -194,7 +199,7 @@ namespace ui {
                 defaultApps.refresh();
         };
 
-        const auto addPageButton = [&sidebar, &show, &pages, &titles, defer](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
+        const auto addPageButton = [&pageList, &show, &pages, &titles, defer](std::string_view title, CSharedPointer<Hyprtoolkit::IElement> page) {
             titles.emplace_back(std::string{title}, page);
             const auto button = Hyprtoolkit::CButtonBuilder::begin()
                                     ->label(std::string{title})
@@ -205,7 +210,7 @@ namespace ui {
                                     ->onMainClick([&show, page, defer](CSharedPointer<Hyprtoolkit::CButtonElement>) { defer([&show, page] { show(page); }); })
                                     ->commence();
             restyled(button);
-            sidebar->addChild(button);
+            pageList->addChild(button);
             pages.emplace_back(button, std::move(page));
         };
 
@@ -225,23 +230,47 @@ namespace ui {
         };
         sidebar->addChild(appName);
         sidebar->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 12}})->commence());
-        // Most used first: the look of the desktop, then the terminal, then what is read
-        // more than changed.
+        CSharedPointer<Hyprtoolkit::CScrollAreaElement> scrolled;
+        if constexpr (scrollAreaWorks) {
+            scrolled = Hyprtoolkit::CScrollAreaBuilder::begin()
+                                      ->scrollY(true)
+                                      ->scrollX(false)
+                                      ->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_ABSOLUTE, {1.0, 1.0}})
+                                      ->commence();
+            scrolled->setGrow(false, true);
+            scrolled->addChild(pageList);
+            sidebar->addChild(scrolled);
+        } else
+            sidebar->addChild(pageList);
+        const auto addGroup = [&pageList, palette](const std::string& name, bool first) {
+            if (!first)
+                pageList->addChild(Hyprtoolkit::CNullBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {1, 8}})->commence());
+            const auto line = Hyprtoolkit::CRowLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            line->setMargin(7);
+            line->addChild(markupLine(std::format("<span weight=\"600\">{}</span>", name), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
+            pageList->addChild(line);
+        };
+        // The look of the desktop first, since it is what Lantern is opened for most; then
+        // the hardware, then how the session runs, and Hyprland's own workings last.
+        addGroup("Look", true);
         addPageButton("Theme", theme.element());
         addPageButton("Wallpaper", wallpaper.element());
         addPageButton("Windows", windows.element());
-        addPageButton("Displays", displays.element());
-        addPageButton("Night light", nightLight.element());
-        addPageButton("Keyboard and mouse", input.element());
-        addPageButton("Idle and lock", idle.element());
-        addPageButton("Sound and network", devices.element());
         addPageButton("Bar", bar.element());
         addPageButton("Terminal", terminal.element());
         addPageButton("Cursors", cursors.element());
-        addPageButton("Accessibility", accessibility.element());
+        addGroup("Devices", false);
+        addPageButton("Displays", displays.element());
+        addPageButton("Night light", nightLight.element());
+        addPageButton("Keyboard and mouse", input.element());
+        addPageButton("Sound and network", devices.element());
+        addGroup("System", false);
         addPageButton("Essentials", essentialsPage.element());
-        addPageButton("Autostart", autostart.element());
         addPageButton("Default apps", defaultApps.element());
+        addPageButton("Autostart", autostart.element());
+        addPageButton("Idle and lock", idle.element());
+        addPageButton("Accessibility", accessibility.element());
+        addGroup("Hyprland", false);
         addPageButton("Keyboard shortcuts", keybindings.element());
         addPageButton("Options", optionsPage.element());
         addPageButton("Live tree", liveTree.element());
@@ -250,6 +279,20 @@ namespace ui {
         addPageButton("Console", console.element());
         const auto first = std::ranges::find(titles, options.page, &std::pair<std::string, CSharedPointer<Hyprtoolkit::IElement>>::first);
         show(first != titles.end() ? first->second : theme.element());
+        // Lantern opened on a page further down has its button in view, in the middle.
+        if (scrolled && first != titles.end()) {
+            const auto opened = std::ranges::find(pages, first->second, &std::pair<CSharedPointer<Hyprtoolkit::CButtonElement>, CSharedPointer<Hyprtoolkit::IElement>>::second);
+            auto       pending = std::make_shared<bool>(true);
+            scrolled->setRepositioned([weak = Hyprutils::Memory::CWeakPointer<Hyprtoolkit::CScrollAreaElement>{scrolled}, button = opened->first, defer, pending] {
+                if (!*pending)
+                    return;
+                *pending = false;
+                defer([weak, button] {
+                    if (const auto area = weak.lock())
+                        area->setScroll({0.0, std::max(0.0, button->posFromParent().y - area->size().y / 2)});
+                });
+            });
+        }
 
         body->addChild(sidebar);
         body->addChild(content);

@@ -49,7 +49,9 @@ If you ever wonder "what did this do to my system?", that is a bug.
 
 ## What it does
 
-Each page does one thing:
+Each page does one thing. The sidebar groups them by what they are for.
+
+**Look**
 
 - **Theme:** one palette for the whole desktop: window borders, the bar, the app
   launcher, notifications, GTK apps and Lantern itself, shown on a picture of your
@@ -59,6 +61,15 @@ Each page does one thing:
 - **Windows:** corners, gaps, border thickness, whether dragging a border resizes, and
   whether open and save dialogs float, with a preview of your screen. The bar's corners
   and gaps follow the windows'.
+- **Bar:** a Waybar style that matches the theme, with a border like your windows', the
+  widgets you choose on the left, centre or right, such as the weather, media and
+  processor, and a switch to start or stop it.
+- **Terminal:** a colour scheme, font, text size and background opacity for kitty.
+- **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
+  distribution's with the command that installs one.
+
+**Devices**
+
 - **Displays:** each display's resolution, refresh rate, scale, rotation, variable
   refresh rate and place beside the others, and whether apps made for X11 stay sharp
   when a display is scaled. A change is put back after 15 seconds unless
@@ -73,30 +84,30 @@ Each page does one thing:
   the output and its volume, the connections in use, and buttons that open the volume
   control, Hyprland's sound centre, the Bluetooth manager and the network connections,
   with the command that installs a missing one.
-- **Bar:** a Waybar style that matches the theme, with a border like your windows', the
-  widgets you choose on the left, centre or right, such as the weather, media and
-  processor, and a switch to start or stop it.
-- **Terminal:** a colour scheme, font, text size and background opacity for kitty.
-- **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
-  distribution's with the command that installs one.
-- **Idle and lock:** dim, lock, turn the screens off and suspend after a time you choose,
-  through hypridle; lock before sleeping; a lock screen in the theme's colours through
-  hyprlock; and the power mode and brightness, when power-profiles-daemon and
-  brightnessctl are installed.
-- **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
+
+**System**
+
 - **Essentials:** checks for what a Hyprland desktop needs beside Hyprland: the portals for
   screen sharing and file dialogs, a polkit agent for password prompts, a notification
   daemon, fonts for text and emoji, and Qt's Wayland support. Each one missing shows why it
   matters and the command that installs it; Lantern installs nothing. A polkit agent that
   is installed but not running can be started, now and with Hyprland.
-- **Autostart:** what starts when you log in: the programs your Hyprland config starts,
-  and the autostart files other programs leave, each switched on or off, and a program
-  added. Hyprland does not read autostart files by itself, so the page says what starts
-  them, if anything, and offers dex.
 - **Default apps:** the web browser, email, file manager, text editor, image viewer, PDF
   viewer, video and music players, among the apps installed that say they open them, with
   what the system picks while none is chosen; and the terminal that apps which run in one
   open in, through xdg-terminal-exec.
+- **Autostart:** what starts when you log in: the programs your Hyprland config starts,
+  and the autostart files other programs leave, each switched on or off, and a program
+  added. Hyprland does not read autostart files by itself, so the page says what starts
+  them, if anything, and offers dex.
+- **Idle and lock:** dim, lock, turn the screens off and suspend after a time you choose,
+  through hypridle; lock before sleeping; a lock screen in the theme's colours through
+  hyprlock; and the power mode and brightness, when power-profiles-daemon and
+  brightnessctl are installed.
+- **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
+
+**Hyprland**
+
 - **Keyboard shortcuts:** every binding, what it does, where in your config it is set,
   and which keys are bound more than once, with a search.
 - **Options:** every Hyprland option with its value, default and description, and which
