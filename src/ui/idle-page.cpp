@@ -41,9 +41,18 @@ namespace ui {
             return text.str();
         }
 
+        // A brightness to set: a backlight, and a built-in screen for it to light. Some
+        // computers with no built-in screen, such as the 2013 Mac Pro, still list one.
         bool hasBacklight() {
             std::error_code error;
-            return std::filesystem::directory_iterator{"/sys/class/backlight", error} != std::filesystem::directory_iterator{};
+            if (std::filesystem::directory_iterator{"/sys/class/backlight", error} == std::filesystem::directory_iterator{})
+                return false;
+            for (const auto& entry : std::filesystem::directory_iterator{"/sys/class/drm", error}) {
+                const auto name = entry.path().filename().string();
+                if (name.contains("-eDP-") || name.contains("-LVDS-") || name.contains("-DSI-"))
+                    return true;
+            }
+            return false;
         }
 
         // "In 5 minutes" choices for a time, with the one the file has when it is none of them.
