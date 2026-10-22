@@ -76,7 +76,30 @@ namespace configuration {
             if (!rest.starts_with(','))
                 return std::nullopt;
             rest = trim(rest.substr(1, rest.size() - 2));
-            LuaBindLine bind{.keys = keys->first, .action = std::string{rest}, .command = std::nullopt};
+            // The action ends at the first comma outside brackets and strings, where the
+            // options begin.
+            std::size_t depth = 0;
+            std::size_t end   = 0;
+            while (end < rest.size()) {
+                const auto character = rest[end];
+                if (character == '"' || character == '\'' || rest.substr(end).starts_with("[[")) {
+                    const auto literal = luaString(rest.substr(end));
+                    if (!literal)
+                        return std::nullopt;
+                    end += literal->second;
+                    continue;
+                }
+                if (character == '(' || character == '{' || character == '[')
+                    ++depth;
+                else if ((character == ')' || character == '}' || character == ']') && depth > 0)
+                    --depth;
+                else if (character == ',' && depth == 0)
+                    break;
+                ++end;
+            }
+            LuaBindLine bind{.keys = keys->first, .action = std::string{trim(rest.substr(0, end))}, .command = std::nullopt,
+                             .options = end < rest.size() ? std::string{trim(rest.substr(end + 1))} : std::string{}};
+            rest = trim(rest.substr(0, end));
             constexpr std::string_view exec = "hl.dsp.exec_cmd(";
             if (rest.starts_with(exec) && rest.ends_with(')'))
                 if (const auto command = luaString(rest.substr(exec.size())); command && exec.size() + command->second == rest.size() - 1)
@@ -115,9 +138,10 @@ namespace configuration {
             std::ranges::equal(first->second, second->second, [](char a, char b) { return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b)); });
     }
 
-    std::string withLuaExecBind(std::string_view config, std::string_view keys, std::string_view command) {
+    std::string withLuaExecBind(std::string_view config, std::string_view keys, std::string_view command, std::string_view options) {
         const auto lines   = linesOf(config);
-        const auto written = std::format("hl.bind({}, hl.dsp.exec_cmd({}))\n", luaLiteral(keys), luaLiteral(command));
+        const auto written = options.empty() ? std::format("hl.bind({}, hl.dsp.exec_cmd({}))\n", luaLiteral(keys), luaLiteral(command))
+                                             : std::format("hl.bind({}, hl.dsp.exec_cmd({}), {})\n", luaLiteral(keys), luaLiteral(command), options);
         const auto same    = std::ranges::find_if(lines, [&](const Line& line) { return line.bind && sameKeys(line.bind->keys, keys); });
         std::string text{config};
         if (same != lines.end())

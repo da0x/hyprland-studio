@@ -9,6 +9,9 @@
 #include "application/lantern-folder.hpp"
 #include "configuration/diff.hpp"
 #include "desktop/clipboard.hpp"
+#include "desktop/idle.hpp"
+#include "desktop/popups.hpp"
+#include "desktop/process.hpp"
 #include "desktop/waybar.hpp"
 #include "desktop/window-look.hpp"
 #include "ui/bar-preview.hpp"
@@ -27,6 +30,8 @@
 #include <algorithm>
 #include <filesystem>
 #include <format>
+#include <fstream>
+#include <sstream>
 #include <optional>
 
 namespace ui {
@@ -40,6 +45,33 @@ namespace ui {
         // Three cards to a row, with the gaps between them.
         constexpr double cardsPerRow = 3;
         constexpr double cardShare   = 0.32;
+
+        constexpr auto popupsChange = "Pop-ups";
+
+        std::string fileText(const std::filesystem::path& file) {
+            std::ifstream     stream{file, std::ios::binary};
+            std::stringstream text;
+            text << stream.rdbuf();
+            return text.str();
+        }
+
+        std::optional<std::filesystem::path> program(std::string_view name) {
+            return desktop::findProgram(name, foundation::variable(foundation::currentEnvironment(), "PATH").value_or(""));
+        }
+
+        // The style the pop-ups are written in: the one swayosd has now, when Lantern wrote
+        // it or there is none.
+        std::expected<std::optional<configuration::FileChange>, std::string> planPopupStyle(const desktop::Palette& palette) {
+            const auto file = desktop::popupStyleFile(foundation::currentEnvironment());
+            if (std::error_code error; std::filesystem::exists(file, error) && !desktop::lanternPopupStyle(fileText(file)))
+                return std::nullopt;
+            auto planned = configuration::planFile(file, desktop::popupStyle(palette));
+            if (!planned)
+                return std::unexpected{planned.error()};
+            if (!planned->changes())
+                return std::nullopt;
+            return std::optional{std::move(*planned)};
+        }
 
         const desktop::ShapeInfo& shapeInfo(desktop::Shape shape) {
             for (const auto& info : desktop::waybarShapes())
@@ -89,13 +121,16 @@ namespace ui {
     }
 
     void BarPage::restyle() {
-        if (!reviewing)
+        if (!reviewing && !reviewingPopups)
             showOverview();
     }
 
     void BarPage::check() {
         waybar.refresh();
-        if (!reviewing)
+        const auto config = configuration::mainConfig(configuration::lanternLaunch());
+        popupsNow         = config && config->lua() && desktop::popupsIn(fileText(config->file));
+        popupsWanted      = popupsNow;
+        if (!reviewing && !reviewingPopups)
             showOverview();
     }
 
@@ -151,10 +186,10 @@ namespace ui {
         const auto tabs = leftRow();
         tabs->rebuild()->gap(4)->commence();
         tabButtons.clear();
-        for (const bool widgetsTab : {false, true}) {
-            auto made = button(widgetsTab ? "Widgets" : "Style", 100, widgetsTab == showingWidgets, [this, widgetsTab] {
-                defer([this, widgetsTab] {
-                    showingWidgets = widgetsTab;
+        for (const auto& [which, label] : {std::pair{Tab::style, "Style"}, std::pair{Tab::widgets, "Widgets"}, std::pair{Tab::popups, "Pop-ups"}}) {
+            auto made = button(label, 100, which == tab, [this, which] {
+                defer([this, which] {
+                    tab = which;
                     fillChoices();
                     updateStyle();
                 });
@@ -177,8 +212,10 @@ namespace ui {
         paletteCards.clear();
         borderCards.clear();
         for (std::size_t index = 0; index < tabButtons.size(); ++index)
-            tabButtons[index]->rebuild()->accent((index == 1) == showingWidgets)->commence();
-        if (!showingWidgets) {
+            tabButtons[index]->rebuild()->accent(index == static_cast<std::size_t>(tab))->commence();
+        if (tab == Tab::popups)
+            return fillPopups();
+        if (tab == Tab::style) {
             choices->addChild(markupLine("<span weight=\"600\">Shape</span>", palette));
             const auto shapes = leftRow(0);
             shapes->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->gap(12)->commence();
@@ -401,6 +438,14 @@ namespace ui {
         if (!planned)
             return planned;
         std::erase_if(*planned, [](const auto& change) { return !change.changes(); });
+        // The pop-ups take the bar's colours, when Lantern wrote their style.
+        if (std::error_code error; style.palette && std::filesystem::exists(desktop::popupStyleFile(foundation::currentEnvironment()), error)) {
+            auto popups = planPopupStyle(*style.palette);
+            if (!popups)
+                return std::unexpected{popups.error()};
+            if (*popups)
+                planned->push_back(std::move(**popups));
+        }
         if (const auto config = configuration::mainConfig(configuration::lanternLaunch())) {
             auto rules = desktop::planPopupRules(*config);
             if (!rules)
@@ -412,6 +457,8 @@ namespace ui {
     }
 
     void BarPage::fillStyleStatus() {
+        if (tab == Tab::popups)
+            return fillPopupStatus();
         // The windows' geometry, which the bar follows, may have changed on the Windows page.
         selected.geometry = desktop::runningBarGeometry();
         const auto environment = foundation::currentEnvironment();
@@ -450,6 +497,7 @@ namespace ui {
 
     void BarPage::showOverview() {
         reviewing.reset();
+        reviewingPopups = false;
         changes.clear();
         body->clearChildren();
 
@@ -530,6 +578,8 @@ namespace ui {
         if (!record) {
             outcome = std::format("Nothing was written: {}.", record.error());
         } else {
+            if (std::ranges::any_of(changes, [](const auto& change) { return change.file == desktop::popupStyleFile(foundation::currentEnvironment()); }))
+                restartPopups();
             outcome = "Written. Waybar is restarting…";
             waybar.restartToRead(*record, [this](std::string what) {
                 outcome = std::move(what);
@@ -563,6 +613,146 @@ namespace ui {
             outcome = "Undone.";
         }
         showOverview();
+    }
+
+    std::expected<std::vector<configuration::FileChange>, std::string> BarPage::planPopups() const {
+        std::vector<configuration::FileChange> planned;
+        if (popupsWanted == popupsNow)
+            return planned;
+        const auto config = configuration::mainConfig(configuration::lanternLaunch());
+        if (!config)
+            return std::unexpected{config.error()};
+        if (!config->lua())
+            return std::unexpected{"keys are set only in a Lua config (hyprland.lua) so far"};
+        auto edited = configuration::planEdit(config->file, [on = popupsWanted](std::string_view text) { return desktop::withPopups(text, on, desktop::hasBacklight()); });
+        if (!edited)
+            return std::unexpected{edited.error()};
+        if (*edited)
+            planned.push_back(std::move(**edited));
+        if (popupsWanted) {
+            // In the colours of the bar Waybar has, or else of the one chosen here.
+            const auto current = desktop::currentBarStyle(foundation::currentEnvironment(), desktop::runningBarGeometry());
+            const auto colours = current && current->palette ? current->palette : selected.palette;
+            if (colours) {
+                auto style = planPopupStyle(*colours);
+                if (!style)
+                    return std::unexpected{style.error()};
+                if (*style)
+                    planned.push_back(std::move(**style));
+            }
+        }
+        return planned;
+    }
+
+    void BarPage::fillPopups() {
+        choices->addChild(paragraph("A pop-up shows the new level when you press a volume or brightness key, in the bar's colours. swayosd draws it.", palette));
+        choices->addChild(settingRow("Pop-ups", "for the volume and brightness keys", {"Off", "On"}, popupsWanted ? 1 : 0, palette,
+                                     [this](std::size_t chosen) {
+                                         popupsWanted = chosen == 1;
+                                         fillChoices();
+                                         updateStyle();
+                                     },
+                                     defer));
+        choices->addChild(paragraph(std::format("On, the volume and mute keys{} ask swayosd to change the level and show it. Off puts back what Hyprland's example "
+                                                "config has them do, with wpctl and brightnessctl.",
+                                                desktop::hasBacklight() ? " and the brightness keys" : ""),
+                                    palette, true));
+        if (popupsWanted && !program("swayosd-server"))
+            choices->addChild(requirementBlock(desktop::Requirement{.name     = "swayosd",
+                                                                    .purpose  = "Draws the volume and brightness pop-ups.",
+                                                                    .upstream = "https://github.com/ErikReider/SwayOSD",
+                                                                    .package  = "swayosd",
+                                                                    .found    = std::nullopt},
+                                               desktop::currentDistribution(),
+                                               desktop::clipboardProgram(foundation::variable(foundation::currentEnvironment(), "PATH").value_or("")), palette, defer));
+    }
+
+    void BarPage::fillPopupStatus() {
+        styleStatusShown.clear();
+        const auto                                               planned = planPopups();
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
+        std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> away;
+        if (configuration::latestChange(application::backupsFolder(foundation::currentEnvironment()), popupsChange))
+            away.push_back(button("Undo last change", 160, false, [this] { defer([this] { undoPopups(); }); }));
+        std::string note;
+        if (!planned)
+            note = escapeMarkup(std::format("Lantern cannot write it: {}.", planned.error()));
+        else if (planned->empty())
+            note = std::format("{}  {}", coloured("✓", hex(palette->m_colors.accent)), popupsNow ? "The pop-ups are on." : "The pop-ups are off.");
+        else {
+            buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showPopupReview(); }); }));
+            note = escapeMarkup(outcome);
+        }
+        CSharedPointer<Hyprtoolkit::IElement> noteText;
+        if (!note.empty()) {
+            const auto made = markupLine(note, palette);
+            made->rebuild()->size(CDynamicSize{CDynamicSize::HT_SIZE_AUTO, CDynamicSize::HT_SIZE_AUTO, {1.0, 1.0}})->commence();
+            noteText = made;
+        }
+        setFooter(footer, buttons, noteText, away);
+    }
+
+    void BarPage::showPopupReview() {
+        auto planned = planPopups();
+        if (!planned || planned->empty()) {
+            outcome = planned ? "" : planned.error();
+            return showOverview();
+        }
+        changes = std::move(*planned);
+        outcome.clear();
+        body->clearChildren();
+        reviewingPopups = true;
+        body->addChild(space(4));
+        body->addChild(heading(popupsWanted ? "Review: pop-ups on" : "Review: pop-ups off", palette));
+        body->addChild(paragraph(std::format("Applying writes these files, after keeping a copy of each so they can be undone, and {}.",
+                                             popupsWanted ? "starts swayosd's server" : "stops swayosd's server"),
+                                 palette, true));
+        setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { applyPopups(); }); })});
+        diff.setRows(diffRows(changes, *palette));
+        body->addChild(diff.element());
+    }
+
+    void BarPage::applyPopups() {
+        if (!reviewingPopups)
+            return;
+        reviewingPopups   = false;
+        const auto record = configuration::applyChanges(changes, application::backupsFolder(foundation::currentEnvironment()), popupsChange);
+        if (!record) {
+            outcome = std::format("Nothing was written: {}.", record.error());
+            return showOverview();
+        }
+        outcome = "Applied.";
+        if (const auto hyprctl = program("hyprctl"))
+            application::checkHyprlandConfig(loop, *hyprctl, *record, [this](std::optional<std::string> problem) {
+                if (!problem)
+                    return;
+                outcome = *problem;
+                check();
+            });
+        check();
+        restartPopups();
+    }
+
+    void BarPage::undoPopups() {
+        const auto latest = configuration::latestChange(application::backupsFolder(foundation::currentEnvironment()), popupsChange);
+        if (!latest)
+            return showOverview();
+        if (const auto undone = configuration::undoChange(*latest); !undone)
+            outcome = std::format("Nothing was undone: {}.", undone.error());
+        else
+            outcome = "Undone.";
+        check();
+        restartPopups();
+    }
+
+    void BarPage::restartPopups() {
+        for (const auto process : desktop::findProcesses("swayosd-server"))
+            (void)desktop::stopProcess(process);
+        const auto server = program("swayosd-server");
+        if (!server || !popupsNow)
+            return;
+        // A moment for the old one to exit first.
+        loop.after(std::chrono::milliseconds{300}, [server = *server] { (void)desktop::startDetached(server); });
     }
 
 }

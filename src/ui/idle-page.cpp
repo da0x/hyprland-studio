@@ -41,20 +41,6 @@ namespace ui {
             return text.str();
         }
 
-        // A brightness to set: a backlight, and a built-in screen for it to light. Some
-        // computers with no built-in screen, such as the 2013 Mac Pro, still list one.
-        bool hasBacklight() {
-            std::error_code error;
-            if (std::filesystem::directory_iterator{"/sys/class/backlight", error} == std::filesystem::directory_iterator{})
-                return false;
-            for (const auto& entry : std::filesystem::directory_iterator{"/sys/class/drm", error}) {
-                const auto name = entry.path().filename().string();
-                if (name.contains("-eDP-") || name.contains("-LVDS-") || name.contains("-DSI-"))
-                    return true;
-            }
-            return false;
-        }
-
         // "In 5 minutes" choices for a time, with the one the file has when it is none of them.
         std::vector<int> minuteChoices(std::vector<int> choices, int now) {
             if (std::ranges::find(choices, now) == choices.end()) {
@@ -127,7 +113,7 @@ namespace ui {
             });
         }
         brightness.reset();
-        if (const auto brightnessctl = program("brightnessctl"); brightnessctl && hasBacklight()) {
+        if (const auto brightnessctl = program("brightnessctl"); brightnessctl && desktop::hasBacklight()) {
             // "gmux_backlight,backlight,500,50%,1000"
             (void)application::runCommand(loop, *brightnessctl, {"-m"}, [this](bool succeeded, std::string output) {
                 const auto percent = output.find('%');
@@ -217,7 +203,7 @@ namespace ui {
                                         },
                                         defer));
         };
-        if (hasBacklight())
+        if (desktop::hasBacklight())
             timeRow(program("brightnessctl") ? "Dim the screen" : "Dim the screen (needs brightnessctl)", "to a tenth, back on the first touch", {0, 1, 2, 3, 5, 10},
                     &desktop::IdleSettings::dim);
         timeRow("Lock", "the lock screen asks for your password", {0, 1, 2, 3, 5, 10, 15, 30, 60}, &desktop::IdleSettings::lock);
@@ -269,7 +255,7 @@ namespace ui {
                                         },
                                         defer));
         }
-        if (!hasBacklight())
+        if (!desktop::hasBacklight())
             return;
         if (!brightness) {
             column->addChild(paragraph(program("brightnessctl") ? "The brightness could not be read." : "Brightness needs brightnessctl: sudo pacman -S brightnessctl.", palette, true));

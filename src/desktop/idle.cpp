@@ -191,4 +191,16 @@ input-field {{
         return config.starts_with(lockMark);
     }
 
+    bool hasBacklight(const std::filesystem::path& classes) {
+        std::error_code error;
+        if (std::filesystem::directory_iterator{classes / "backlight", error} == std::filesystem::directory_iterator{})
+            return false;
+        for (const auto& entry : std::filesystem::directory_iterator{classes / "drm", error}) {
+            const auto name = entry.path().filename().string();
+            if (name.contains("-eDP-") || name.contains("-LVDS-") || name.contains("-DSI-"))
+                return true;
+        }
+        return false;
+    }
+
 }

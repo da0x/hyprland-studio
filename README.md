@@ -63,7 +63,8 @@ Each page does one thing. The sidebar groups them by what they are for.
   and gaps follow the windows'.
 - **Bar:** a Waybar style that matches the theme, with a border like your windows', the
   widgets you choose on the left, centre or right, such as the weather, media and
-  processor, and a switch to start or stop it.
+  processor, and a switch to start or stop it. Its Pop-ups tab turns on swayosd's volume
+  and brightness pop-ups, drawn in the bar's colours.
 - **Terminal:** a colour scheme, font, text size and background opacity for kitty.
 - **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
   distribution's with the command that installs one.
@@ -213,7 +214,10 @@ writes the file it points to, and the review says which one.
 - **Bar:** Waybar's `config.jsonc` and `style.css`, and rules in your Hyprland config that
   float the volume control and network settings the bar opens. The weather widget, when
   you turn it on, has Waybar ask the website wttr.in for the temperature every half hour,
-  which lets that site see roughly where you are.
+  which lets that site see roughly where you are. The pop-ups, when you turn them on: a
+  start line for `swayosd-server` and the volume, mute and brightness keys in your
+  Hyprland config, and `~/.config/swayosd/style.css`, which a new bar style writes again
+  in its colours. Turned off, the keys go back to `wpctl` and `brightnessctl`.
 - **Terminal:** kitty's `current-theme.conf`, and the font, text size, opacity and theme
   lines in `kitty.conf`.
 - **Cursors:** `XCURSOR_THEME` in your Hyprland config, `~/.icons/default/index.theme`,

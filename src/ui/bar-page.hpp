@@ -75,6 +75,15 @@ namespace ui {
         void                                                                   fillStyleStatus();
         // The open tab's choices: the shape, colours and border, or the widgets.
         void                                                                   fillChoices();
+        // The Pop-ups tab, its status, and its own review, apart from the bar's style.
+        void                                                                   fillPopups();
+        void                                                                   fillPopupStatus();
+        void                                                                   showPopupReview();
+        void                                                                   applyPopups();
+        void                                                                   undoPopups();
+        // Starts swayosd's server again, so it reads its style, when the pop-ups are on.
+        void                                                                   restartPopups();
+        [[nodiscard]] std::expected<std::vector<configuration::FileChange>, std::string> planPopups() const;
         // A menu, at the pointer, of the widgets to add to `side`.
         void                                                                   openAddMenu(desktop::Side side, std::vector<desktop::Widget> off);
         // A drawing of a style, made once and kept: `kind` 0 is the large one, 1 a shape
@@ -102,10 +111,16 @@ namespace ui {
         std::vector<std::pair<desktop::Shape, Card>>                         shapeCards;
         std::vector<std::pair<const desktop::Palette*, Card>>                paletteCards;
         std::vector<std::pair<desktop::Border, Card>>                        borderCards;
-        // The Style and Widgets tabs, and what the one open shows.
+        // The Style, Widgets and Pop-ups tabs, and what the one open shows.
+        enum class Tab { style, widgets, popups };
         std::vector<Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CButtonElement>> tabButtons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> choices;
-        bool                                                                 showingWidgets = false;
+        Tab                                                                  tab = Tab::style;
+        // The volume and brightness pop-ups: whether the config starts them now, whether
+        // the user wants them, and whether their change is under review.
+        bool                                                                 popupsNow       = false;
+        bool                                                                 popupsWanted    = false;
+        bool                                                                 reviewingPopups = false;
         // Lantern's window, which the menu that adds a widget opens from, and that menu.
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IWindow>              window;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IWindow>              menu;

@@ -42,4 +42,8 @@ namespace desktop {
     // Whether hyprlock.conf is one Lantern wrote.
     [[nodiscard]] bool lanternLockScreen(std::string_view config);
 
+    // A brightness to set: a backlight, and a built-in screen for it to light. Some
+    // computers with no built-in screen, such as the 2013 Mac Pro, still list one.
+    [[nodiscard]] bool hasBacklight(const std::filesystem::path& classes = "/sys/class");
+
 }

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "configuration/lua-binds.hpp"
+#include "desktop/popups.hpp"
 #include "desktop/screenshots.hpp"
 
 #include <gtest/gtest.h>
 
+#include <format>
 #include <string>
 
 namespace {
@@ -51,6 +53,36 @@ namespace {
         const auto config = "hl.bind(\"SUPER + SHIFT + V\", hl.dsp.exec_cmd(\"" + desktop::clipboardPicker("wofi --dmenu") + "\"))\n";
         EXPECT_EQ(desktop::clipboardKeysIn(config), "SUPER + SHIFT + V");
         EXPECT_FALSE(desktop::clipboardKeysIn("").has_value());
+    }
+
+    TEST(LuaBinds, KeepsTheOptionsApartFromTheAction) {
+        const auto binds = configuration::luaBindLines("hl.bind(\"XF86AudioMute\", hl.dsp.exec_cmd(\"wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle\"), { locked = true, repeating = true })\n");
+        ASSERT_EQ(binds.size(), 1U);
+        EXPECT_EQ(binds[0].command, "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle");
+        EXPECT_EQ(binds[0].options, "{ locked = true, repeating = true }");
+    }
+
+    TEST(Popups, BindsTheKeysToSwayosdAndBack) {
+        const std::string config = "hl.on(\"hyprland.start\", function ()\n    hl.exec_cmd(\"waybar\")\nend)\n\n"
+                                   "hl.bind(\"XF86AudioMute\", hl.dsp.exec_cmd(\"wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle\"), { locked = true })\n";
+        const auto on = desktop::withPopups(config, true, false);
+        EXPECT_TRUE(desktop::popupsIn(on));
+        EXPECT_TRUE(on.contains("hl.bind(\"XF86AudioMute\", hl.dsp.exec_cmd(\"swayosd-client --output-volume mute-toggle\"), { locked = true })\n"));
+        EXPECT_TRUE(on.contains("hl.bind(\"XF86AudioRaiseVolume\", hl.dsp.exec_cmd(\"swayosd-client --output-volume raise\"), { locked = true, repeating = true })\n"));
+        EXPECT_FALSE(on.contains("brightness"));
+        const auto off = desktop::withPopups(on, false, false);
+        EXPECT_FALSE(desktop::popupsIn(off));
+        EXPECT_FALSE(off.contains("swayosd"));
+        EXPECT_TRUE(off.contains("hl.bind(\"XF86AudioMute\", hl.dsp.exec_cmd(\"wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle\"), { locked = true })\n"));
+        EXPECT_TRUE(desktop::withPopups(config, true, true).contains("--brightness raise"));
+    }
+
+    TEST(Popups, WritesTheStyleInTheBarsColours) {
+        const auto& palette = desktop::waybarPalettes().front();
+        const auto  style   = desktop::popupStyle(palette);
+        EXPECT_TRUE(desktop::lanternPopupStyle(style));
+        EXPECT_TRUE(style.contains(std::format("background: {};", palette.accent)));
+        EXPECT_FALSE(desktop::lanternPopupStyle("window#osd {}\n"));
     }
 
 }
