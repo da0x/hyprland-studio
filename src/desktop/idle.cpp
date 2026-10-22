@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "desktop/idle.hpp"
 
+#include "configuration/hyprlang-edit.hpp"
+
 #include <algorithm>
 #include <charconv>
 #include <format>
@@ -23,79 +25,7 @@ namespace desktop {
             return std::filesystem::path{foundation::variable(environment, "HOME").value_or("")} / ".config" / "hypr" / name;
         }
 
-        std::string_view trimmed(std::string_view text) {
-            const auto begin = text.find_first_not_of(" \t\r");
-            if (begin == std::string_view::npos)
-                return {};
-            return text.substr(begin, text.find_last_not_of(" \t\r") - begin + 1);
-        }
-
-        struct Line {
-            std::size_t      begin = 0;
-            // Past its newline.
-            std::size_t      end   = 0;
-            std::string_view text;
-        };
-
-        std::vector<Line> linesOf(std::string_view config) {
-            std::vector<Line> lines;
-            std::size_t       start = 0;
-            while (start < config.size()) {
-                const auto newline = config.find('\n', start);
-                const auto end     = newline == std::string_view::npos ? config.size() : newline + 1;
-                lines.push_back(Line{start, end, config.substr(start, (newline == std::string_view::npos ? config.size() : newline) - start)});
-                start = end;
-            }
-            return lines;
-        }
-
-        // A block at the top of the file: `name {` to its `}`.
-        struct Block {
-            std::string                                      name;
-            std::size_t                                      begin = 0;
-            std::size_t                                      end   = 0;
-            // Its `key = value` lines, and where each line is.
-            std::vector<std::pair<std::string, std::string>> values;
-            std::vector<std::size_t>                         valueLines;
-            std::size_t                                      close = 0;
-        };
-
-        std::vector<Block> blocksOf(std::string_view config) {
-            std::vector<Block>   blocks;
-            std::optional<Block> open;
-            int                  depth = 0;
-            for (const auto& line : linesOf(config)) {
-                auto text = trimmed(line.text);
-                if (const auto comment = text.find('#'); comment != std::string_view::npos)
-                    text = trimmed(text.substr(0, comment));
-                if (text.ends_with('{')) {
-                    if (depth++ == 0) {
-                        open        = Block{};
-                        open->name  = trimmed(text.substr(0, text.size() - 1));
-                        open->begin = line.begin;
-                    }
-                    continue;
-                }
-                if (text == "}") {
-                    if (--depth == 0 && open) {
-                        open->close = line.begin;
-                        open->end   = line.end;
-                        blocks.push_back(std::move(*open));
-                        open.reset();
-                    }
-                    depth = std::max(depth, 0);
-                    continue;
-                }
-                if (depth == 1 && open)
-                    if (const auto equals = text.find('='); equals != std::string_view::npos) {
-                        open->values.emplace_back(std::string{trimmed(text.substr(0, equals))}, std::string{trimmed(text.substr(equals + 1))});
-                        open->valueLines.push_back(line.begin);
-                    }
-            }
-            return blocks;
-        }
-
-        std::string valueOf(const Block& block, std::string_view key) {
+        std::string valueOf(const configuration::HyprlangBlock& block, std::string_view key) {
             for (const auto& [name, value] : block.values)
                 if (name == key)
                     return value;
@@ -104,7 +34,7 @@ namespace desktop {
 
         enum class Role { none, dim, lock, screensOff, suspend };
 
-        Role roleOf(const Block& block) {
+        Role roleOf(const configuration::HyprlangBlock& block) {
             if (block.name != "listener")
                 return Role::none;
             const auto run = valueOf(block, "on-timeout");
@@ -119,7 +49,7 @@ namespace desktop {
             return Role::none;
         }
 
-        int minutesOf(const Block& block) {
+        int minutesOf(const configuration::HyprlangBlock& block) {
             const auto text    = valueOf(block, "timeout");
             int        seconds = 0;
             std::from_chars(text.data(), text.data() + text.size(), seconds);
@@ -138,7 +68,7 @@ namespace desktop {
 
     IdleSettings idleIn(std::string_view config) {
         IdleSettings settings;
-        for (const auto& block : blocksOf(config)) {
+        for (const auto& block : configuration::hyprlangBlocks(config)) {
             if (block.name == "general")
                 settings.lockBeforeSleep = valueOf(block, "before_sleep_cmd").contains("lock");
             switch (roleOf(block)) {
@@ -154,7 +84,7 @@ namespace desktop {
 
     std::string withIdle(std::string_view config, const IdleSettings& settings) {
         std::string text{config};
-        const auto  blocks = blocksOf(config);
+        const auto  blocks = configuration::hyprlangBlocks(config);
         // From the end backwards, so that earlier offsets stay right.
         for (const auto& block : blocks | std::views::reverse) {
             if (block.name == "general") {

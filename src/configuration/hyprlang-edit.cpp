@@ -18,6 +18,25 @@ namespace configuration {
             return text;
         }
 
+        struct BlockLine {
+            std::size_t      begin = 0;
+            // Past its newline.
+            std::size_t      end   = 0;
+            std::string_view text;
+        };
+
+        std::vector<BlockLine> blockLinesOf(std::string_view config) {
+            std::vector<BlockLine> lines;
+            std::size_t       start = 0;
+            while (start < config.size()) {
+                const auto newline = config.find('\n', start);
+                const auto end     = newline == std::string_view::npos ? config.size() : newline + 1;
+                lines.push_back(BlockLine{start, end, config.substr(start, (newline == std::string_view::npos ? config.size() : newline) - start)});
+                start = end;
+            }
+            return lines;
+        }
+
     }
 
     std::string withHyprlangValues(std::string_view config, const std::vector<std::pair<std::string, std::string>>& values) {
@@ -197,6 +216,41 @@ namespace configuration {
                     text += std::format("    {} = {}\n", wanted.key, wanted.value);
         }
         return text;
+    }
+
+    std::vector<HyprlangBlock> hyprlangBlocks(std::string_view config) {
+        std::vector<HyprlangBlock>   blocks;
+        std::optional<HyprlangBlock> open;
+        int                          depth = 0;
+        for (const auto& line : blockLinesOf(config)) {
+            auto text = trim(line.text);
+            if (const auto comment = text.find('#'); comment != std::string_view::npos)
+                text = trim(text.substr(0, comment));
+            if (text.ends_with('{')) {
+                if (depth++ == 0) {
+                    open        = HyprlangBlock{};
+                    open->name  = trim(text.substr(0, text.size() - 1));
+                    open->begin = line.begin;
+                }
+                continue;
+            }
+            if (text == "}") {
+                if (--depth == 0 && open) {
+                    open->close = line.begin;
+                    open->end   = line.end;
+                    blocks.push_back(std::move(*open));
+                    open.reset();
+                }
+                depth = std::max(depth, 0);
+                continue;
+            }
+            if (depth == 1 && open)
+                if (const auto equals = text.find('='); equals != std::string_view::npos) {
+                    open->values.emplace_back(std::string{trim(text.substr(0, equals))}, std::string{trim(text.substr(equals + 1))});
+                    open->valueLines.push_back(line.begin);
+                }
+        }
+        return blocks;
     }
 
 }

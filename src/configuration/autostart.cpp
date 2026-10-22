@@ -101,4 +101,12 @@ namespace configuration {
         return text;
     }
 
+    std::string withoutAutostart(std::string_view config, bool lua, std::string_view command) {
+        std::string text;
+        for (const auto& line : linesOf(config))
+            if (!isCall(line.text, lua, command))
+                text += config.substr(line.begin, line.end - line.begin);
+        return text;
+    }
+
 }

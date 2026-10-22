@@ -62,6 +62,8 @@ Each page does one thing:
   refresh rate and place beside the others, and whether apps made for X11 stay sharp
   when a display is scaled. A change is put back after 15 seconds unless
   you keep it, so a display that goes dark fixes itself.
+- **Night light:** the screens turn warmer in the evening and back in the morning, through
+  hyprsunset, with the warmth tried on the screens before you keep it.
 - **Keyboard and mouse:** keyboard layouts and the keys that switch them, what Caps Lock
   does, how held keys repeat, Num Lock at start, the pointer's speed, acceleration,
   buttons and scroll direction, and the touchpad's tap to click, right click, pause while
@@ -181,6 +183,9 @@ writes the file it points to, and the review says which one.
   Hyprland config, the shader itself in `~/.config/hypr/shaders/`, the text sizes in
   `hyprtoolkit.conf`, and the desktop's contrast, motion, text size and cursor size
   settings.
+- **Night light:** the profiles in `~/.config/hypr/hyprsunset.conf`, the rest kept, and a
+  line in your Hyprland config's start for hyprsunset, which turning it off takes out
+  again. Trying a warmth uses `hyprctl hyprsunset`, which changes nothing on disk.
 - **Idle and lock:** `~/.config/hypr/hypridle.conf`, where the listeners Lantern knows
   are replaced and the rest kept, a line in your Hyprland config's start for hypridle, and
   `~/.config/hypr/hyprlock.conf` when you choose the theme's lock screen. It starts

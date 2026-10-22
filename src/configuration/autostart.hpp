@@ -20,4 +20,8 @@ namespace configuration {
     // command started in any other way is left alone.
     [[nodiscard]] std::string withAutostart(std::string_view config, bool lua, std::string_view command, std::span<const std::string_view> instead);
 
+    // `config` no longer starting `command` at login: only lines that are exactly such a
+    // call are taken out.
+    [[nodiscard]] std::string withoutAutostart(std::string_view config, bool lua, std::string_view command);
+
 }

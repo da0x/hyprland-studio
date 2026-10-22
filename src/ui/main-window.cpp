@@ -16,6 +16,7 @@
 #include "ui/essentials-page.hpp"
 #include "ui/idle-page.hpp"
 #include "ui/input-page.hpp"
+#include "ui/night-light-page.hpp"
 #include "ui/accessibility-page.hpp"
 #include "ui/activate-page.hpp"
 #include "ui/windows-page.hpp"
@@ -160,14 +161,19 @@ namespace ui {
         InputPage       input{palette, defer, loop};
         EssentialsPage  essentialsPage{palette, defer, loop};
         IdlePage        idle{palette, defer, loop};
+        NightLightPage  nightLight{palette, defer, loop};
         AccessibilityPage accessibility{palette, defer, loop};
         WindowsPage     windows{palette, defer, loop};
         ActivatePage    activate{palette, defer};
         ConsolePage     console{palette, defer};
         // A wallpaper tried on the desktop and not kept goes back when its page is left.
-        opening = [&wallpaper, &displays, &essentialsPage, &idle](const CSharedPointer<Hyprtoolkit::IElement>& page) {
+        opening = [&wallpaper, &displays, &essentialsPage, &idle, &nightLight](const CSharedPointer<Hyprtoolkit::IElement>& page) {
             if (page != wallpaper.element())
                 wallpaper.leave();
+            if (page != nightLight.element())
+                nightLight.leave();
+            else
+                nightLight.refresh();
             if (page == displays.element())
                 displays.refresh();
             if (page == essentialsPage.element())
@@ -213,6 +219,7 @@ namespace ui {
         addPageButton("Wallpaper", wallpaper.element());
         addPageButton("Windows", windows.element());
         addPageButton("Displays", displays.element());
+        addPageButton("Night light", nightLight.element());
         addPageButton("Keyboard and mouse", input.element());
         addPageButton("Idle and lock", idle.element());
         addPageButton("Bar", bar.element());
@@ -284,7 +291,7 @@ namespace ui {
         });
         // Every element made in the old colours is made again: the long-lived ones in place,
         // and the pages' contents, some with colours baked into their text, from their data.
-        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &input, &essentialsPage, &idle, &accessibility, &windows, &activate, &console](bool resized) {
+        const auto redraw = [&keybindings, &optionsPage, &liveTree, &eventLog, &bar, &wallpaper, &theme, &terminal, &cursors, &displays, &input, &essentialsPage, &idle, &nightLight, &accessibility, &windows, &activate, &console](bool resized) {
             // The pages first, so the elements they let go of are not drawn again in between;
             // what they make is already right, so only what was there before is rebuilt.
             // The Theme page draws itself again after its own change; a new text size is another's.
@@ -301,6 +308,7 @@ namespace ui {
             input.restyle();
             essentialsPage.restyle();
             idle.restyle();
+            nightLight.restyle();
             bar.restyle();
             wallpaper.restyle();
             accessibility.restyle();

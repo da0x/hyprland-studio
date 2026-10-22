@@ -37,4 +37,20 @@ namespace configuration {
     // the end of the file.
     [[nodiscard]] std::string withIniValues(std::string_view config, const std::vector<IniValue>& values);
 
+    // A block at the top of a hyprlang file: `name {` to its `}`, with its `key = value`
+    // lines, comments left out. Blocks inside it are skipped.
+    struct HyprlangBlock {
+        std::string                                      name;
+        std::size_t                                      begin = 0;
+        // Past the newline after its `}`.
+        std::size_t                                      end   = 0;
+        // Where its `}` line starts.
+        std::size_t                                      close = 0;
+        std::vector<std::pair<std::string, std::string>> values;
+        // Where each of those lines starts.
+        std::vector<std::size_t>                         valueLines;
+    };
+
+    [[nodiscard]] std::vector<HyprlangBlock> hyprlangBlocks(std::string_view config);
+
 }
