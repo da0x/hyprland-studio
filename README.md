@@ -72,6 +72,10 @@ Each page does one thing:
 - **Terminal:** a colour scheme, font, text size and background opacity for kitty.
 - **Cursors:** the mouse cursor's theme, each shown by its own cursors, and the
   distribution's with the command that installs one.
+- **Idle and lock:** dim, lock, turn the screens off and suspend after a time you choose,
+  through hypridle; lock before sleeping; a lock screen in the theme's colours through
+  hyprlock; and the power mode and brightness, when power-profiles-daemon and
+  brightnessctl are installed.
 - **Accessibility:** text size, contrast, colour blindness, motion, and cursor size.
 - **Essentials:** checks for what a Hyprland desktop needs beside Hyprland: the portals for
   screen sharing and file dialogs, a polkit agent for password prompts, a notification
@@ -177,6 +181,11 @@ writes the file it points to, and the review says which one.
   Hyprland config, the shader itself in `~/.config/hypr/shaders/`, the text sizes in
   `hyprtoolkit.conf`, and the desktop's contrast, motion, text size and cursor size
   settings.
+- **Idle and lock:** `~/.config/hypr/hypridle.conf`, where the listeners Lantern knows
+  are replaced and the rest kept, a line in your Hyprland config's start for hypridle, and
+  `~/.config/hypr/hyprlock.conf` when you choose the theme's lock screen. It starts
+  hypridle again after a change so that it reads it. The power mode and brightness are
+  set at once with `powerprofilesctl` and `brightnessctl`, not written anywhere.
 - **Essentials:** only when you start a polkit agent from it: a line in your Hyprland
   config's start that runs the agent after you log in.
 
