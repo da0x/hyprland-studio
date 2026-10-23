@@ -171,7 +171,7 @@ namespace ui {
         TerminalPage    terminal{palette, defer};
         CursorsPage     cursors{palette, defer, loop};
         DisplaysPage    displays{palette, defer, loop};
-        InputPage       input{palette, defer, loop};
+        InputPage       input{palette, defer, loop, backend->systemIcons()};
         EssentialsPage  essentialsPage{palette, defer, loop};
         IdlePage        idle{palette, defer, loop};
         NightLightPage  nightLight{palette, defer, loop};

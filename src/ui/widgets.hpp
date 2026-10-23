@@ -84,6 +84,13 @@ namespace ui {
                                                                                                std::function<void(std::size_t)>                  changed,
                                                                                                const std::function<void(std::function<void()>)>& defer);
 
+    // The same row with a slider for a number that runs over a range. `changed` gets each
+    // whole number the slider passes while it is dragged, after the current layout pass.
+    [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement> sliderRow(const std::string& name, const std::string& about, int least, int most, int current,
+                                                                                              const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette,
+                                                                                              std::function<void(int)>                                        changed,
+                                                                                              const std::function<void(std::function<void()>)>&               defer);
+
     [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> heading(const std::string& text, const Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>& palette);
 
     // A diff as list rows: a header per file, then its changes with a sign and a color.

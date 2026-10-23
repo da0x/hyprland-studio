@@ -3,13 +3,17 @@
 
 #include "application/session.hpp"
 #include "configuration/file-change.hpp"
+#include "desktop/gsettings.hpp"
 #include "desktop/input.hpp"
 #include "ui/row-list.hpp"
 
 #include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Image.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
 #include <hyprtoolkit/palette/Palette.hpp>
+#include <hyprtoolkit/system/Icons.hpp>
 
+#include <chrono>
 #include <expected>
 #include <functional>
 #include <optional>
@@ -19,13 +23,14 @@
 namespace ui {
 
     // The keyboard's layouts and the keys that switch them, what Caps Lock does, how held
-    // keys repeat, the mouse's speed and buttons, and how the touchpad clicks, scrolls and
-    // swipes. Written to the Hyprland config only
-    // after the user reviews the change.
+    // keys repeat, the mouse's speed, buttons and double click, and how the touchpad clicks,
+    // scrolls and swipes. Written to the Hyprland config, and the double click to GTK's
+    // settings, only after the user reviews the change.
     class InputPage {
       public:
         // `defer` runs a function after the current layout pass; see RowList.
-        InputPage(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, application::EventLoop loop);
+        InputPage(Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, application::EventLoop loop,
+                  Hyprutils::Memory::CSharedPointer<Hyprtoolkit::ISystemIconFactory> icons);
 
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> element() const { return root; }
 
@@ -43,8 +48,13 @@ namespace ui {
         // A dropdown of two choices for a setting that is on or off.
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> choice(const std::string& name, const std::string& about, const std::string& off, const std::string& on,
                                                                                       bool desktop::InputSettings::*setting);
+        // A folder that opens on a double click as quick as the one chosen, to try it on.
+        [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> doubleClickTest();
+        void                                                                   showTestFolder();
         void fillStatus();
         [[nodiscard]] std::expected<std::optional<configuration::FileChange>, std::string> plan() const;
+        // GTK's double-click time, when the one chosen is not the one set.
+        [[nodiscard]] std::vector<desktop::GSetting> planGtk() const;
         void reread();
 
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CPalette>             palette;
@@ -54,6 +64,10 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CColumnLayoutElement> body;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CRowLayoutElement>    footer;
         RowList                                                              diff;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::ISystemIconFactory>   icons;
+        Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CImageElement>        testFolder;
+        std::chrono::steady_clock::time_point                                lastClick;
+        bool                                                                 folderOpen = false;
 
         // The layouts xkb knows, by name.
         std::vector<desktop::KnownLayout>                                    known;
@@ -61,8 +75,13 @@ namespace ui {
         std::optional<desktop::InputSettings>                                current;
         bool                                                                 touchpad = false;
         desktop::InputSettings                                               wanted;
-        bool                                                                 reviewing = false;
-        configuration::FileChange                                            change;
+        // GTK's double-click time in milliseconds, as set and as chosen; nothing set when
+        // gsettings is not installed.
+        std::optional<int>                                                   doubleClickNow;
+        int                                                                  doubleClick = 400;
+        bool                                                                 reviewing   = false;
+        std::vector<configuration::FileChange>                               changes;
+        std::vector<desktop::GSetting>                                       gtk;
         std::string                                                          outcome;
     };
 

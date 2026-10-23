@@ -4,6 +4,7 @@
 #include "application/config-check.hpp"
 #include "application/lantern-folder.hpp"
 #include "configuration/main-config.hpp"
+#include "desktop/gsettings.hpp"
 #include "desktop/system.hpp"
 #include "ui/markup.hpp"
 #include "ui/texts.hpp"
@@ -12,6 +13,8 @@
 #include <hyprtoolkit/element/Combobox.hpp>
 
 #include <algorithm>
+#include <charconv>
+#include <cmath>
 #include <format>
 
 namespace ui {
@@ -46,6 +49,9 @@ namespace ui {
             return settingRow(name, about, std::move(labels), at, palette, [options, choose = std::move(choose)](std::size_t index) { choose(options[index].value); }, defer);
         }
 
+        // Where GTK apps read the double-click time from on Wayland.
+        constexpr auto doubleClickSchema = "org.gnome.desktop.peripherals.mouse";
+
         std::string layoutName(const std::vector<desktop::KnownLayout>& known, const desktop::Layout& layout) {
             const auto found = std::ranges::find(known, layout.code, &desktop::KnownLayout::code);
             if (found == known.end())
@@ -58,7 +64,8 @@ namespace ui {
 
     }
 
-    InputPage::InputPage(CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, application::EventLoop loop) :
+    InputPage::InputPage(CSharedPointer<Hyprtoolkit::CPalette> palette, std::function<void(std::function<void()>)> defer, application::EventLoop loop,
+                         CSharedPointer<Hyprtoolkit::ISystemIconFactory> icons) :
         palette{std::move(palette)},
         defer{std::move(defer)},
         loop{std::move(loop)},
@@ -66,6 +73,7 @@ namespace ui {
              {RowList::Column{.width = 24, .monospace = true, .secondary = false, .markup = true, .heading = ""},
               RowList::Column{.width = 0, .monospace = true, .secondary = false, .markup = true, .heading = ""}},
              20},
+        icons{std::move(icons)},
         known{desktop::installedLayouts()} {
         root = Hyprtoolkit::CColumnLayoutBuilder::begin()->gap(10)->size(CDynamicSize{CDynamicSize::HT_SIZE_PERCENT, CDynamicSize::HT_SIZE_PERCENT, {1.0, 1.0}})->commence();
         root->setMargin(28);
@@ -79,7 +87,8 @@ namespace ui {
         footer = leftRow();
         root->addChild(footer);
         reread();
-        wanted = current.value_or(desktop::InputSettings{});
+        wanted      = current.value_or(desktop::InputSettings{});
+        doubleClick = doubleClickNow.value_or(doubleClick);
         showOverview();
     }
 
@@ -87,6 +96,12 @@ namespace ui {
         const auto config = configuration::mainConfig(configuration::lanternLaunch());
         current           = config ? desktop::currentInput(*config) : std::nullopt;
         touchpad          = desktop::touchpadConnected();
+        doubleClickNow.reset();
+        if (const auto set = desktop::gsetting(doubleClickSchema, "double-click", foundation::currentEnvironment())) {
+            int read = 0;
+            if (const auto [end, error] = std::from_chars(set->data(), set->data() + set->size(), read); error == std::errc{})
+                doubleClickNow = read;
+        }
     }
 
     void InputPage::restyle() {
@@ -99,6 +114,12 @@ namespace ui {
         if (!config)
             return std::unexpected{config.error()};
         return desktop::planInput(wanted, *config);
+    }
+
+    std::vector<desktop::GSetting> InputPage::planGtk() const {
+        if (!doubleClickNow || *doubleClickNow == doubleClick)
+            return {};
+        return desktop::gsettingChanges({{doubleClickSchema, "double-click", "", std::to_string(doubleClick)}}, foundation::currentEnvironment());
     }
 
     void InputPage::showOverview() {
@@ -252,14 +273,13 @@ namespace ui {
 
     void InputPage::fillMouse(const CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column) {
         column->addChild(heading("Mouse and pointer", palette));
-        column->addChild(optionRow<double>("Pointer speed", "how far the pointer goes for the same move",
-                                           {{"Slowest", -0.75}, {"Slower", -0.5}, {"Slow", -0.25}, {"As the mouse reports it", 0.0}, {"Fast", 0.25}, {"Faster", 0.5}, {"Fastest", 0.75}},
-                                           wanted.sensitivity, [](const double& speed) { return std::format("Yours: {:g}", speed); },
-                                           [this](const double& speed) {
-                                               wanted.sensitivity = speed;
-                                               showOverview();
-                                           },
-                                           palette, defer));
+        column->addChild(sliderRow("Pointer speed", "0 is as the mouse reports it", -100, 100,
+                                   static_cast<int>(std::lround(wanted.sensitivity * 100)), palette,
+                                   [this](int speed) {
+                                       wanted.sensitivity = speed / 100.0;
+                                       fillStatus();
+                                   },
+                                   defer));
         column->addChild(optionRow<bool>("Acceleration", "whether a faster move takes the pointer further",
                                          {{"On, as most desktops have it", false}, {"Off, as games prefer", true}}, wanted.flat, [](const bool&) { return std::string{}; },
                                          [this](const bool& flat) {
@@ -271,6 +291,15 @@ namespace ui {
                                 &desktop::InputSettings::leftHanded));
         column->addChild(choice("Scrolling", "which way the wheel moves the page", "Down moves the page down", "Natural, as on a phone",
                                 &desktop::InputSettings::mouseNatural));
+        if (doubleClickNow) {
+            column->addChild(sliderRow("Double click", "the most time between its clicks, in ms", 150, 1000, doubleClick, palette,
+                                       [this](int time) {
+                                           doubleClick = time;
+                                           fillStatus();
+                                       },
+                                       defer));
+            column->addChild(doubleClickTest());
+        }
     }
 
     void InputPage::fillTouchpad(const CSharedPointer<Hyprtoolkit::CColumnLayoutElement>& column) {
@@ -305,6 +334,40 @@ namespace ui {
                                palette, defer);
     }
 
+    CSharedPointer<Hyprtoolkit::IElement> InputPage::doubleClickTest() {
+        const auto row   = leftRow(scaled(56.0));
+        const auto names = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {scaled(220.0), 1.0}})->commence();
+        names->addChild(markupLine("<b>Try it</b>", palette));
+        names->addChild(markupLine(escapeMarkup("double-click the folder: it opens when the clicks are close enough"), palette, Hyprtoolkit::CFontSize{Hyprtoolkit::CFontSize::HT_FONT_SMALL}, 0.6F));
+        row->addChild(names);
+        folderOpen = false;
+        testFolder = Hyprtoolkit::CImageBuilder::begin()
+                         ->icon(icons->lookupIcon("folder"))
+                         ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(48.0), scaled(48.0)}})
+                         ->commence();
+        testFolder->setReceivesMouse(true);
+        testFolder->setMouseButton([this](Hyprtoolkit::Input::eMouseButton button, bool down) {
+            if (button != Hyprtoolkit::Input::MOUSE_BUTTON_LEFT || !down)
+                return;
+            const auto now   = std::chrono::steady_clock::now();
+            const bool quick = now - lastClick <= std::chrono::milliseconds{doubleClick};
+            // A third click starts over, as a double click does in an app.
+            lastClick = quick ? std::chrono::steady_clock::time_point{} : now;
+            if (quick)
+                defer([this] {
+                    folderOpen = !folderOpen;
+                    showTestFolder();
+                });
+        });
+        row->addChild(testFolder);
+        return row;
+    }
+
+    void InputPage::showTestFolder() {
+        if (testFolder)
+            testFolder->rebuild()->icon(icons->lookupIcon(folderOpen ? "folder-open" : "folder"))->commence();
+    }
+
     void InputPage::fillStatus() {
         const auto                                               planned = plan();
         std::vector<CSharedPointer<Hyprtoolkit::CButtonElement>> buttons;
@@ -314,7 +377,7 @@ namespace ui {
         std::string note;
         if (!planned)
             note = escapeMarkup(std::format("Lantern cannot apply it: {}.", planned.error()));
-        else if (!*planned)
+        else if (!*planned && (!doubleClickNow || *doubleClickNow == doubleClick))
             note = std::format("{}  {}", colored("✓", hex(palette->m_colors.accent)), escapeMarkup(outcome.empty() ? "Your keyboard and mouse are set like this." : outcome));
         else {
             buttons.push_back(button("Review changes", 160, true, [this] { defer([this] { showReview(); }); }));
@@ -331,21 +394,31 @@ namespace ui {
 
     void InputPage::showReview() {
         auto planned = plan();
-        if (!planned || !*planned) {
-            outcome = planned ? "" : planned.error();
+        if (!planned) {
+            outcome = planned.error();
             return showOverview();
         }
+        changes.clear();
+        if (*planned)
+            changes.push_back(std::move(**planned));
+        gtk = planGtk();
+        if (changes.empty() && gtk.empty())
+            return showOverview();
         reviewing = true;
-        change    = std::move(**planned);
         outcome.clear();
         body->clearChildren();
         body->addChild(space(4));
         body->addChild(heading("Review: keyboard and mouse", palette));
-        body->addChild(paragraph("Applying writes the change below, after keeping a copy of the config so it can be undone. Hyprland reads it at once; if it reports a "
-                                 "problem with it, Lantern puts the config back.",
-                                 palette, true));
+        if (!changes.empty())
+            body->addChild(paragraph("Applying writes the change below, after keeping a copy of the config so it can be undone. Hyprland reads it at once; if it reports a "
+                                     "problem with it, Lantern puts the config back.",
+                                     palette, true));
+        for (const auto& setting : gtk)
+            body->addChild(paragraph(std::format("Applying sets GTK's {} from {} to {} milliseconds, for GTK apps. Apps that are open take it when they start again.", setting.key,
+                                                 setting.current, setting.wanted),
+                                     palette, true));
         setFooter(footer, {button("Cancel", 110, false, [this] { defer([this] { showOverview(); }); }), button("Apply", 110, true, [this] { defer([this] { apply(); }); })});
-        diff.setRows(diffRows({change}, *palette));
+        diff.setRows(diffRows(changes, *palette));
         body->addChild(diff.element());
     }
 
@@ -353,13 +426,15 @@ namespace ui {
         if (!reviewing)
             return;
         const auto environment = foundation::currentEnvironment();
-        const auto record      = configuration::applyChanges({change}, application::backupsFolder(environment), changeName);
+        const auto record      = configuration::applyChanges(changes, application::backupsFolder(environment), changeName);
         if (!record) {
             outcome = std::format("Nothing was written: {}.", record.error());
             return showOverview();
         }
+        // GTK's settings live in dconf: their old values go beside the change's record, for Undo.
+        desktop::setGsettings(gtk, *record, environment);
         outcome = "Applied.";
-        if (const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or("")))
+        if (const auto hyprctl = desktop::findProgram("hyprctl", foundation::variable(environment, "PATH").value_or("")); hyprctl && !changes.empty())
             application::checkHyprlandConfig(loop, *hyprctl, *record, [this](std::optional<std::string> problem) {
                 if (!problem)
                     return;
@@ -373,15 +448,19 @@ namespace ui {
     }
 
     void InputPage::undo() {
-        const auto latest = configuration::latestChange(application::backupsFolder(foundation::currentEnvironment()), changeName);
+        const auto environment = foundation::currentEnvironment();
+        const auto latest      = configuration::latestChange(application::backupsFolder(environment), changeName);
         if (!latest)
             return showOverview();
-        if (const auto undone = configuration::undoChange(*latest); !undone)
+        if (const auto undone = configuration::undoChange(*latest); !undone) {
             outcome = std::format("Nothing was undone: {}.", undone.error());
-        else
+        } else {
+            desktop::restoreGsettings(*latest, environment);
             outcome = "Undone.";
+        }
         reread();
-        wanted = current.value_or(wanted);
+        wanted      = current.value_or(wanted);
+        doubleClick = doubleClickNow.value_or(doubleClick);
         showOverview();
     }
 

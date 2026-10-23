@@ -11,7 +11,9 @@
 #include <hyprtoolkit/element/Combobox.hpp>
 #include <hyprtoolkit/element/Null.hpp>
 #include <hyprtoolkit/element/Rectangle.hpp>
+#include <hyprtoolkit/element/Slider.hpp>
 
+#include <cmath>
 #include <cstdlib>
 #include <algorithm>
 #include <format>
@@ -277,6 +279,32 @@ namespace ui {
                           ->currentItem(current)
                           ->onChanged([changed = std::move(changed), defer](CSharedPointer<Hyprtoolkit::CComboboxElement>, std::size_t index) {
                               defer([changed, index] { changed(index); });
+                          })
+                          ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(260.0), scaled(34.0)}})
+                          ->commence());
+        return row;
+    }
+
+    CSharedPointer<Hyprtoolkit::CRowLayoutElement> sliderRow(const std::string& name, const std::string& about, int least, int most, int current,
+                                                             const CSharedPointer<Hyprtoolkit::CPalette>& palette, std::function<void(int)> changed,
+                                                             const std::function<void(std::function<void()>)>& defer) {
+        const auto row   = leftRow(scaled(40.0));
+        const auto names = Hyprtoolkit::CColumnLayoutBuilder::begin()->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_AUTO, {scaled(220.0), 1.0}})->commence();
+        names->addChild(markupLine(std::format("<b>{}</b>", escapeMarkup(name)), palette));
+        names->addChild(markupLine(escapeMarkup(about), palette, CFontSize{CFontSize::HT_FONT_SMALL}, 0.6F));
+        row->addChild(names);
+        row->addChild(Hyprtoolkit::CSliderBuilder::begin()
+                          ->min(static_cast<float>(least))
+                          ->max(static_cast<float>(most))
+                          ->val(static_cast<float>(current))
+                          ->snapInt(true)
+                          ->showLabel(true)
+                          ->onChanged([changed = std::move(changed), defer, last = current](CSharedPointer<Hyprtoolkit::CSliderElement>, float value) mutable {
+                              const auto whole = static_cast<int>(std::lround(value));
+                              if (whole == last)
+                                  return;
+                              last = whole;
+                              defer([changed, whole] { changed(whole); });
                           })
                           ->size(CDynamicSize{CDynamicSize::HT_SIZE_ABSOLUTE, CDynamicSize::HT_SIZE_ABSOLUTE, {scaled(260.0), scaled(34.0)}})
                           ->commence());
