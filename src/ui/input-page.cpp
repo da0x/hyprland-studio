@@ -277,7 +277,7 @@ namespace ui {
                                    static_cast<int>(std::lround(wanted.sensitivity * 100)), palette,
                                    [this](int speed) {
                                        wanted.sensitivity = speed / 100.0;
-                                       fillStatus();
+                                       settleStatus();
                                    },
                                    defer));
         column->addChild(optionRow<bool>("Acceleration", "whether a faster move takes the pointer further",
@@ -295,7 +295,7 @@ namespace ui {
             column->addChild(sliderRow("Double click", "the most time between its clicks, in ms", 150, 1000, doubleClick, palette,
                                        [this](int time) {
                                            doubleClick = time;
-                                           fillStatus();
+                                           settleStatus();
                                        },
                                        defer));
             column->addChild(doubleClickTest());
@@ -366,6 +366,14 @@ namespace ui {
     void InputPage::showTestFolder() {
         if (testFolder)
             testFolder->rebuild()->icon(icons->lookupIcon(folderOpen ? "folder-open" : "folder"))->commence();
+    }
+
+    void InputPage::settleStatus() {
+        const auto asked = ++statusAsked;
+        loop.after(std::chrono::milliseconds{150}, [this, asked] {
+            if (asked == statusAsked)
+                fillStatus();
+        });
     }
 
     void InputPage::fillStatus() {

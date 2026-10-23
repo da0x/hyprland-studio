@@ -52,6 +52,9 @@ namespace ui {
         [[nodiscard]] Hyprutils::Memory::CSharedPointer<Hyprtoolkit::IElement> doubleClickTest();
         void                                                                   showTestFolder();
         void fillStatus();
+        // Fills the status once a slider has stopped for a moment: planning the change and
+        // drawing the footer at every step it passes leaves no time to draw the slider.
+        void settleStatus();
         [[nodiscard]] std::expected<std::optional<configuration::FileChange>, std::string> plan() const;
         // GTK's double-click time, when the one chosen is not the one set.
         [[nodiscard]] std::vector<desktop::GSetting> planGtk() const;
@@ -67,7 +70,8 @@ namespace ui {
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::ISystemIconFactory>   icons;
         Hyprutils::Memory::CSharedPointer<Hyprtoolkit::CImageElement>        testFolder;
         std::chrono::steady_clock::time_point                                lastClick;
-        bool                                                                 folderOpen = false;
+        bool                                                                 folderOpen  = false;
+        unsigned                                                             statusAsked = 0;
 
         // The layouts xkb knows, by name.
         std::vector<desktop::KnownLayout>                                    known;
